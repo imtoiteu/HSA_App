@@ -23,7 +23,7 @@ RUN if ls /wheels/*.whl >/dev/null 2>&1; then pip install --no-index --find-link
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /data/media && chown -R hsa:hsa /data
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /data/media /run/hsa && chown -R hsa:hsa /data /run/hsa
 
 USER hsa
 EXPOSE 8000

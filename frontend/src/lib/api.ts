@@ -20,6 +20,20 @@ function csrfToken(): string {
 type Opts = { method?: string; body?: unknown; keepalive?: boolean; signal?: AbortSignal; raw?: boolean };
 
 export async function api<T = any>(path: string, opts: Opts = {}): Promise<T> {
+  // idempotent reads are retried on network-level failures (dropped connection, truncated body)
+  const method = opts.method || (opts.body !== undefined ? "POST" : "GET");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await apiOnce<T>(path, opts);
+    } catch (e) {
+      const retriable = method === "GET" && e instanceof ApiError && e.status === 0 && attempt < 2;
+      if (!retriable) throw e;
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
+}
+
+async function apiOnce<T>(path: string, opts: Opts): Promise<T> {
   const method = opts.method || (opts.body !== undefined ? "POST" : "GET");
   const headers: Record<string, string> = { Accept: "application/json" };
   let body: BodyInit | undefined;
@@ -37,11 +51,16 @@ export async function api<T = any>(path: string, opts: Opts = {}): Promise<T> {
     if ((e as Error).name === "AbortError") throw e;
     throw new ApiError(0, "network", "Không kết nối được máy chủ. Kiểm tra kết nối mạng.");
   }
+  let text: string;
+  try {
+    text = await res.text();
+  } catch {
+    throw new ApiError(0, "network", "Kết nối bị gián đoạn. Vui lòng thử lại.");
+  }
   if (opts.raw) {
     if (!res.ok) throw new ApiError(res.status, "http", `Lỗi ${res.status}`);
-    return (await res.text()) as unknown as T;
+    return text as unknown as T;
   }
-  const text = await res.text();
   let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;

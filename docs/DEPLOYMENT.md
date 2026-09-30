@@ -9,7 +9,7 @@ Target: a single VPS (tested on 8 GB RAM / 4 vCPU shared with other projects) ru
 | `db` | postgres:16-alpine | application database (volume `pgdata`) | internal only | 640 MB, 1.5 CPU |
 | `api` | hsaapp-api | migrations + seed on start, FastAPI (uvicorn, `HSA_WORKERS`, default 1) | internal only | 900 MB, 1.5 CPU |
 | `scheduler` | hsaapp-api | every 5 min: expire orders, purge stale sessions/rate-limit windows, run syncs queued from the admin UI (niced) | internal only | 900 MB, 1 CPU |
-| `web` | hsaapp-web | nginx: SPA, `/media` (immutable cache), `/api` proxy, rate limits, security headers | `${WEB_BIND}:${WEB_PORT}` (default `0.0.0.0:8620`) | 96 MB |
+| `web` | hsaapp-web | nginx (host network): SPA, `/media` (immutable cache), `/api` proxy over a Unix socket, rate limits, security headers | listens on `${WEB_BIND}:${WEB_PORT}` (default `0.0.0.0:8620`) | 128 MB, 1 CPU |
 | `backup` | postgres:16-alpine | daily `pg_dump -Fc` to `${BACKUP_PATH}`, keeps `${BACKUP_KEEP_DAYS}` days | internal only | 128 MB |
 
 The upstream bank is bind-mounted **read-only** into `api` and `scheduler` at `/upstream`. Media lives in the

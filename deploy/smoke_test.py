@@ -8,7 +8,9 @@ starts a free exam, autosaves, reloads, submits, checks history/bookmarks/report
 credentials — the admin overview and question search. Exits non-zero on the first failure.
 """
 import argparse
+import http.client
 import http.cookiejar
+import time
 import json
 import sys
 import urllib.error
@@ -33,11 +35,19 @@ class Client:
             req.add_header("Content-Type", "application/json")
         if method != "GET":
             req.add_header("X-CSRF-Token", self.csrf())
-        try:
-            with self.op.open(req, timeout=60) as r:
-                status, text = r.status, r.read().decode()
-        except urllib.error.HTTPError as e:
-            status, text = e.code, e.read().decode()
+        for attempt in range(3):
+            try:
+                with self.op.open(req, timeout=60) as r:
+                    status, text = r.status, r.read().decode()
+                break
+            except urllib.error.HTTPError as e:
+                status, text = e.code, e.read().decode()
+                break
+            except (http.client.IncompleteRead, ConnectionError) as e:
+                idempotent = method == "GET" or path.endswith("/submit") or "/check/" in path
+                if not idempotent or attempt == 2:  # only idempotent calls are retried
+                    raise SystemExit(f"FAIL {method} {path}: {type(e).__name__}")
+                time.sleep(0.5)
         if status != expect:
             raise SystemExit(f"FAIL {method} {path}: {status} (expected {expect}) {text[:300]}")
         return json.loads(text) if text and text[0] in "[{" else text

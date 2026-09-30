@@ -24,13 +24,22 @@ API = 1 uvicorn process by default (~120 MB; sync endpoints run in its threadpoo
 ## Components
 
 ```
-                 ┌─────────────── docker compose (project "hsaapp") ───────────────┐
- browser ──:8620─▶ web (nginx) ── /api/* ──▶ api (uvicorn/FastAPI) ──▶ db (postgres) │
-                 │   │  /media/* (content-addressed files, read-only volume)        │
-                 │   └─ /* SPA (index.html + hashed bundles)            backup ─────┘
-                 └──────────────────────────────────────────────────────────────────┘
- upstream (read-only bind mount) ──▶ `hsa-app sync` (CLI inside api image) ──▶ db + media
+ browser ──:8620──▶ web (nginx, host network) ──unix socket──▶ api (uvicorn/FastAPI) ──▶ db (postgres)
+                     │ /media/* content-addressed files (read-only volume)       ▲ private bridge (MTU 65000)
+                     └ /* SPA (index.html + pre-compressed hashed bundles)       │
+ upstream (read-only bind mount) ──▶ scheduler: maintenance + queued `hsa-app sync` (niced) ──┘   backup ──▶ ./backups
 ```
+
+Operational notes from the production host (CPU fully saturated by other tenants, kernel softirq
+backlog drops visible in `/proc/net/softnet_stat`):
+
+* nginx runs with `network_mode: host`: no docker-proxy, no bridge hop for client traffic, and the
+  real client IP is available for rate limiting;
+* nginx ↔ API use a Unix domain socket (a shared volume) instead of TCP over the bridge;
+* the private bridge (API ↔ Postgres, scheduler ↔ Postgres) uses a jumbo MTU;
+* static assets are pre-compressed (`gzip_static`), API JSON is compressed once in-process;
+* one uvicorn process by default (uvicorn 0.32 kills workers that miss a 5 s ping when starved);
+* the synchronisation runs in the scheduler, never inside API workers.
 
 ## Backend modules (`backend/app`)
 

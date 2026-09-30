@@ -51,9 +51,10 @@ services:
       db: { condition: service_healthy }
     volumes:
       - media:/data/media
+      - apisock:/run/hsa
       - ${UPSTREAM_PATH:-/root/imtoiteu/HSA-question-bank}:/upstream:ro
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status == 200 else 1)"]
+      test: ["CMD", "python", "-m", "app.healthcheck"]
       interval: 20s
       timeout: 6s
       retries: 5
@@ -93,18 +94,21 @@ services:
     restart: unless-stopped
     depends_on:
       api: { condition: service_healthy }
-    ports:
-      - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-8620}:80"
+    # Host networking: nginx listens directly on WEB_BIND:WEB_PORT (no docker-proxy, no bridge hop for
+    # client traffic) and sees real client IPs for rate limiting. It reaches the API over a Unix socket.
+    network_mode: host
+    environment:
+      NGINX_LISTEN: ${WEB_BIND:-0.0.0.0}:${WEB_PORT:-8620}
     volumes:
       - media:/srv/media:ro
+      - apisock:/run/hsa
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${WEB_PORT:-8620}/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
     mem_limit: 128m
     cpus: 1.0
-    networks: [internal]
     logging: *logging
 
   backup:
@@ -131,6 +135,7 @@ services:
 volumes:
   pgdata:
   media:
+  apisock:
 
 networks:
   internal:

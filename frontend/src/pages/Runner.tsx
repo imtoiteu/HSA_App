@@ -174,7 +174,14 @@ export default function Runner() {
     try {
       takeTime();
       await flush();
-      await post(`/api/sessions/${id}/submit`);
+      try {
+        await post(`/api/sessions/${id}/submit`);
+      } catch (e) {
+        // submission is idempotent server-side: if only the response was lost, the attempt is recorded
+        if (!(e instanceof ApiError) || e.status !== 0) throw e;
+        const s = await get<SessionData>(`/api/sessions/${id}`);
+        if (s.status !== "submitted") throw e;
+      }
       localStorage.removeItem(pendingKey(id));
       if (auto) toast("Hết giờ! Bài làm đã được nộp tự động.", "info");
       nav(`/ket-qua/${id}`, { replace: true });
