@@ -14,12 +14,12 @@ snapshot of the exact configuration it was generated from.
       "duration_minutes": 75,                     // required when timing = per_section
       "points_per_question": 1,
       "order": "pool",                            // pool (pool order) | shuffled (seeded shuffle of units)
-      "pools": [                                  // random selection …
+      "items": [{"external_id": "cq_…", "bank": "hsa"}],  // optional: exact questions first, in this order
+      "pools": [                                  // … plus/or random selection
         {"subjects": ["math"], "types": ["single_choice"], "count": 40,
-         "exam_systems": [], "topics": [], "banks": []},
+         "exam_systems": [], "topics": [], "banks": [], "cognitive_levels": []},
         {"subjects": ["math"], "types": ["numeric_response"], "count": 10}
       ]
-      // … or a fixed exam: "items": [{"external_id": "cq_…", "bank": "hsa"}, …]
     }
   ],
   "timing": "per_section",          // none | global | per_section
@@ -55,3 +55,11 @@ Selection orders candidate units by `sha256(seed, section, pool, unit)`; option 
 `sha256(seed, "opt", question, label)`. A session stores seed, generator version, blueprint
 snapshot, scoring snapshot, pool fingerprint and the exact `question_version_id` + option order of
 every item — reviews never regenerate anything.
+
+## Curated exam sets
+
+A section may combine **fixed items** (hand-picked questions in a manual order, placed first) with
+**random pools** (subject/type quotas, bank selection, exam-system, topic and cognitive-level filters
+where the bank provides them); random picks never repeat a fixed item. Price, publication and access
+are set per blueprint; products can bundle attempts across blueprints. Everything is data — new exam
+sets need no code changes. Questions from inactive banks are never selected.

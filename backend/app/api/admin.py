@@ -1,4 +1,5 @@
 """Admin / editorial API. Never writes to the upstream bank: overrides and corrections are app-side."""
+import collections
 import datetime as dt
 import logging
 import os
@@ -19,8 +20,8 @@ from ..db import SessionLocal, get_db
 from ..exam.blueprint import parse_config
 from ..exam.selection import count_available
 from ..models import (AuditLog, Entitlement, ExamBlueprint, ExamItem, ExamSession, PaymentOrder, PaymentTransaction,
-                      Product, Question, QuestionBank, QuestionCorrection, QuestionReport, QuestionVersion, Subject,
-                      SubjectAlias, SyncRun, User)
+                      Product, Question, QuestionBank, QuestionCorrection, QuestionReport, QuestionVersion,
+                      SourceDocument, Subject, SubjectAlias, SyncRun, User)
 from ..settings_store import get_setting, set_setting
 from ..sync.importer import recompute_policy
 from ..sync.policy import APP_REASONS, EDITORIAL_STATES, effective_served
@@ -96,6 +97,10 @@ def exam_stats(db: Session = Depends(get_db)):
 def list_questions(q: str | None = None, subject: str | None = None, state: str | None = None,
                    served: bool | None = None, qtype: str | None = None, bank: str | None = None,
                    reason: str | None = None, reported: bool | None = None, override: bool | None = None,
+                   source_subject: str | None = None, inferred_subject: str | None = None,
+                   subject_source: str | None = None, has_answer: bool | None = None,
+                   has_formula: bool | None = None, has_image: bool | None = None, eligible: bool | None = None,
+                   scoring_mode: str | None = None,
                    page: int = 1, size: int = 25, db: Session = Depends(get_db)):
     off, lim = page_params(page, size, 100)
     st = select(Question, QuestionBank.code).join(QuestionBank, QuestionBank.id == Question.bank_id)
@@ -126,6 +131,24 @@ def list_questions(q: str | None = None, subject: str | None = None, state: str 
         st = st.where(Question.policy_reasons.any(reason))
     if override is not None:
         st = st.where(Question.admin_override.is_not(None) if override else Question.admin_override.is_(None))
+    if source_subject:
+        st = st.where(Question.source_subject == source_subject) if source_subject != "_none" \
+            else st.where(Question.source_subject.is_(None))
+    if inferred_subject:
+        st = st.where(Question.inferred_subject == inferred_subject) if inferred_subject != "_none" \
+            else st.where(Question.inferred_subject.is_(None))
+    if subject_source:
+        st = st.where(Question.subject_source == subject_source)
+    if has_answer is not None:
+        st = st.where(Question.answer_kind.is_not(None) if has_answer else Question.answer_kind.is_(None))
+    if has_formula is not None:
+        st = st.where(Question.has_formula.is_(has_formula))
+    if has_image is not None:
+        st = st.where(Question.has_image.is_(has_image))
+    if eligible is not None:
+        st = st.where(Question.policy_eligible.is_(eligible))
+    if scoring_mode:
+        st = st.where(Question.scoring_mode == scoring_mode)
     if reported:
         st = st.where(select(QuestionReport.id).where(QuestionReport.question_id == Question.id,
                                                       QuestionReport.status.in_(["open", "triaged"])).exists())
@@ -136,6 +159,9 @@ def list_questions(q: str | None = None, subject: str | None = None, state: str 
     for qu, bcode in rows:
         v = qu.current_version
         items.append({"id": qu.id, "external_id": qu.external_id, "bank": bcode, "subject": qu.subject_code,
+                      "source_subject": qu.source_subject, "inferred_subject": qu.inferred_subject,
+                      "inference_confidence": qu.inference_confidence, "subject_source": qu.subject_source,
+                      "has_answer": qu.answer_kind is not None,
                       "type": qu.question_type, "state": qu.editorial_state, "state_source": qu.state_source,
                       "served": qu.is_served, "eligible": qu.policy_eligible, "reasons": qu.policy_reasons,
                       "override": qu.admin_override, "scoring_mode": qu.scoring_mode,
@@ -168,6 +194,12 @@ def question_detail(qid: int, db: Session = Depends(get_db)):
     return {
         "id": q.id, "external_id": q.external_id, "bank": bank.code, "bank_name": bank.name,
         "type": q.question_type, "subject": q.subject_code, "source_subject": q.source_subject, "topic": q.topic,
+        "subject_source": q.subject_source, "inferred_subject": q.inferred_subject,
+        "inference_confidence": q.inference_confidence, "inference_evidence": q.inference_evidence,
+        "subject_override": q.subject_override, "subject_override_note": q.subject_override_note,
+        "upstream_effective_subject": q.upstream_effective_subject, "classification_source": q.classification_source,
+        "classification_confidence": q.classification_confidence, "classification_evidence": q.classification_evidence,
+        "classification_review": q.classification_review,
         "subtopic": q.subtopic, "cognitive_level": q.cognitive_level, "language": q.language,
         "group_key": q.group_key, "exam_systems": q.exam_systems,
         "review_status": q.review_status, "review_flags": q.review_flags,
@@ -216,6 +248,32 @@ def override(qid: int, body: OverrideIn, db: Session = Depends(get_db), admin: U
     audit(db, admin, f"question_{body.action}", "question", q.external_id, {"note": body.note})
     db.commit()
     return {"served": q.is_served, "override": q.admin_override}
+
+
+class SubjectOverrideIn(BaseModel):
+    subject_code: str | None = None  # null clears the override
+    note: str | None = Field(default=None, max_length=1000)
+
+
+@router.post("/questions/{qid}/subject")
+def override_subject(qid: int, body: SubjectOverrideIn, db: Session = Depends(get_db),
+                     admin: User = Depends(auth.require_admin)):
+    """App-level editorial layer: force the effective subject (upstream data is never modified)."""
+    from ..sync.importer import bank_alias
+    from ..sync.subjects import resolve_subject, upstream_tuple
+    q = _q(db, qid)
+    if body.subject_code and db.get(Subject, body.subject_code) is None:
+        raise err(422, "invalid", "Môn học không tồn tại.")
+    before = q.subject_code
+    q.subject_override = body.subject_code or None
+    q.subject_override_note = body.note
+    q.subject_code, q.subject_source = resolve_subject(q.source_subject, q.inferred_subject, q.inference_confidence,
+                                                       q.subject_override, bank_alias(db, q.bank_id),
+                                                       get_setting(db, "serving_policy"), upstream_tuple(q))
+    audit(db, admin, "question_subject_override", "question", q.external_id,
+          {"before": before, "after": q.subject_code, "note": body.note})
+    db.commit()
+    return {"subject": q.subject_code, "subject_source": q.subject_source}
 
 
 class CorrectionIn(BaseModel):
@@ -773,14 +831,146 @@ def put_alias(body: AliasIn, db: Session = Depends(get_db), admin: User = Depend
     return {"ok": True}
 
 
+def _bank(db: Session, b: QuestionBank) -> dict:
+    counts = db.execute(select(func.count(), func.count().filter(Question.is_served.is_(True)))
+                        .where(Question.bank_id == b.id)).first()
+    subjects = dict(db.execute(select(Question.subject_code, func.count()).where(
+        Question.bank_id == b.id, Question.is_served.is_(True)).group_by(Question.subject_code)).all())
+    last = db.scalar(select(SyncRun).where(SyncRun.bank_id == b.id).order_by(SyncRun.id.desc()).limit(1))
+    compatible = []
+    for bp in db.scalars(select(ExamBlueprint)):
+        pools = [p for sec in (bp.config.get("sections") or []) for p in sec.get("pools") or []]
+        items = [i for sec in (bp.config.get("sections") or []) for i in sec.get("items") or []]
+        if any(not p.get("banks") or b.code in p["banks"] for p in pools) or any(i.get("bank", "hsa") == b.code for i in items):
+            compatible.append({"id": bp.id, "code": bp.code, "name": bp.name})
+    return {"id": b.id, "code": b.code, "name": b.name, "source_kind": b.source_kind, "description": b.description,
+            "version": b.version, "source_uri": b.source_uri, "settings": b.settings, "is_active": b.is_active,
+            "created_at": iso(b.created_at), "last_synced_at": iso(b.last_synced_at),
+            "questions": counts[0], "served": counts[1], "served_by_subject": subjects,
+            "deferred_documents": db.scalar(select(func.count()).where(SourceDocument.bank_id == b.id)),
+            "compatible_blueprints": compatible, "last_sync": _run(last) if last else None}
+
+
 @router.get("/banks")
 def banks(db: Session = Depends(get_db)):
-    counts = dict(db.execute(select(Question.bank_id, func.count()).group_by(Question.bank_id)).all())
-    served = dict(db.execute(select(Question.bank_id, func.count()).where(Question.is_served.is_(True))
-                             .group_by(Question.bank_id)).all())
-    return {"items": [{"id": b.id, "code": b.code, "name": b.name, "source_kind": b.source_kind,
-                       "description": b.description, "is_active": b.is_active, "questions": counts.get(b.id, 0),
-                       "served": served.get(b.id, 0)} for b in db.scalars(select(QuestionBank).order_by(QuestionBank.id))]}
+    return {"items": [_bank(db, b) for b in db.scalars(select(QuestionBank).order_by(QuestionBank.id))]}
+
+
+class BankIn(BaseModel):
+    code: str = Field(pattern=r"^[a-z0-9_]{2,40}$")
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=4000)
+    version: str | None = Field(default=None, max_length=80)
+    source_kind: Literal["manual", "jsonl_import"] = "manual"
+    is_active: bool = True
+    settings: dict = Field(default_factory=dict)
+
+
+@router.post("/banks")
+def create_bank(body: BankIn, db: Session = Depends(get_db), admin: User = Depends(auth.require_admin)):
+    if db.scalar(select(QuestionBank).where(QuestionBank.code == body.code)):
+        raise err(409, "code_taken", "Mã ngân hàng đã tồn tại.")
+    b = QuestionBank(**body.model_dump())
+    db.add(b)
+    db.flush()
+    db.add(SubjectAlias(bank_id=b.id, source_value="", subject_code="general"))
+    audit(db, admin, "bank_created", "question_bank", b.code, body.model_dump())
+    db.commit()
+    return _bank(db, b)
+
+
+class BankUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=4000)
+    version: str | None = Field(default=None, max_length=80)
+    is_active: bool = True
+    settings: dict = Field(default_factory=dict)
+
+
+@router.put("/banks/{code}")
+def update_bank(code: str, body: BankUpdate, db: Session = Depends(get_db), admin: User = Depends(auth.require_admin)):
+    b = db.scalar(select(QuestionBank).where(QuestionBank.code == code))
+    if b is None:
+        raise err(404, "not_found", "Không tìm thấy ngân hàng.")
+    active_changed = b.is_active != body.is_active
+    b.name, b.description, b.is_active, b.settings = body.name, body.description, body.is_active, body.settings
+    if b.source_kind != "hsa_upstream":  # the upstream bank's version is its upstream revision
+        b.version = body.version
+    audit(db, admin, "bank_updated", "question_bank", code, body.model_dump())
+    result = {}
+    if active_changed:
+        db.flush()  # the recompute reads the bank's new is_active from the database
+        result = recompute_policy(db, b.id)
+    db.commit()
+    return dict(_bank(db, b), recomputed=result)
+
+
+@router.get("/banks/{code}/documents")
+def bank_documents(code: str, db: Session = Depends(get_db)):
+    b = db.scalar(select(QuestionBank).where(QuestionBank.code == code))
+    if b is None:
+        raise err(404, "not_found", "Không tìm thấy ngân hàng.")
+    return {"items": [{"external_id": d.external_id, "path": d.path, "status": d.status, "pages": d.pages,
+                       "last_synced_at": iso(d.last_synced_at)}
+                      for d in db.scalars(select(SourceDocument).where(SourceDocument.bank_id == b.id)
+                                          .order_by(SourceDocument.path))]}
+
+
+@router.get("/banks/{code}/sync-runs")
+def bank_sync_runs(code: str, db: Session = Depends(get_db)):
+    b = db.scalar(select(QuestionBank).where(QuestionBank.code == code))
+    if b is None:
+        raise err(404, "not_found", "Không tìm thấy ngân hàng.")
+    return {"items": [_run(r) for r in db.scalars(select(SyncRun).where(SyncRun.bank_id == b.id)
+                                                   .order_by(SyncRun.id.desc()).limit(50))]}
+
+
+@router.post("/banks/{code}/questions")
+def upsert_manual_question(code: str, record: dict, db: Session = Depends(get_db),
+                           admin: User = Depends(auth.require_admin)):
+    """Create/update one question in a manual or imported bank (same record format as JSONL import)."""
+    from ..sync.importer import apply_built, bank_alias
+    from ..sync.jsonl_import import ImportError_, build_record
+    from ..sync.media import MediaStore
+    b = db.scalar(select(QuestionBank).where(QuestionBank.code == code))
+    if b is None:
+        raise err(404, "not_found", "Không tìm thấy ngân hàng.")
+    if b.source_kind == "hsa_upstream":
+        raise err(422, "invalid", "Ngân hàng HSA được đồng bộ từ nguồn; hãy dùng ngân hàng thủ công.")
+    if record.get("subject") and db.get(Subject, record["subject"]) is None:
+        raise err(422, "invalid", "Môn học không tồn tại.")
+    import hashlib as _h
+    import json as _json
+    try:
+        built = build_record(record, get_settings().media_root, MediaStore(get_settings().media_root))
+    except (ImportError_, KeyError, ValueError) as e:
+        raise err(422, "invalid", str(e))
+    alias = {s.code: s.code for s in db.scalars(select(Subject))}
+    alias.update(bank_alias(db, b.id))
+    alias.setdefault("", "general")
+    stats = collections.Counter()
+    apply_built(db, b.id, built, _h.sha256(_json.dumps(record, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
+                alias, get_setting(db, "serving_policy"), None, "manual", stats)
+    q = db.scalar(select(Question).where(Question.bank_id == b.id, Question.external_id == built.external_id))
+    audit(db, admin, "manual_question_saved", "question", built.external_id, {"bank": code, **dict(stats)})
+    db.commit()
+    return {"id": q.id, "external_id": q.external_id, "served": q.is_served, "reasons": q.policy_reasons,
+            "created": bool(stats["created"]), "new_version": bool(stats["versions_created"])}
+
+
+@router.get("/audit/question-bank")
+def question_bank_audit(db: Session = Depends(get_db)):
+    return {"report": get_setting(db, "question_bank_audit") or None,
+            "queued": bool(get_setting(db, "audit_request"))}
+
+
+@router.post("/audit/question-bank")
+def queue_question_bank_audit(deep: bool = False, db: Session = Depends(get_db),
+                              admin: User = Depends(auth.require_admin)):
+    set_setting(db, "audit_request", {"requested_at": dt.datetime.now(dt.timezone.utc).isoformat(), "deep": deep,
+                                      "by": admin.email}, admin.id)
+    db.commit()
+    return {"queued": True}
 
 
 @router.post("/banks/{code}/import")

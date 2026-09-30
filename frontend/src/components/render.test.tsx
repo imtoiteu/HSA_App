@@ -90,3 +90,14 @@ describe("AnswerInput", () => {
     expect(answerText(null)).toBe("Chưa có đáp án");
   });
 });
+
+describe("normalizeTex", () => {
+  it("fixes converter artefacts without changing valid LaTeX", async () => {
+    const { normalizeTex } = await import("../lib/tex");
+    expect(normalizeTex("(75\\text{%})^{2}")).toBe("(75\\text{\\%})^{2}");
+    expect(normalizeTex("50\\%")).toBe("50\\%");
+    expect(normalizeTex("D=R\\\\{3\\}.")).toBe("D=R\\setminus\\{3\\}.");
+    expect(renderTex("(75\\text{%})^{2}")).not.toContain("math-error");
+    expect(normalizeTex("\\frac{1}{2}")).toBe("\\frac{1}{2}");
+  });
+});

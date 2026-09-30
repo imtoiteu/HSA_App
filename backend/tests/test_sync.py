@@ -175,7 +175,7 @@ def test_interrupted_sync_resumes_from_checkpoint(synced, mutable_upstream, monk
 
 def test_concurrent_sync_is_refused(synced):
     a, b = SessionLocal(), SessionLocal()
-    a.execute(text("SELECT pg_advisory_lock(72110001)"))
+    assert a.scalar(text("SELECT pg_try_advisory_lock(72110001)")), "sync lock leaked by an earlier run"
     try:
         with pytest.raises(RuntimeError):
             sync_hsa(b, UP(), MEDIA())

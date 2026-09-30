@@ -1,7 +1,16 @@
 # Importing additional question banks
 
-Besides the synchronised HSA upstream bank, admins can load any number of other banks without code
-changes: Admin → Ngân hàng & đồng bộ → Nhập JSONL, or `hsa-app import-jsonl <bank_code> <file>`.
+Besides the synchronised HSA upstream bank, admins can create any number of other banks without code
+changes (Admin → Ngân hàng & đồng bộ → Tạo ngân hàng: code, name, description, version, active flag) and
+fill them by
+
+* uploading JSONL (Admin → Nhập JSONL, or `hsa-app import-jsonl <bank_code> <file>`), or
+* entering questions one by one (bank row → *Thêm câu*; `POST /api/admin/banks/<code>/questions` with one
+  record of the format below). Saving the same `external_id` again creates a new immutable version.
+
+Each bank keeps its version label, source, sync/import history, served-subject counts and the list of exam
+blueprints that can draw from it. Deactivating a bank removes all its questions from serving and exam
+generation at once (nothing is deleted).
 Imports are idempotent (keyed by `(bank, external_id)`; unchanged records are no-ops, changed ones
 get a new immutable version). Blueprint pools can target banks with `"banks": ["<bank_code>"]`.
 

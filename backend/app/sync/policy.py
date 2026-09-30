@@ -24,17 +24,29 @@ APP_REASONS = {
     "answer_kind_unknown": "Dạng đáp án không hỗ trợ",
     "no_input": "Không xác định được cách trả lời",
     "removed_upstream": "Câu hỏi đã bị gỡ khỏi ngân hàng nguồn",
+    "unsupported_for_serving": "Dạng câu hỏi chưa xác định được cách làm/chấm (open_or_unknown)",
+    "group_membership_suspect": "Đoạn dữ liệu chung ghi phạm vi câu khác với số câu này (gắn nhầm đoạn)",
+    "formula_render_error": "Công thức trong đề/phương án không hiển thị được trên web (KaTeX)",
+    "solution_formula_render_error": "Công thức trong lời giải không hiển thị được trên web (KaTeX)",
 }
+# reasons recorded for admins but not blocking by default
+NON_BLOCKING_REASONS = {"solution_formula_render_error"}
 
 DEFAULT_POLICY = {
     "allowed_states": ["READY_TO_SERVE"],
     "allowed_types": ["single_choice", "multiple_choice", "true_false", "true_false_statements",
                       "numeric_response", "short_response", "error_identification", "constructed_response"],
-    "blocking_reasons": sorted(APP_REASONS),
+    "blocking_reasons": sorted(set(APP_REASONS) - {"solution_formula_render_error"}),
     "practice_allow_self_check": True,     # practice may include items the student checks against the key
     "text_answers_auto_scored": False,     # free-text keys are compared by the student, not auto-scored
     "numeric_tolerance": 1e-6,             # relative tolerance for numeric answers
     "topic_min_coverage": 0.6,             # topic practice only when ≥60% of served questions have a topic
+    # second-pass subject inference: which confidences may set the effective subject, and which
+    # original subject values count as generic/unknown (inference may refine them)
+    "subject_inference_confidence": ["high", "medium"],
+    "generic_source_subjects": ["", "science", "logic_reasoning"],
+    # upstream's validated final classification (editorial/subject_effective.jsonl) takes precedence
+    "use_upstream_effective_subject": True,
 }
 
 

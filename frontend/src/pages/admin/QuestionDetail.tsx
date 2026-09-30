@@ -18,6 +18,10 @@ interface Report { id: number; category: string; message: string | null; status:
 interface Correction { id: number; field: string; old_value: string | null; new_value: string; evidence: string | null; note: string | null; status: string; created_at: string; report_id: number | null }
 interface Detail {
   id: number; external_id: string; bank: string; bank_name: string; type: string; subject: string | null; source_subject: string | null;
+  subject_source: string; inferred_subject: string | null; inference_confidence: string | null; inference_evidence: string[] | null;
+  subject_override: string | null; subject_override_note: string | null;
+  upstream_effective_subject: string | null; classification_source: string | null; classification_confidence: string | null;
+  classification_evidence: string[] | null; classification_review: string | null;
   topic: string | null; subtopic: string | null; cognitive_level: string | null; language: string | null; group_key: string | null;
   exam_systems: string[]; review_status: string | null; review_flags: string[]; answer_source_type: string | null;
   editorial_state: string; editorial_states: string[]; state_source: string; state_notes: string[]; scoring_mode: string;
@@ -95,6 +99,9 @@ export default function QuestionDetail() {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [ver, setVer] = useState<Version | null>(null);
+  const [subj, setSubj] = useState<string>("");
+  const [subjNote, setSubjNote] = useState("");
+  const subjects = useAsync(() => get<{ items: { code: string; name: string }[] }>("/api/admin/subjects"), []);
   const toast = useToast();
   if (d.loading) return <Spinner />;
   if (d.error || !d.data) return <ErrorBox error={d.error} />;
@@ -106,6 +113,15 @@ export default function QuestionDetail() {
       await post(`/api/admin/questions/${q.id}/override`, { action, note: note || null });
       toast(action === "clear" ? "Đã bỏ ghi đè." : action === "enable" ? "Đã bật phục vụ." : "Đã tắt phục vụ.", "ok");
       setNote(""); d.reload();
+    } catch (e) { toast(errMsg(e), "error"); } finally { setBusy(false); }
+  };
+  const setSubject = async (code: string | null) => {
+    setBusy(true);
+    try {
+      const r = await post<{ subject: string; subject_source: string }>(`/api/admin/questions/${q.id}/subject`,
+        { subject_code: code, note: subjNote || null });
+      toast(code ? `Đã gán môn ${r.subject}.` : `Đã bỏ ghi đè môn (hiện: ${r.subject}).`, "ok");
+      setSubjNote(""); d.reload();
     } catch (e) { toast(errMsg(e), "error"); } finally { setBusy(false); }
   };
   const openVersion = async (vid: number) => {
@@ -162,6 +178,34 @@ export default function QuestionDetail() {
               <button className="btn ok sm" disabled={busy} onClick={() => override("enable")}>Bật phục vụ</button>
               <button className="btn danger sm" disabled={busy} onClick={() => override("disable")}>Tắt phục vụ</button>
               {q.override && <button className="btn secondary sm" disabled={busy} onClick={() => override("clear")}>Theo chính sách</button>}
+            </div>
+          </div>
+          <div className="card">
+            <h3>Phân loại môn</h3>
+            <dl className="kv">
+              <dt>Môn hiệu lực</dt><dd>{q.subject || "—"} <span className="badge brand">{({ original: "theo môn gốc", upstream_effective: "theo phân loại đã kiểm định của nguồn", inferred: "theo suy luận", admin: "admin gán", unclassified: "chưa phân loại" } as Record<string, string>)[q.subject_source] || q.subject_source}</span></dd>
+              <dt>Môn gốc</dt><dd>{q.source_subject ?? <span className="muted">(trống)</span>}</dd>
+              <dt>Môn suy luận</dt><dd>{q.inferred_subject ?? <span className="muted">(không đủ bằng chứng)</span>}
+                {q.inference_confidence && <span className="muted small"> · độ tin cậy {q.inference_confidence}</span>}</dd>
+              <dt>Bằng chứng</dt><dd className="small">{(q.inference_evidence || []).join("; ") || "—"}</dd>
+              <dt>Phân loại nguồn</dt><dd>{q.classification_source ? <>{q.upstream_effective_subject ?? "(không xác định)"}
+                <span className="muted small"> · {q.classification_source} · {q.classification_confidence ?? "—"}</span>
+                {q.classification_review && <span className="badge warn" style={{ marginLeft: 6 }}>{q.classification_review}</span>}
+                <div className="small muted">{(q.classification_evidence || []).join("; ")}</div></> : "—"}</dd>
+              {q.subject_override && <><dt>Ghi đè</dt><dd>{q.subject_override} <span className="muted small">{q.subject_override_note}</span></dd></>}
+            </dl>
+            <div className="row mt" style={{ alignItems: "flex-end" }}>
+              <div className="field grow"><label htmlFor="subj-sel">Gán môn (lớp biên tập của app, không sửa dữ liệu nguồn)</label>
+                <select id="subj-sel" className="input" value={subj} onChange={(e) => setSubj(e.target.value)}>
+                  <option value="">— chọn môn —</option>
+                  {(subjects.data?.items || []).map((x) => <option key={x.code} value={x.code}>{x.name}</option>)}
+                </select></div>
+              <div className="field grow"><label htmlFor="subj-note">Ghi chú</label>
+                <input id="subj-note" className="input" value={subjNote} onChange={(e) => setSubjNote(e.target.value)} /></div>
+            </div>
+            <div className="row mt">
+              <button className="btn sm" disabled={busy || !subj} onClick={() => setSubject(subj)}>Gán môn</button>
+              {q.subject_override && <button className="btn secondary sm" disabled={busy} onClick={() => setSubject(null)}>Bỏ ghi đè môn</button>}
             </div>
           </div>
           <div className="card">

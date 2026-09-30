@@ -8,7 +8,17 @@ import { PageHead, ServedBadge, StateBadge, useUrlState } from "./common";
 interface QRow {
   id: number; external_id: string; bank: string; subject: string | null; type: string; state: string; state_source: string;
   served: boolean; eligible: boolean; reasons: string[]; override: string | null; scoring_mode: string; removed: boolean; preview: string;
+  source_subject: string | null; inferred_subject: string | null; inference_confidence: string | null;
+  subject_source: string; has_answer: boolean;
 }
+const SUBJECT_SOURCE: Record<string, string> = {
+  original: "gốc", upstream_effective: "phân loại nguồn", inferred: "suy luận", admin: "admin", unclassified: "chưa phân loại",
+};
+const RAW_SUBJECTS: [string, string][] = [
+  ["_none", "(trống)"], ["math", "math"], ["literature_language", "literature_language"], ["english", "english"],
+  ["physics", "physics"], ["chemistry", "chemistry"], ["biology", "biology"], ["history", "history"],
+  ["geography", "geography"], ["science", "science"], ["logic_reasoning", "logic_reasoning"],
+];
 const SIZE = 25;
 const boolParam = (v: string) => (v === "yes" ? "true" : v === "no" ? "false" : undefined);
 
@@ -22,7 +32,11 @@ export default function Questions() {
   const params = {
     q: u.get("q"), subject: u.get("subject"), state: u.get("state"), served: boolParam(u.get("served")),
     qtype: u.get("qtype"), bank: u.get("bank"), reason: u.get("reason"), reported: boolParam(u.get("reported")),
-    override: boolParam(u.get("override")), page, size: SIZE,
+    override: boolParam(u.get("override")), source_subject: u.get("source_subject"),
+    inferred_subject: u.get("inferred_subject"), subject_source: u.get("subject_source"),
+    has_answer: boolParam(u.get("has_answer")), has_formula: boolParam(u.get("has_formula")),
+    has_image: boolParam(u.get("has_image")), eligible: boolParam(u.get("eligible")),
+    scoring_mode: u.get("scoring_mode"), page, size: SIZE,
   };
   const key = JSON.stringify(params);
   const list = useAsync(() => get<{ total: number; items: QRow[] }>("/api/admin/questions" + qs(params)), [key]);
@@ -55,6 +69,14 @@ export default function Questions() {
         {sel("f-bank", "Ngân hàng", "bank", (banks.data?.items || []).map((b) => [b.code, b.name] as [string, string]))}
         {sel("f-reported", "Có báo lỗi", "reported", [["yes", "Có báo lỗi mở"]])}
         {sel("f-override", "Ghi đè admin", "override", [["yes", "Có ghi đè"], ["no", "Không ghi đè"]])}
+        {sel("f-eligible", "Đủ điều kiện (chính sách)", "eligible", [["yes", "Đủ điều kiện"], ["no", "Không đủ"]])}
+        {sel("f-ssource", "Nguồn môn hiệu lực", "subject_source", Object.entries(SUBJECT_SOURCE))}
+        {sel("f-orig", "Môn gốc (ngân hàng)", "source_subject", RAW_SUBJECTS)}
+        {sel("f-inf", "Môn suy luận", "inferred_subject", RAW_SUBJECTS)}
+        {sel("f-answer", "Đáp án", "has_answer", [["yes", "Có đáp án"], ["no", "Chưa có đáp án"]])}
+        {sel("f-mode", "Chấm điểm", "scoring_mode", [["auto", "Tự động"], ["self_check", "Tự đánh giá"], ["none", "Không chấm"]])}
+        {sel("f-formula", "Công thức", "has_formula", [["yes", "Có công thức"], ["no", "Không"]])}
+        {sel("f-image", "Hình ảnh", "has_image", [["yes", "Có hình"], ["no", "Không"]])}
         <div className="field">
           <label htmlFor="f-reason">Lý do loại</label>
           <input id="f-reason" className="input" defaultValue={u.get("reason")} placeholder="vd: group_context_missing"
@@ -73,7 +95,9 @@ export default function Questions() {
                 {list.data.items.map((r) => (
                   <tr key={r.id} className="clickable" onClick={() => nav(`/admin/cau-hoi/${r.id}`)}>
                     <td><span className="mono">{r.external_id}</span>{r.bank !== "hsa" && <div className="small muted">{r.bank}</div>}</td>
-                    <td>{r.subject || <span className="muted">—</span>}</td>
+                    <td>{r.subject || <span className="muted">—</span>}
+                      <div className="small muted">{SUBJECT_SOURCE[r.subject_source] || r.subject_source}
+                        {r.subject_source === "inferred" && r.inference_confidence ? ` (${r.inference_confidence})` : ""}</div></td>
                     <td className="small">{TYPE_LABELS[r.type] || r.type}</td>
                     <td><StateBadge state={r.state} />{r.state_source === "upstream_manifest" && <div className="small muted">biên tập</div>}</td>
                     <td><ServedBadge served={r.served} />{r.override && <div><span className="badge brand">ghi đè: {r.override}</span></div>}

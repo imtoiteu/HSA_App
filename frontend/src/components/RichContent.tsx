@@ -1,5 +1,6 @@
 import katex from "katex";
 import { memo, useState, type ReactNode } from "react";
+import { normalizeTex } from "../lib/tex";
 import type { Block, Inline, Mark } from "../lib/types";
 import { Modal } from "./ui";
 
@@ -11,7 +12,7 @@ export function renderTex(tex: string, display = false): string {
   let html = cache.get(key);
   if (html === undefined) {
     try {
-      html = katex.renderToString(tex, { displayMode: display, throwOnError: true, strict: "ignore", trust: false, output: "html" });
+      html = katex.renderToString(normalizeTex(tex), { displayMode: display, throwOnError: true, strict: "ignore", trust: false, output: "html" });
     } catch {
       // keep the source visible instead of dropping it
       html = `<span class="math-error" title="Công thức chưa hiển thị được">${escapeHtml(tex)}</span>`;

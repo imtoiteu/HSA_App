@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import sys
+from pathlib import Path
 
 from .config import get_settings
 from .db import SessionLocal
@@ -67,6 +68,30 @@ def cmd_maintenance(a):
     print({"expired_orders": expire_orders(db)})
     cleanup(db)
     run_queued_sync(db)
+    run_queued_audit(db)
+
+
+def run_queued_audit(db):
+    """Run a reconciliation report requested from the admin UI (app_setting['audit_request'])."""
+    from .models import AppSetting
+    from .settings_store import set_setting
+    from .sync.audit import run_audit
+    row = db.get(AppSetting, "audit_request")
+    if not row or not row.value:
+        return
+    req = dict(row.value)
+    row.value = {}
+    db.commit()
+    s = get_settings()
+    try:
+        os.nice(10)
+    except OSError:
+        pass
+    r = run_audit(db, s.upstream_root, s.media_root, deep=bool(req.get("deep")))
+    r["requested_by"] = req.get("by")
+    set_setting(db, "question_bank_audit", r)
+    db.commit()
+    print("audit stored", json.dumps(r["reconciliation"], ensure_ascii=False)[:500])
 
 
 def run_queued_sync(db):
@@ -110,6 +135,62 @@ def cmd_import_jsonl(a):
     print(json.dumps(import_jsonl(db, a.bank, a.path, get_settings().media_root, name=a.name), ensure_ascii=False))
 
 
+def cmd_audit(a):
+    from .settings_store import set_setting
+    from .sync.audit import run_audit, to_markdown
+    s = get_settings()
+    db = SessionLocal()
+    r = run_audit(db, s.upstream_root, s.media_root, bank_code=a.bank, deep=a.deep)
+    set_setting(db, "question_bank_audit", r)
+    db.commit()
+    if a.out:
+        Path(a.out).write_text(to_markdown(r) if a.out.endswith(".md") else json.dumps(r, ensure_ascii=False, indent=1),
+                               encoding="utf-8")
+    for k, v in r["reconciliation"].items():
+        print(f"{k:<62} {v}")
+
+
+def cmd_export_tex(a):
+    """Distinct LaTeX strings of all current question versions → JSON for scripts/katex-check.mjs."""
+    import hashlib
+    from sqlalchemy import select
+    from .models import FormulaCheck, Question, QuestionVersion
+    from .sync.subjects import collect_tex
+    db = SessionLocal()
+    done = set() if a.all else set(db.scalars(select(FormulaCheck.tex_sha)))
+    tex = set()
+    for content, in db.execute(select(QuestionVersion.content).join(
+            Question, Question.current_version_id == QuestionVersion.id).execution_options(yield_per=1000)):
+        tex |= collect_tex(content)
+    items = [{"sha": hashlib.sha256(t.encode("utf-8")).hexdigest(), "tex": t} for t in sorted(tex)]
+    items = [i for i in items if i["sha"] not in done]
+    out = sys.stdout if a.out == "-" else open(a.out, "w", encoding="utf-8")
+    json.dump(items, out, ensure_ascii=False)
+    print(f"exported {len(items)} formulas", file=sys.stderr)
+
+
+def cmd_import_tex_check(a):
+    import hashlib
+    from sqlalchemy.dialects.postgresql import insert
+    from .models import FormulaCheck
+    from .sync.importer import apply_formula_checks
+    db = SessionLocal()
+    results = json.load(open(a.results, encoding="utf-8"))
+    tex = {i["sha"]: i["tex"] for i in json.load(open(a.formulas, encoding="utf-8"))}
+    rows = [{"tex_sha": r["sha"], "tex": tex[r["sha"]], "ok": bool(r["ok"]), "error": r.get("error"),
+             "renderer": a.renderer} for r in results if r["sha"] in tex]
+    for i in range(0, len(rows), 2000):
+        chunk = rows[i:i + 2000]
+        st = insert(FormulaCheck).values(chunk)
+        db.execute(st.on_conflict_do_update(index_elements=["tex_sha"], set_={
+            "ok": st.excluded.ok, "error": st.excluded.error, "renderer": st.excluded.renderer,
+            "checked_at": st.excluded.checked_at}))
+    db.commit()
+    print(json.dumps({"imported": len(rows), "failing": sum(1 for r in rows if not r["ok"]),
+                      **apply_formula_checks(db)}))
+    db.commit()
+
+
 def main(argv=None):
     setup_logging()
     p = argparse.ArgumentParser(prog="hsa-app")
@@ -135,6 +216,20 @@ def main(argv=None):
     s.add_argument("path")
     s.add_argument("--name")
     s.set_defaults(fn=cmd_import_jsonl)
+    s = sub.add_parser("audit", help="question-bank reconciliation report (stored for the admin UI)")
+    s.add_argument("--bank", default="hsa")
+    s.add_argument("--deep", action="store_true", help="also detect upstream content changes since the last sync")
+    s.add_argument("--out", help="write the report (.md or .json)")
+    s.set_defaults(fn=cmd_audit)
+    s = sub.add_parser("export-tex", help="export formulas for the KaTeX renderer check")
+    s.add_argument("out", nargs="?", default="-")
+    s.add_argument("--all", action="store_true", help="include formulas already checked")
+    s.set_defaults(fn=cmd_export_tex)
+    s = sub.add_parser("import-tex-check", help="store KaTeX check results and flag affected questions")
+    s.add_argument("formulas")
+    s.add_argument("results")
+    s.add_argument("--renderer", default="katex")
+    s.set_defaults(fn=cmd_import_tex_check)
     a = p.parse_args(argv)
     logging.getLogger().setLevel(get_settings().log_level)
     a.fn(a)
@@ -153,10 +248,10 @@ def resume_orphaned_sync(db):
     last = db.scalar(select(SyncRun).order_by(SyncRun.id.desc()).limit(1))
     if not last or last.status not in ("running", "interrupted"):
         return
-    if not db.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
-        return  # a live process is syncing
-    db.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})
-    db.commit()
+    with db.get_bind().connect() as probe:  # same dedicated-connection rule as sync_hsa
+        if not probe.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
+            return  # a live process is syncing
+        probe.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})
     s = get_settings()
     try:
         os.nice(15)

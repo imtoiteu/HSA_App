@@ -17,6 +17,7 @@ class Pool(_M):
     exam_systems: list[str] = Field(default_factory=list, description="restrict to questions seen in these exam systems")
     topics: list[str] = Field(default_factory=list)
     banks: list[str] = Field(default_factory=list, description="question bank codes; empty = any")
+    cognitive_levels: list[str] = Field(default_factory=list, description="NB/TH/VD/VDC where the bank provides them")
     count: int = Field(ge=1, le=500)
 
     @model_validator(mode="after")
@@ -39,7 +40,8 @@ class Section(_M):
     duration_minutes: int | None = Field(default=None, ge=1, le=600)
     points_per_question: float = Field(default=1.0, gt=0)
     pools: list[Pool] = Field(default_factory=list)
-    items: list[FixedItem] = Field(default_factory=list, description="fixed exam: exact questions in order")
+    items: list[FixedItem] = Field(default_factory=list,
+                                   description="exact questions in this order (placed before any random pools)")
     order: Literal["pool", "shuffled"] = "pool"
 
 
@@ -75,8 +77,11 @@ class BlueprintConfig(_M):
         if len(keys) != len(set(keys)):
             raise ValueError("section keys must be unique")
         for s in self.sections:
-            if bool(s.pools) == bool(s.items):
-                raise ValueError(f"section {s.key}: give either pools (random) or items (fixed), not both")
+            if not s.pools and not s.items:
+                raise ValueError(f"section {s.key}: needs fixed items and/or random pools")
+            ids = [(i.bank, i.external_id) for i in s.items]
+            if len(ids) != len(set(ids)):
+                raise ValueError(f"section {s.key}: duplicate fixed items")
         return self
 
     @property

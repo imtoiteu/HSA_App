@@ -238,5 +238,60 @@ def build_standard(root: Path) -> dict:
     ids["manifest_flagged"] = b.question("manifest_flagged", "Câu mà biên tập đánh dấu cần xem lại.",
                                          ABCD("1", "2", "3", "4"), {"kind": "labels", "labels": ["A"]})
     b.manifest([{"question_id": ids["manifest_flagged"], "states": ["NEEDS_VISUAL_REVIEW"], "notes": ["crop"]}])
+    # an "open" passage whose header names questions 5-6: question 9 attached to it is suspect
+    g3 = b.group("g3", "**Dựa vào thông tin được cung cấp sau đây để trả lời từ câu hỏi số 5 đến câu số 6:**",
+                 "Năm 1930, kinh tế suy thoái.", doc_key="d4")
+    ids["g3_in"] = b.question("g3_in", "Theo đoạn trên, năm nào kinh tế suy thoái?", ABCD("1930", "1931", "1932", "1933"),
+                              {"kind": "labels", "labels": ["A"]}, subject="history", group=g3, doc_key="d4", number=5)
+    ids["g3_out"] = b.question("g3_out", "Cho dung dịch X vào KOH. Dung dịch X là", ABCD("FeCl2", "AgNO3", "NaCl", "KCl"),
+                               {"kind": "labels", "labels": ["A"]}, subject="chemistry", group=g3, doc_key="d4", number=9)
+    # the source printed the key as the last paragraph of the stem
+    ids["key_in_stem"] = b.question("key_in_stem", "Vòi tưới được gốc rau cao nhất bao nhiêu mét?\n\n4,5", None,
+                                    {"kind": "numeric", "text": "4,5", "value": 4.5}, qtype="numeric_response")
+    # second-pass subject inference (canonical subject stays null/generic upstream)
+    ids["inf_phys"] = b.question("inf_phys", "Một vật dao động điều hoà với chu kì 2 s. Tần số là", ABCD(
+        "0,5 Hz", "1 Hz", "2 Hz", "4 Hz"), {"kind": "labels", "labels": ["A"]}, subject=None)
+    ids["inf_low"] = b.question("inf_low", "Phát biểu đúng là:", ABCD("x", "y", "z", "t"),
+                                {"kind": "labels", "labels": ["A"]}, subject=None)
+    ids["inf_none"] = b.question("inf_none", "Câu không đủ bằng chứng để phân loại.", ABCD("1", "2", "3", "4"),
+                                 {"kind": "labels", "labels": ["A"]}, subject=None)
+    ids["inf_sci"] = b.question("inf_sci", "Chất nào sau đây là axit?", ABCD("HCl", "NaOH", "NaCl", "KOH"),
+                                {"kind": "labels", "labels": ["A"]}, subject="science")
+    ids["unknown_type"] = b.question("unknown_type", "Nội dung không rõ dạng.", None, {"kind": "text", "text": "x"},
+                                     qtype="open_or_unknown")
+    b.overlay("subject_inference", [
+        {"question_id": ids["inf_phys"], "original_subject": None, "inferred_subject": "physics",
+         "confidence": "medium", "evidence": ["content lexicon physics=4 vs math=0"], "method": "subject_infer v1"},
+        {"question_id": ids["inf_low"], "original_subject": None, "inferred_subject": "chemistry",
+         "confidence": "low", "evidence": ["weak"], "method": "subject_infer v1"},
+        {"question_id": ids["inf_none"], "original_subject": None, "inferred_subject": None, "confidence": None,
+         "evidence": [], "method": "subject_infer v1"},
+        {"question_id": ids["inf_sci"], "original_subject": "science", "inferred_subject": "chemistry",
+         "confidence": "high", "evidence": ["path 'Hoá học'"], "method": "subject_infer v1"},
+    ])
+    # upstream's validated final classification (covers only these in the fixture; the rest use the 2nd pass)
+    b.overlay("subject_effective", [
+        {"question_id": ids["m4"], "original_subject": "math", "inferred_subject": None, "effective_subject": "chemistry",
+         "classification_source": "semantic_correction", "classification_confidence": "high",
+         "classification_evidence": ["content model chemistry p=0.97"], "review": None},
+        {"question_id": ids["v2"], "original_subject": "literature_language", "inferred_subject": None,
+         "effective_subject": "english", "classification_source": "original", "classification_confidence": "medium",
+         "classification_evidence": ["model disagrees"], "review": "SUBJECT_CLASSIFICATION_REVIEW"},
+        {"question_id": ids["inf_none"], "original_subject": None, "inferred_subject": None, "effective_subject": "history",
+         "classification_source": "semantic_assignment", "classification_confidence": "medium",
+         "classification_evidence": ["content model history p=0.93"], "review": None},
+    ])
+    # upstream pipeline state with one scanned PDF deferred for math-aware OCR
+    inv = root / "inventory"
+    inv.mkdir(exist_ok=True)
+    st = sqlite3.connect(inv / "state.sqlite")
+    st.executescript("CREATE TABLE blobs (sha256 TEXT PRIMARY KEY, doc_status TEXT, doc_detail TEXT);"
+                     "CREATE TABLE occurrences (occurrence_id INTEGER PRIMARY KEY, blob_sha TEXT, member_path TEXT);"
+                     "CREATE TABLE source_files (source_file_id INTEGER PRIMARY KEY, rel_path TEXT, sha256 TEXT);")
+    st.execute("INSERT INTO blobs VALUES (?,?,?)", ("ab" * 32, "NEEDS_OCR", json.dumps({"pages": 120, "text_layer": "NO_TEXT"})))
+    st.execute("INSERT INTO blobs VALUES (?,?,?)", ("cd" * 32, "SEGMENTED", "{}"))
+    st.execute("INSERT INTO source_files VALUES (1, ?, ?)", ("Đề scan/Tập 2.pdf", "ab" * 32))
+    st.commit()
+    st.close()
     b.close()
     return ids

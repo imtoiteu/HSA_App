@@ -70,10 +70,14 @@ class QuestionBank(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     code: Mapped[str] = mapped_column(String(40), unique=True)
     name: Mapped[str] = mapped_column(String(200))
-    source_kind: Mapped[str] = mapped_column(String(40))  # hsa_upstream | jsonl_import
+    source_kind: Mapped[str] = mapped_column(String(40))  # hsa_upstream | jsonl_import | manual
     description: Mapped[str | None] = mapped_column(Text)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    version: Mapped[str | None] = mapped_column(String(80))  # upstream snapshot / dataset version label
+    source_uri: Mapped[str | None] = mapped_column(Text)  # where it comes from (path, repository, file)
+    settings: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # inactive banks are never served
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+    last_synced_at: Mapped[dt.datetime | None] = mapped_column(TS)
 
 
 class Subject(Base):
@@ -122,7 +126,22 @@ class Question(Base):
                                                                       name="fk_question_current_version"))
     question_type: Mapped[str] = mapped_column(String(40))
     subject_code: Mapped[str | None] = mapped_column(ForeignKey("subject.code"))
-    source_subject: Mapped[str | None] = mapped_column(String(80))
+    source_subject: Mapped[str | None] = mapped_column(String(80))  # original subject in the bank
+    # second-pass subject inference (upstream editorial/subject_inference.jsonl); kept separate
+    inferred_subject: Mapped[str | None] = mapped_column(String(80))
+    inference_confidence: Mapped[str | None] = mapped_column(String(16))  # high | medium | …
+    inference_evidence: Mapped[list | None] = mapped_column(JSONB)
+    # upstream's validated final subject decision (editorial/subject_effective.jsonl), when available
+    upstream_effective_subject: Mapped[str | None] = mapped_column(String(80))
+    classification_source: Mapped[str | None] = mapped_column(String(40))  # original | second_pass | semantic_…
+    classification_confidence: Mapped[str | None] = mapped_column(String(16))
+    classification_evidence: Mapped[list | None] = mapped_column(JSONB)
+    classification_review: Mapped[str | None] = mapped_column(String(60))  # e.g. SUBJECT_CLASSIFICATION_REVIEW
+    # admin editorial layer (app-side only): forces the effective subject
+    subject_override: Mapped[str | None] = mapped_column(ForeignKey("subject.code"))
+    subject_override_note: Mapped[str | None] = mapped_column(Text)
+    # where subject_code came from: admin | upstream_effective | original | inferred | unclassified
+    subject_source: Mapped[str] = mapped_column(String(24), default="original", server_default="original")
     topic: Mapped[str | None] = mapped_column(String(200))
     subtopic: Mapped[str | None] = mapped_column(String(200))
     cognitive_level: Mapped[str | None] = mapped_column(String(8))
@@ -165,6 +184,7 @@ class Question(Base):
     __table_args__ = (
         UniqueConstraint("bank_id", "external_id", name="uq_question_bank_external"),
         Index("ix_question_pool", "is_served", "subject_code", "question_type"),
+        Index("ix_question_inferred_subject", "inferred_subject"),
         Index("ix_question_group", "group_key"),
         Index("ix_question_state", "editorial_state"),
         CheckConstraint("admin_override is null or admin_override in ('enable','disable')", name="ck_q_override"),
@@ -413,6 +433,32 @@ class EntitlementUsage(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True)
     blueprint_id: Mapped[int] = mapped_column(ForeignKey("exam_blueprint.id"))
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+
+
+class SourceDocument(Base):
+    """A source document of a bank that produced no servable questions yet (e.g. scanned PDFs deferred
+    upstream as NEEDS_MATH_AWARE_OCR). Tracked so the bank's coverage is accounted for; never served."""
+    __tablename__ = "source_document"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    bank_id: Mapped[int] = mapped_column(ForeignKey("question_bank.id"))
+    external_id: Mapped[str] = mapped_column(String(80))
+    path: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(40))
+    pages: Mapped[int | None] = mapped_column(Integer)
+    detail: Mapped[dict] = mapped_column(JSONB, default=dict)
+    last_synced_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+    __table_args__ = (UniqueConstraint("bank_id", "external_id", name="uq_source_document"),)
+
+
+class FormulaCheck(Base):
+    """Result of rendering a LaTeX string with the web renderer (KaTeX), keyed by sha256(tex)."""
+    __tablename__ = "formula_check"
+    tex_sha: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tex: Mapped[str] = mapped_column(Text)
+    ok: Mapped[bool] = mapped_column(Boolean)
+    error: Mapped[str | None] = mapped_column(Text)
+    renderer: Mapped[str] = mapped_column(String(40))
+    checked_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
 
 
 # ------------------------------------------------------------------------------------------------

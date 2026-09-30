@@ -57,8 +57,8 @@ function Help() {
       <h3>Tham số cấu hình</h3>
       <ul style={{ paddingLeft: 18, margin: 0 }}>
         <li><span className="mono">sections[]</span>: <span className="mono">key</span> (a-z0-9_), <span className="mono">title</span>, <span className="mono">description</span>, <span className="mono">duration_minutes</span> (bắt buộc khi timing=per_section), <span className="mono">points_per_question</span>, <span className="mono">order</span> pool|shuffled.</li>
-        <li>Đề ngẫu nhiên: <span className="mono">pools[{"{"}subjects, types, exam_systems, topics, banks, count{"}"}]</span> (danh sách rỗng = bất kỳ).</li>
-        <li>Đề cố định: <span className="mono">items[{"{"}external_id, bank{"}"}]</span> theo đúng thứ tự.</li>
+        <li>Đề ngẫu nhiên: <span className="mono">pools[{"{"}subjects, types, exam_systems, topics, banks, cognitive_levels, count{"}"}]</span> (danh sách rỗng = bất kỳ; <span className="mono">cognitive_levels</span>: NB/TH/VD/VDC nếu ngân hàng có).</li>
+        <li>Câu chỉ định: <span className="mono">items[{"{"}external_id, bank{"}"}]</span> theo đúng thứ tự; có thể kết hợp với <span className="mono">pools</span> trong cùng phần (câu chỉ định đứng trước, câu ngẫu nhiên không trùng lặp).</li>
         <li><span className="mono">timing</span>: none | global (cần <span className="mono">duration_minutes</span>) | per_section.</li>
         <li><span className="mono">shuffle_options</span>, <span className="mono">keep_groups_together</span>, <span className="mono">max_group_size</span>, <span className="mono">require_auto_scoring</span> (chỉ câu chấm tự động), <span className="mono">feedback</span> end|immediate, <span className="mono">allow_review</span>.</li>
         <li><span className="mono">scoring</span>: correct, incorrect (vd −0.25), unanswered, multi_choice all_or_nothing|partial, tf_sequence all_or_nothing|thpt2025|per_statement, numeric_tolerance, scale_to (vd 150).</li>

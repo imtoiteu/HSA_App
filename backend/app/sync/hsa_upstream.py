@@ -32,7 +32,7 @@ FIGURE_HINT = re.compile(r"hình vẽ|hình bên|như hình|đồ thị|biểu �
 MATHY = re.compile(r"[√π∫∑≤≥≠±×÷∞∈∆Δαβγλ]|\^|\bsin\b|\bcos\b|\blog\b|\blim\b|\d\s*/\s*\d|[a-z]\s*=\s*\d")
 MATH_SUBJECTS = {"math", "physics", "chemistry"}
 INLINE_OPTIONS = re.compile(r"\*\*A\*\*|(?:^|\s)A\.\s.+\sB\.\s", re.S)
-BUILDER_VERSION = "hsa-builder-2"
+BUILDER_VERSION = "hsa-builder-3"  # bump when build_question output changes (forces rebuild)
 
 
 def _jl(path: Path):
@@ -75,6 +75,9 @@ class BuiltQuestion:
     app_reasons: list
     provenance: dict
     media: dict = field(default_factory=dict)  # sha -> StoredFile
+    inferred_subject: str | None = None
+    inference_confidence: str | None = None
+    inference_evidence: list | None = None
 
     @property
     def content_hash(self) -> str:
@@ -111,6 +114,10 @@ class UpstreamSource:
             if o.get("question_id") and not o.get("asset_id"):
                 self.fig_over[o["question_id"]].append(o)
         self.manifest_states = self._load_manifests()
+        # second-pass subject inference (canonical subject is unchanged upstream)
+        self.inference = {o["question_id"]: o for o in _jl(ed / "subject_inference.jsonl")}
+        # upstream's validated final subject decision (supersedes the second pass when present)
+        self.effective = {o["question_id"]: o for o in _jl(ed / "subject_effective.jsonl")}
         self.vec_cache = self.root / "rendered" / "cache" / "vec"
         self._fstatus: dict = {}
         self._wmf: dict = {}
@@ -119,7 +126,8 @@ class UpstreamSource:
     # ---- identity of the snapshot -------------------------------------------------------------
     def fingerprint(self) -> str:
         parts = [_file_sig(self.db_path)]
-        for n in ("question_overrides", "formula_overrides", "figure_overrides", "asset_replacements"):
+        for n in ("question_overrides", "formula_overrides", "figure_overrides", "asset_replacements",
+                  "subject_inference", "subject_effective"):
             parts.append(_file_sig(self.root / "editorial" / f"{n}.jsonl"))
         parts.append(f"manifest:{len(self.manifest_states)}")
         return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16] + f"@{BUILDER_VERSION}"
@@ -136,6 +144,55 @@ class UpstreamSource:
                 if r.get("question_id") and r.get("states"):
                     states[r["question_id"]] = {"states": r["states"], "notes": r.get("notes") or []}
         return states
+
+    def upstream_revision(self) -> str | None:
+        """Git commit of the upstream project, read from .git without running git (read-only)."""
+        head = self.root / ".git" / "HEAD"
+        try:
+            ref = head.read_text().strip()
+            if ref.startswith("ref: "):
+                p = self.root / ".git" / ref[5:]
+                if p.exists():
+                    return p.read_text().strip()[:12]
+                packed = self.root / ".git" / "packed-refs"
+                for line in packed.read_text().splitlines() if packed.exists() else []:
+                    if line.endswith(ref[5:]):
+                        return line.split()[0][:12]
+                return None
+            return ref[:12]
+        except OSError:
+            return None
+
+    def deferred_documents(self) -> list[dict]:
+        """Scanned PDFs without a text layer (no questions extracted; upstream NEEDS_MATH_AWARE_OCR).
+        Read from the upstream pipeline state (read-only); empty if unavailable."""
+        state = self.root / "inventory" / "state.sqlite"
+        if not state.exists():
+            return []
+        out = []
+        try:
+            con = sqlite3.connect(f"file:{state}?mode=ro", uri=True)
+            try:
+                con.execute("SELECT 1 FROM blobs LIMIT 1")
+            except sqlite3.OperationalError:
+                # WAL database on a read-only mount: SQLite cannot create its -shm file. Open it as
+                # immutable (still strictly read-only; ignores in-flight WAL pages of the live pipeline).
+                con.close()
+                con = sqlite3.connect(f"file:{state}?mode=ro&immutable=1", uri=True)
+            con.row_factory = sqlite3.Row
+            for r in con.execute("SELECT sha256, doc_detail FROM blobs WHERE doc_status='NEEDS_OCR'"):
+                detail = json.loads(r["doc_detail"]) if r["doc_detail"] else {}
+                path = con.execute("SELECT member_path FROM occurrences WHERE blob_sha=? AND member_path IS NOT NULL "
+                                   "LIMIT 1", (r["sha256"],)).fetchone()
+                if not path:
+                    path = con.execute("SELECT rel_path FROM source_files WHERE sha256=? LIMIT 1",
+                                       (r["sha256"],)).fetchone() if _has_col(con, "source_files", "rel_path") else None
+                out.append({"external_id": f"doc_{r['sha256'][:16]}", "path": path[0] if path else None,
+                            "status": "NEEDS_MATH_AWARE_OCR", "pages": detail.get("pages"), "detail": detail})
+            con.close()
+        except sqlite3.Error as ex:
+            log.warning("cannot read upstream pipeline state for deferred documents: %s", ex)
+        return out
 
     # ---- iteration ------------------------------------------------------------------------------
     def count(self) -> int:
@@ -275,6 +332,10 @@ class UpstreamSource:
         return self.media.put(p)
 
 
+def _has_col(con, table, col) -> bool:
+    return any(r[1] == col for r in con.execute(f"PRAGMA table_info({table})"))
+
+
 def _img_block(sf: StoredFile, max_w: int | None = None) -> dict:
     b = {"t": "img", "src": sf.rel_path}
     if sf.width and sf.height:
@@ -408,6 +469,20 @@ def _strip_stem_echo(stem: str, sol: str | None) -> str | None:
     return sol
 
 
+def _strip_answer_from_stem(stem: list, q: dict) -> tuple[list, str | None]:
+    """Some sources print the key as a standalone last paragraph of the stem ("…là bao nhiêu mét?\n\n4,5").
+    Drop that paragraph when it is exactly the source-provided key (never anything else)."""
+    ans = q.get("correct_answer") or {}
+    if q.get("answer_source_type") not in ("SOURCE_PROVIDED_ANSWER", "SOURCE_PROVIDED_SOLUTION") or len(stem) < 2:
+        return stem, None
+    key = (ans.get("text") or "").strip()
+    last = stem[-1]
+    if not key or last.get("t") != "p" or any(n.get("t") != "s" for n in last.get("c", [])):
+        return stem, None
+    text = "".join(n["v"] for n in last["c"]).strip().rstrip(".")
+    return (stem[:-1], text) if text == key.rstrip(".") else (stem, None)
+
+
 def derive_states(src: UpstreamSource, q: dict, issues: list, answer_source: str) -> tuple[list, list]:
     """Port of upstream editorial.editorial_states (render issues come from our resolver)."""
     states, notes = set(), []
@@ -465,6 +540,7 @@ def build_question(src: UpstreamSource, q: dict, subject_of=lambda s: s, text_au
 
     stem_md = ov.get("stem_md") or q["stem_md"] or ""
     stem = R.blocks(stem_md, res, tables)
+    stem, answer_stripped = _strip_answer_from_stem(stem, q)
     over_opts = ov.get("options") or {}
     opts_md = [(o["label"], over_opts.get(o["label"], o["content_md"] or "")) for o in q["options"]]
     if over_opts and not opts_md:
@@ -515,6 +591,14 @@ def build_question(src: UpstreamSource, q: dict, subject_of=lambda s: s, text_au
         reasons.append("render_warning")
     if inp["kind"] == "none" and mode == "none":
         reasons.append("no_input")
+    if q["question_type"] == "open_or_unknown":
+        reasons.append("unsupported_for_serving")
+    if q["group"]:
+        rng = R.header_range(q["group"].get("header_md"))
+        num = q["rep"].get("source_question_number")
+        if rng and num is not None and not (rng[0] <= num <= rng[1]):
+            # the passage header names other questions: this question is attached to the wrong passage
+            reasons.append("group_membership_suspect")
 
     content = {
         "type": q["question_type"],
@@ -545,6 +629,7 @@ def build_question(src: UpstreamSource, q: dict, subject_of=lambda s: s, text_au
         "answer_confidence": q.get("answer_confidence"),
         "overlay": ov.get("status") if ov else None,
         "render_issues": [d for _, d in res.issues][:20],
+        "answer_removed_from_stem": answer_stripped or None,
     }
     return BuiltQuestion(
         external_id=cid, question_type=q["question_type"], source_subject=q.get("subject"),
@@ -554,4 +639,7 @@ def build_question(src: UpstreamSource, q: dict, subject_of=lambda s: s, text_au
         has_table=bool(q.get("has_table")), review_status=q.get("review_status"),
         review_flags=q.get("review_flags") or [], answer_source_type=src_type, content=content, answer=answer,
         states=states, state_source=state_source, state_notes=notes[:20], scoring_mode=mode,
-        app_reasons=sorted(set(reasons)), provenance=provenance, media=media)
+        app_reasons=sorted(set(reasons)), provenance=provenance, media=media,
+        inferred_subject=(src.inference.get(cid) or {}).get("inferred_subject"),
+        inference_confidence=(src.inference.get(cid) or {}).get("confidence"),
+        inference_evidence=(src.inference.get(cid) or {}).get("evidence"))

@@ -249,7 +249,8 @@ def plain_text(nodes) -> str:
 
 RANGE_RE = [
     # "trả lời các câu hỏi từ câu 66 - 70", "từ 81 đến 82", "câu 36 đến câu 40"
-    re.compile(r"(?:từ\s+)?(?:câu\s+)?(?:số\s+)?\d{1,3}\s*(?:đến|tới|-|–|—)\s*(?:câu\s+)?\d{1,3}", re.I),
+    re.compile(r"(?:từ\s+)?(?:câu\s+(?:hỏi\s+)?)?(?:số\s+)?\d{1,3}\s*(?:đến|tới|-|–|—)\s*"
+               r"(?:câu\s+(?:hỏi\s+)?)?(?:số\s+)?\d{1,3}", re.I),
     # "questions 36 to 40", "from question 36 to 40"
     re.compile(r"(?:from\s+)?questions?\s+\d{1,3}\s*(?:to|-|–|—|and)\s*\d{1,3}", re.I),
 ]
@@ -263,3 +264,16 @@ def neutralize_group_header(md: str | None) -> str | None:
     for rx in RANGE_RE:
         md = rx.sub("{{range}}", md)
     return md
+
+
+HEADER_RANGE = re.compile(r"(?:câu|questions?)\s*(?:hỏi\s*)?(?:số\s*)?(\d{1,3})\s*(?:đến|tới|-|–|—|to|and)\s*"
+                          r"(?:câu\s*)?(?:hỏi\s*)?(?:số\s*)?(\d{1,3})", re.I)
+
+
+def header_range(md: str | None) -> tuple[int, int] | None:
+    """Question-number range a shared-passage header refers to ("câu hỏi số 109 đến câu số 110")."""
+    m = HEADER_RANGE.search(md or "")
+    if not m:
+        return None
+    a, b = int(m.group(1)), int(m.group(2))
+    return (a, b) if a <= b else None

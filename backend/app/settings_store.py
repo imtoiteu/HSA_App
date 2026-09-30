@@ -24,6 +24,8 @@ DEFAULTS: dict = {
         "default_questions": 20,
     },
     "sync_request": {},  # set by Admin → "Đồng bộ ngay"; consumed by the scheduler
+    "audit_request": {},  # set by Admin → "Kiểm tra đối soát"; consumed by the scheduler
+    "question_bank_audit": {},  # last reconciliation report (hsa-app audit)
     "site": {
         "name": "Luyện thi HSA",
         "support_contact": "",

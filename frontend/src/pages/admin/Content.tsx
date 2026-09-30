@@ -4,6 +4,7 @@ import { api, get, post, put, qs } from "../../lib/api";
 import { dateTime, num } from "../../lib/format";
 import { Confirm, Empty, ErrorBox, Pager, Spinner, useAsync, useToast } from "../../components/ui";
 import { errMsg, Json, PageHead, useUrlState } from "./common";
+import { AuditPanel, BankEditor, type BankFull, DeferredDocs, ManualQuestion } from "./BankTools";
 
 // ------------------------------------------------------------------------------------------ corrections
 interface Correction {
@@ -72,7 +73,7 @@ export function Corrections() {
 }
 
 // ------------------------------------------------------------------------------------------ banks & sync
-interface Bank { id: number; code: string; name: string; source_kind: string; description: string | null; is_active: boolean; questions: number; served: number }
+type Bank = BankFull;
 interface Run {
   id: number; status: string; started_at: string; finished_at: string | null; source_fingerprint: string | null;
   checkpoint: string | null; stats: Record<string, number | string[]>; error: string | null; triggered_by: string | null;
@@ -87,6 +88,9 @@ export function Banks() {
   const [confirm, setConfirm] = useState<"sync" | "policy" | null>(null);
   const [imp, setImp] = useState({ code: "", name: "" });
   const [result, setResult] = useState<unknown>(null);
+  const [editBank, setEditBank] = useState<Bank | null | "new">(null);
+  const [docs, setDocs] = useState<string | null>(null);
+  const [manual, setManual] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const running = runs.data?.items.some((r) => r.status === "running");
@@ -133,14 +137,30 @@ export function Banks() {
   return (
     <div className="stack">
       <PageHead title="Ngân hàng câu hỏi & đồng bộ">
+        <button className="btn secondary" onClick={() => setEditBank("new")}>Tạo ngân hàng</button>
         <button className="btn secondary" onClick={() => setConfirm("policy")}>Tính lại chính sách</button>
       </PageHead>
+      <AuditPanel />
+      {editBank && <BankEditor bank={editBank === "new" ? null : editBank} onClose={() => setEditBank(null)}
+                               onSaved={() => { setEditBank(null); banks.reload(); }} />}
+      {docs && <DeferredDocs code={docs} onClose={() => setDocs(null)} />}
+      {manual && <ManualQuestion code={manual} onClose={() => setManual(null)} onSaved={() => banks.reload()} />}
       {banks.loading ? <Spinner /> : banks.error ? <ErrorBox error={banks.error} /> : (
         <div className="table-wrap"><table className="data">
-          <thead><tr><th>Mã</th><th>Tên</th><th>Nguồn</th><th>Số câu</th><th>Đang phục vụ</th></tr></thead>
+          <thead><tr><th>Mã</th><th>Tên</th><th>Nguồn / phiên bản</th><th>Số câu</th><th>Đang phục vụ</th><th>Đề tương thích</th><th></th></tr></thead>
           <tbody>{banks.data?.items.map((b) => (
-            <tr key={b.id}><td className="mono">{b.code}</td><td>{b.name}<div className="small muted">{b.description}</div></td>
-              <td>{b.source_kind}</td><td>{num(b.questions, 0)}</td><td><Link to={`/admin/cau-hoi?bank=${b.code}&served=yes`}>{num(b.served, 0)}</Link></td></tr>
+            <tr key={b.id}><td className="mono">{b.code}{!b.is_active && <div><span className="badge bad">ngừng</span></div>}</td>
+              <td>{b.name}<div className="small muted">{b.description}</div></td>
+              <td className="small">{b.source_kind}<div className="mono">{b.version || "—"}</div>
+                <div className="muted">đồng bộ: {dateTime(b.last_synced_at)}</div></td>
+              <td><Link to={`/admin/cau-hoi?bank=${b.code}`}>{num(b.questions, 0)}</Link></td>
+              <td><Link to={`/admin/cau-hoi?bank=${b.code}&served=yes`}>{num(b.served, 0)}</Link></td>
+              <td className="small">{b.compatible_blueprints.length} đề</td>
+              <td className="nowrap">
+                <button className="btn ghost sm" onClick={() => setEditBank(b)}>Sửa</button>
+                {b.deferred_documents > 0 && <button className="btn ghost sm" onClick={() => setDocs(b.code)}>{b.deferred_documents} tài liệu hoãn</button>}
+                {b.source_kind !== "hsa_upstream" && <button className="btn ghost sm" onClick={() => setManual(b.code)}>Thêm câu</button>}
+              </td></tr>
           ))}</tbody>
         </table></div>
       )}

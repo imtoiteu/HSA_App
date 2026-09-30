@@ -59,7 +59,9 @@ class Selection:
 def _pool_query(db: Session, pool: Pool, require_auto: bool, extra_filter=None):
     stmt = select(Question.id, Question.external_id, Question.current_version_id, Question.group_key,
                   Question.provenance["source_question_number"].astext, Question.scoring_mode) \
-        .where(Question.is_served.is_(True), Question.current_version_id.is_not(None))
+        .join(QuestionBank, QuestionBank.id == Question.bank_id) \
+        .where(Question.is_served.is_(True), Question.current_version_id.is_not(None),
+               QuestionBank.is_active.is_(True))
     if require_auto:
         stmt = stmt.where(Question.scoring_mode == "auto")
     else:
@@ -73,7 +75,9 @@ def _pool_query(db: Session, pool: Pool, require_auto: bool, extra_filter=None):
     if pool.topics:
         stmt = stmt.where(Question.topic.in_(pool.topics))
     if pool.banks:
-        stmt = stmt.join(QuestionBank, QuestionBank.id == Question.bank_id).where(QuestionBank.code.in_(pool.banks))
+        stmt = stmt.where(QuestionBank.code.in_(pool.banks))
+    if pool.cognitive_levels:
+        stmt = stmt.where(Question.cognitive_level.in_(pool.cognitive_levels))
     if extra_filter is not None:
         stmt = extra_filter(stmt)
     return db.execute(stmt).all()
@@ -98,6 +102,7 @@ def select_questions(db: Session, cfg: BlueprintConfig, seed: str, extra_filter=
         section_items: list[list[Picked]] = []
         if section.items:
             section_items = [[p] for p in _fixed_items(db, section, si)]
+            used.update(p.question_id for unit in section_items for p in unit)
         for pi, pool in enumerate(section.pools):
             rows = _pool_query(db, pool, cfg.require_auto_scoring, extra_filter)
             modes = {}
@@ -144,7 +149,8 @@ def _fixed_items(db: Session, section, si) -> list[Picked]:
         row = db.execute(select(Question.id, Question.external_id, Question.current_version_id, Question.group_key,
                                 Question.scoring_mode, Question.is_served)
                          .join(QuestionBank, QuestionBank.id == Question.bank_id)
-                         .where(QuestionBank.code == it.bank, Question.external_id == it.external_id)).first()
+                         .where(QuestionBank.code == it.bank, Question.external_id == it.external_id,
+                                QuestionBank.is_active.is_(True))).first()
         if not row or not row.current_version_id:
             raise SelectionError(f"Câu hỏi {it.external_id} không tồn tại trong ngân hàng {it.bank}.",
                                  {"external_id": it.external_id})
