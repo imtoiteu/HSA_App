@@ -42,3 +42,6 @@ rendered/
 .vscode/
 .DS_Store
 *.swp
+
+# offline wheelhouse for docker builds
+backend/wheels/*.whl

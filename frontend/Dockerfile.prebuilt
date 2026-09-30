@@ -1,0 +1,7 @@
+# Same image as Dockerfile, but uses a dist/ built on the host (`npm ci && npm run build`).
+FROM nginx:1.27-alpine
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/hsa.conf
+COPY proxy_params_hsa /etc/nginx/proxy_params_hsa
+COPY dist /usr/share/nginx/html
+EXPOSE 80

@@ -865,5 +865,5 @@ def audit_log(page: int = 1, size: int = 50, db: Session = Depends(get_db)):
     off, lim = page_params(page, size, 200)
     rows = db.execute(select(AuditLog, User.email).outerjoin(User, User.id == AuditLog.actor_user_id)
                       .order_by(AuditLog.id.desc()).offset(off).limit(lim)).all()
-    return {"items": [{"id": a.id, "actor": e, "action": a.action, "entity": a.entity, "entity_id": a.entity_id,
+    return {"total": db.scalar(select(func.count()).select_from(AuditLog)), "items": [{"id": a.id, "actor": e, "action": a.action, "entity": a.entity, "entity_id": a.entity_id,
                        "data": a.data, "created_at": iso(a.created_at)} for a, e in rows]}
