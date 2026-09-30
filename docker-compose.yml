@@ -67,15 +67,21 @@ services:
     image: hsaapp-api:${APP_VERSION:-latest}
     restart: unless-stopped
     env_file: .env
+    command: ["scheduler"]
+    init: true
     environment:
       HSA_ENV: production
       HSA_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hsa}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hsa}
-    command: ["scheduler"]
-    init: true
+      HSA_UPSTREAM_ROOT: /upstream
+      HSA_MEDIA_ROOT: /data/media
+    volumes:
+      - media:/data/media
+      - ${UPSTREAM_PATH:-/root/imtoiteu/HSA-question-bank}:/upstream:ro
     depends_on:
       api: { condition: service_healthy }
-    mem_limit: 160m
-    cpus: 0.25
+    # runs maintenance and admin-requested synchronisations (niced) outside the API workers
+    mem_limit: 900m
+    cpus: 1.0
     networks: [internal]
     logging: *logging
 

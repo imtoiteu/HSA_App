@@ -66,6 +66,34 @@ def cmd_maintenance(a):
     db = SessionLocal()
     print({"expired_orders": expire_orders(db)})
     cleanup(db)
+    run_queued_sync(db)
+
+
+def run_queued_sync(db):
+    """Run a sync requested from the admin UI (app_setting['sync_request']), if any."""
+    from .models import AppSetting
+    from .sync.importer import sync_hsa
+    row = db.get(AppSetting, "sync_request")
+    if not row or not row.value:
+        return
+    req = dict(row.value)
+    row.value = {}
+    db.commit()
+    s = get_settings()
+    try:
+        os.nice(15)
+    except OSError:
+        pass
+    try:
+        run = sync_hsa(db, s.upstream_root, s.media_root, full=bool(req.get("full")),
+                       triggered_by=f"admin:{req.get('by', '?')}")
+        print(json.dumps({"sync_run": run.id, "status": run.status}, ensure_ascii=False))
+    except RuntimeError as ex:  # another sync is running: keep the request for the next round
+        db.rollback()
+        row = db.get(AppSetting, "sync_request")
+        row.value = req
+        db.commit()
+        print(f"sync postponed: {ex}")
 
 
 def cmd_export_corrections(a):

@@ -23,6 +23,7 @@ DEFAULTS: dict = {
         "max_questions": 100,
         "default_questions": 20,
     },
+    "sync_request": {},  # set by Admin → "Đồng bộ ngay"; consumed by the scheduler
     "site": {
         "name": "Luyện thi HSA",
         "support_contact": "",

@@ -133,3 +133,21 @@ def test_generic_bank_import(admin, student, tmp_path):
     assert len(items) == 2
     assert admin.c.post("/api/admin/banks/hsa/import", files={"file": ("x.jsonl", data)},
                         headers={"X-CSRF-Token": admin.csrf}).status_code == 422
+
+
+def test_sync_request_is_queued_and_run_by_maintenance(admin, synced):
+    from app.cli import run_queued_sync
+    from app.models import AppSetting, SyncRun
+    r = admin.post("/api/admin/sync")
+    assert r.status_code == 200 and r.json()["queued"]
+    db = SessionLocal()
+    assert db.get(AppSetting, "sync_request").value["by"] == admin.user["email"]
+    before = db.scalar(select(SyncRun.id).order_by(SyncRun.id.desc()).limit(1))
+    run_queued_sync(db)
+    db.expire_all()
+    last = db.scalar(select(SyncRun).order_by(SyncRun.id.desc()).limit(1))
+    assert last.id > before and last.status == "ok" and last.triggered_by.startswith("admin:")
+    assert db.get(AppSetting, "sync_request").value == {}
+    run_queued_sync(db)  # nothing queued: no new run
+    assert db.scalar(select(SyncRun.id).order_by(SyncRun.id.desc()).limit(1)) == last.id
+    db.close()

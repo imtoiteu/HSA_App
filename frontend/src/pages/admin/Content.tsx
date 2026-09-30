@@ -102,8 +102,9 @@ export function Banks() {
   const sync = async () => {
     setBusy(true);
     try {
-      await post("/api/admin/sync" + (full ? "?full=true" : ""));
-      toast("Đã bắt đầu đồng bộ.", "ok");
+      const r = await post<{ queued: boolean; already_running: boolean }>("/api/admin/sync" + (full ? "?full=true" : ""));
+      toast(r.already_running ? "Đang có phiên đồng bộ chạy; yêu cầu sẽ được thực hiện sau khi xong."
+        : "Đã xếp lịch đồng bộ — bộ lập lịch sẽ chạy trong vài phút (ưu tiên thấp).", "ok");
       setConfirm(null);
       setTimeout(runs.reload, 1500);
     } catch (e) { toast(errMsg(e), "error"); } finally { setBusy(false); }

@@ -57,7 +57,7 @@ cd ../frontend && npm install && npm run dev  # SPA on :5180, proxies /api and /
 ## Tests
 
 ```bash
-cd backend && .venv/bin/pytest -q                 # 78 tests (fixture upstream + API flows)
+cd backend && .venv/bin/pytest -q                 # 79 tests (fixture upstream + API flows)
 .venv/bin/pytest -q -m upstream                   # extra checks on real upstream records (read-only)
 cd frontend && npm test                           # renderer/answer-input component tests
 ```
@@ -74,7 +74,7 @@ reconciliation, entitlements), auth/CSRF/rate limiting and the admin API.
 cp .env.example .env    # fill in secrets
 deploy/deploy.sh        # build, migrate, seed, start, health-check
 docker compose exec api hsa-app create-admin admin@example.com   # first admin (prompts for password)
-docker compose exec api hsa-app sync                              # import/refresh the question bank
+docker compose run --rm scheduler hsa-app sync                   # import/refresh the question bank
 ```
 
 Details, backups and restore in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).

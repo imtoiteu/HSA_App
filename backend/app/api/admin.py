@@ -3,7 +3,6 @@ import datetime as dt
 import logging
 import os
 import tempfile
-import threading
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -825,31 +824,16 @@ def sync_runs(db: Session = Depends(get_db)):
                                    "hsa_question_bank.sqlite").exists()}
 
 
-_sync_thread: threading.Thread | None = None
-
-
 @router.post("/sync")
-def trigger_sync(full: bool = False, admin: User = Depends(auth.require_admin)):
-    """Start an incremental sync in the background (single run at a time, advisory-locked)."""
-    global _sync_thread
-    if _sync_thread and _sync_thread.is_alive():
-        raise err(409, "running", "Đồng bộ đang chạy.")
-    s = get_settings()
-
-    def run():
-        from ..sync.importer import sync_hsa
-        os.nice(10)
-        db = SessionLocal()
-        try:
-            sync_hsa(db, s.upstream_root, s.media_root, full=full, triggered_by=f"admin:{admin.email}")
-        except Exception:  # noqa: BLE001
-            log.exception("background sync failed")
-        finally:
-            db.close()
-
-    _sync_thread = threading.Thread(target=run, name="hsa-sync", daemon=True)
-    _sync_thread.start()
-    return {"started": True}
+def trigger_sync(full: bool = False, db: Session = Depends(get_db), admin: User = Depends(auth.require_admin)):
+    """Queue a synchronisation. The scheduler container picks it up within a few minutes and runs it
+    at low priority outside the API workers (a sync is CPU-heavy and must not starve requests)."""
+    running = db.scalar(select(SyncRun).where(SyncRun.status == "running").limit(1))
+    set_setting(db, "sync_request", {"requested_at": dt.datetime.now(dt.timezone.utc).isoformat(), "full": full,
+                                     "by": admin.email}, admin.id)
+    audit(db, admin, "sync_requested", "sync_run", None, {"full": full})
+    db.commit()
+    return {"queued": True, "already_running": bool(running)}
 
 
 @router.post("/recompute-policy")
