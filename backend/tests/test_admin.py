@@ -151,3 +151,17 @@ def test_sync_request_is_queued_and_run_by_maintenance(admin, synced):
     run_queued_sync(db)  # nothing queued: no new run
     assert db.scalar(select(SyncRun.id).order_by(SyncRun.id.desc()).limit(1)) == last.id
     db.close()
+
+
+def test_orphaned_sync_run_is_resumed(synced):
+    from app.cli import resume_orphaned_sync
+    from app.models import SyncRun
+    db = SessionLocal()
+    last = db.scalar(select(SyncRun).order_by(SyncRun.id.desc()).limit(1))
+    last.status = "running"  # as if the process had been killed mid-run
+    db.commit()
+    resume_orphaned_sync(db)
+    db.expire_all()
+    newest = db.scalar(select(SyncRun).order_by(SyncRun.id.desc()).limit(1))
+    assert newest.status == "ok"
+    db.close()

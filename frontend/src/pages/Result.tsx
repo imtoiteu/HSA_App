@@ -24,6 +24,7 @@ export default function Result() {
   const [filter, setFilter] = useState<Filter>("all");
   const [items, setItems] = useState<SessionItem[] | null>(null);
   const [report, setReport] = useState<number | null>(null);
+  const [limit, setLimit] = useState(20); // typeset the review progressively (150-question exams)
   const toast = useToast();
   const list = items ?? data?.items ?? [];
 
@@ -126,12 +127,12 @@ export default function Result() {
             <h2 style={{ margin: 0 }}>Xem lại bài làm</h2>
             <div className="seg" role="tablist">
               {([["all", "Tất cả"], ["wrong", "Câu sai"], ["blank", "Bỏ trống"], ["right", "Câu đúng"], ["flag", "Đã đánh dấu"]] as [Filter, string][]).map(([k, v]) => (
-                <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? "on" : ""} onClick={() => setFilter(k)}>{v}</button>
+                <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? "on" : ""} onClick={() => { setFilter(k); setLimit(20); }}>{v}</button>
               ))}
             </div>
           </div>
           {filtered.length === 0 && <div className="empty">Không có câu nào trong mục này.</div>}
-          {filtered.map((it) => {
+          {filtered.slice(0, limit).map((it) => {
             const [label, cls] = OUTCOME[it.outcome || "unanswered"] || ["", ""];
             const groupPositions = it.question.group ? list.filter((x) => x.question.group?.key === it.question.group!.key).map((x) => x.position) : undefined;
             const firstOfGroup = !groupPositions || groupPositions[0] === it.position || filter !== "all";
@@ -154,6 +155,13 @@ export default function Result() {
               </div>
             );
           })}
+          {filtered.length > limit && (
+            <div className="center mt">
+              <button className="btn secondary" onClick={() => setLimit((l) => l + 20)}>
+                Xem thêm {Math.min(20, filtered.length - limit)} câu ({filtered.length - limit} câu còn lại)
+              </button>
+            </div>
+          )}
         </div>
       ) : data.status === "submitted" ? (
         <div className="alert info mt">Đề thi này không cho xem lại đáp án.</div>

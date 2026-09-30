@@ -102,8 +102,8 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    mem_limit: 96m
-    cpus: 0.5
+    mem_limit: 128m
+    cpus: 1.0
     networks: [internal]
     logging: *logging
 
@@ -134,3 +134,9 @@ volumes:
 
 networks:
   internal:
+    driver: bridge
+    driver_opts:
+      # Jumbo MTU for the private bridge: container-to-container traffic (nginx <-> api <-> db) needs
+      # ~40x fewer packets. On a CPU-saturated host the kernel drops veth packets in softirq backlog
+      # (see /proc/net/softnet_stat), which stalled proxied responses for seconds at 1500 bytes.
+      com.docker.network.driver.mtu: "65000"

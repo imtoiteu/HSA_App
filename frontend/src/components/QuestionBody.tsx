@@ -2,12 +2,6 @@ import { useState } from "react";
 import type { Answer, Group, InputSpec, OptionView, QuestionView, Response } from "../lib/types";
 import { RichContent } from "./RichContent";
 
-export function rangeText(positions: number[] | undefined, lang?: string): string | undefined {
-  if (!positions || !positions.length) return undefined;
-  const a = positions[0], b = positions[positions.length - 1];
-  if (lang === "en") return a === b ? `question ${a}` : `questions ${a}–${b}`;
-  return a === b ? `câu ${a}` : `từ câu ${a} đến câu ${b}`;
-}
 
 export function Passage({ group, positions, lang }: { group: Group; positions?: number[]; lang?: string }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -15,7 +9,7 @@ export function Passage({ group, positions, lang }: { group: Group; positions?: 
   return (
     <section className={"passage" + (collapsed ? " collapsed" : "")} aria-label="Dữ liệu dùng chung">
       {group.header.length > 0 && (
-        <div className="passage-head"><RichContent blocks={group.header} range={rangeText(positions, lang)} /></div>
+        <div className="passage-head"><RichContent blocks={group.header} range={positions} lang={lang} /></div>
       )}
       <div className="passage-body"><RichContent blocks={group.passage} /></div>
       {long && (

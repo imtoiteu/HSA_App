@@ -3,6 +3,7 @@ import time
 import uuid
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -19,6 +20,10 @@ settings = get_settings()
 app = FastAPI(title="HSA-app API", version="1.0.0",
               docs_url=None if settings.is_production else "/api/docs",
               redoc_url=None, openapi_url=None if settings.is_production else "/api/openapi.json")
+
+
+# compress JSON once in-process (nginx does not gzip /api; see frontend/nginx.conf)
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
 
 
 @app.middleware("http")

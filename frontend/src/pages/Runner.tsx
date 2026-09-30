@@ -105,7 +105,7 @@ export default function Runner() {
       if (r.status !== "in_progress" || (data && r.current_section !== data.current_section)) load();
     } catch (e) {
       const err = e as ApiError;
-      if (err.status === 0) setSaveState("offline");
+      if (!(e instanceof ApiError) || err.status === 0) setSaveState("offline"); // aborted/network: retried later
       else if (err.status === 409) {
         // time is up, section changed or the item is locked: server state wins
         for (const k of Object.keys(sent)) delete pending.current[+k];

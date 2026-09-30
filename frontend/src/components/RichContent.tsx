@@ -40,8 +40,19 @@ function wrapMarks(node: ReactNode, marks: Mark[] | undefined, key: number): Rea
 }
 
 export interface RenderCtx {
-  range?: string; // text replacing {{range}} in group headers, e.g. "từ câu 5 đến câu 7"
+  range?: number[]; // positions of the group's questions, replacing {{range}} in group headers
+  lang?: string;
   onZoom?: (src: string) => void;
+}
+
+/** "từ câu 5 đến câu 7" — or just "5–7" when the source text already says "câu …" before it. */
+export function rangeLabel(positions: number[] | undefined, lang: string | undefined, prevText: string): string {
+  if (!positions || !positions.length) return "…";
+  const a = positions[0], b = positions[positions.length - 1];
+  const bare = /(câu(\s+hỏi)?|questions?|số)\s*$/i.test(prevText);
+  if (bare) return a === b ? `${a}` : lang === "en" ? `${a}–${b}` : `${a} đến ${b}`;
+  if (lang === "en") return a === b ? `question ${a}` : `questions ${a}–${b}`;
+  return a === b ? `câu ${a}` : `từ câu ${a} đến câu ${b}`;
 }
 
 function Inlines({ nodes, ctx }: { nodes: Inline[]; ctx: RenderCtx }) {
@@ -57,8 +68,10 @@ function Inlines({ nodes, ctx }: { nodes: Inline[]; ctx: RenderCtx }) {
             return <br key={i} />;
           case "tab":
             return <span key={i}>{" "}</span>;
-          case "range":
-            return <span key={i}>{ctx.range || "…"}</span>;
+          case "range": {
+            const prev = nodes[i - 1];
+            return <span key={i}>{rangeLabel(ctx.range, ctx.lang, prev && prev.t === "s" ? prev.v : "")}</span>;
+          }
           case "warn":
             return <span key={i} className="warn-node">⚠ {n.v}</span>;
           case "img":
@@ -113,10 +126,12 @@ function BlockView({ b, ctx }: { b: Block; ctx: RenderCtx }) {
   }
 }
 
-export const RichContent = memo(function RichContent({ blocks, range, className }: { blocks: Block[] | null | undefined; range?: string; className?: string }) {
+export const RichContent = memo(function RichContent({ blocks, range, lang, className }: {
+  blocks: Block[] | null | undefined; range?: number[]; lang?: string; className?: string;
+}) {
   const [zoom, setZoom] = useState<string | null>(null);
   if (!blocks || !blocks.length) return null;
-  const ctx: RenderCtx = { range, onZoom: setZoom };
+  const ctx: RenderCtx = { range, lang, onZoom: setZoom };
   return (
     <div className={"rich " + (className || "")}>
       {blocks.map((b, i) => <BlockView key={i} b={b} ctx={ctx} />)}

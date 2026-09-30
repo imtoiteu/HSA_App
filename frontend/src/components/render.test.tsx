@@ -1,6 +1,6 @@
 import { fireEvent, render } from "@testing-library/react";
-import { AnswerInput, Passage, answerText, rangeText } from "./QuestionBody";
-import { RichContent, renderTex } from "./RichContent";
+import { AnswerInput, Passage, answerText } from "./QuestionBody";
+import { RichContent, rangeLabel, renderTex } from "./RichContent";
 import type { Block, OptionView } from "../lib/types";
 
 describe("RichContent", () => {
@@ -53,7 +53,10 @@ describe("group passage", () => {
     const { container } = render(<Passage group={{ key: "g", header: [{ t: "p", c: [{ t: "s", v: "Trả lời " }, { t: "range" }] }],
       passage: [{ t: "p", c: [{ t: "s", v: "Hà Nội" }] }] }} positions={[5, 6, 7]} />);
     expect(container.textContent).toContain("Trả lời từ câu 5 đến câu 7");
-    expect(rangeText([3], "en")).toBe("question 3");
+    expect(rangeLabel([3], "en", "Read and answer ")).toBe("question 3");
+    // the source already says "câu": only the numbers are inserted
+    expect(rangeLabel([1], "vi", "trả lời các câu ")).toBe("1");
+    expect(rangeLabel([5, 6, 7], "vi", "các câu hỏi ")).toBe("5 đến 7");
   });
 });
 

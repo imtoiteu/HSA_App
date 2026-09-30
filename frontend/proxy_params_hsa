@@ -8,3 +8,8 @@ proxy_connect_timeout 5s;
 proxy_read_timeout 120s;
 proxy_send_timeout 120s;
 proxy_buffering on;
+# large buffers: a whole API response is relayed in one or two rounds (each round costs a scheduling
+# wake-up, which is slow on a CPU-contended host)
+proxy_buffer_size 64k;
+proxy_buffers 16 64k;
+proxy_busy_buffers_size 128k;

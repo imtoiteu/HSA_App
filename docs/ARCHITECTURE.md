@@ -19,7 +19,7 @@ exams. The question content comes from the separate, **read-only** upstream proj
 | Payments | provider-agnostic layer: VietQR (EMVCo) payload generated locally, webhook adapters (SePay, Casso, generic HMAC), manual admin reconciliation | no hard-coded bank data or secrets |
 
 Resource budget (shared 8 GB / 4 vCPU host): Postgres `shared_buffers=128MB`, `max_connections=40`;
-API = 2 uvicorn workers (~120 MB each); nginx ~10 MB. All containers have memory limits.
+API = 1 uvicorn process by default (~120 MB; sync endpoints run in its threadpool; see `HSA_WORKERS`); nginx ~10 MB. All containers have memory limits.
 
 ## Components
 

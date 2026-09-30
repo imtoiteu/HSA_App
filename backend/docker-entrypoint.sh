@@ -7,7 +7,7 @@ case "$1" in
   api)
     alembic upgrade head
     hsa-app seed
-    exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers "${HSA_WORKERS:-2}" \
+    exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers "${HSA_WORKERS:-1}" \
          --proxy-headers --forwarded-allow-ips='*' --no-server-header --timeout-keep-alive 15
     ;;
   scheduler)

@@ -75,6 +75,7 @@ def run_queued_sync(db):
     from .sync.importer import sync_hsa
     row = db.get(AppSetting, "sync_request")
     if not row or not row.value:
+        resume_orphaned_sync(db)
         return
     req = dict(row.value)
     row.value = {}
@@ -141,3 +142,30 @@ def main(argv=None):
 
 if __name__ == "__main__":
     main()
+
+
+def resume_orphaned_sync(db):
+    """A run left 'running'/'interrupted' by a killed process (container restart, deploy) is resumed
+    from its checkpoint. 'failed' runs are not retried automatically (they need a human)."""
+    from sqlalchemy import select, text
+    from .models import SyncRun
+    from .sync.importer import LOCK_KEY, sync_hsa
+    last = db.scalar(select(SyncRun).order_by(SyncRun.id.desc()).limit(1))
+    if not last or last.status not in ("running", "interrupted"):
+        return
+    if not db.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
+        return  # a live process is syncing
+    db.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})
+    db.commit()
+    s = get_settings()
+    try:
+        os.nice(15)
+    except OSError:
+        pass
+    print(f"resuming orphaned sync run {last.id} from {last.checkpoint}", flush=True)
+    try:
+        run = sync_hsa(db, s.upstream_root, s.media_root, triggered_by=last.triggered_by or "resume")
+        print(json.dumps({"sync_run": run.id, "status": run.status}), flush=True)
+    except RuntimeError as ex:
+        db.rollback()
+        print(f"resume postponed: {ex}")
