@@ -45,3 +45,4 @@ rendered/
 
 # offline wheelhouse for docker builds
 backend/wheels/*.whl
+.admin-credentials

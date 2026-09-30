@@ -1,12 +1,15 @@
-# syntax=docker/dockerfile:1
 FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# ImageMagick with the libwmf delegate converts WMF/EMF figures to PNG during synchronisation
-RUN apt-get update \
- && apt-get install -y --no-install-recommends imagemagick libmagickcore-6.q16-6-extra tini \
- && rm -rf /var/lib/apt/lists/* \
+# ImageMagick (libwmf delegate) converts WMF/EMF figures that upstream has not pre-rendered.
+# It is only a fallback (upstream's rendered/cache/vec PNGs are used first); set
+# WITH_IMAGEMAGICK=0 to build without apt access. Missing ImageMagick never produces broken
+# content: an unconvertible figure marks its question NEEDS_VISUAL_REVIEW.
+ARG WITH_IMAGEMAGICK=1
+RUN if [ "$WITH_IMAGEMAGICK" = "1" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends imagemagick libmagickcore-6.q16-6-extra \
+      && rm -rf /var/lib/apt/lists/*; fi \
  && useradd --create-home --uid 10001 hsa
 
 WORKDIR /app
@@ -24,5 +27,5 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /data/media && chow
 
 USER hsa
 EXPOSE 8000
-ENTRYPOINT ["/usr/bin/tini", "--", "docker-entrypoint.sh"]
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["api"]

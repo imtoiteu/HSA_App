@@ -34,7 +34,11 @@ services:
 
   api:
     image: hsaapp-api:${APP_VERSION:-latest}
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        WITH_IMAGEMAGICK: ${API_WITH_IMAGEMAGICK:-1}
+    init: true
     restart: unless-stopped
     env_file: .env
     environment:
@@ -67,6 +71,7 @@ services:
       HSA_ENV: production
       HSA_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hsa}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hsa}
     command: ["scheduler"]
+    init: true
     depends_on:
       api: { condition: service_healthy }
     mem_limit: 160m
