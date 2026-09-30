@@ -8,6 +8,7 @@ starts a free exam, autosaves, reloads, submits, checks history/bookmarks/report
 credentials — the admin overview and question search. Exits non-zero on the first failure.
 """
 import argparse
+import gzip
 import http.client
 import http.cookiejar
 import time
@@ -31,6 +32,7 @@ class Client:
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(self.base + path, data=data, method=method)
         req.add_header("Accept", "application/json")
+        req.add_header("Accept-Encoding", "gzip")  # like browsers
         if data is not None:
             req.add_header("Content-Type", "application/json")
         if method != "GET":
@@ -38,7 +40,10 @@ class Client:
         for attempt in range(3):
             try:
                 with self.op.open(req, timeout=60) as r:
-                    status, text = r.status, r.read().decode()
+                    raw = r.read()
+                    if r.headers.get("Content-Encoding") == "gzip":
+                        raw = gzip.decompress(raw)
+                    status, text = r.status, raw.decode()
                 break
             except urllib.error.HTTPError as e:
                 status, text = e.code, e.read().decode()
