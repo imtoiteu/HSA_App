@@ -1,0 +1,35 @@
+[project]
+name = "hsa-app"
+version = "1.0.0"
+description = "HSA practice and mock-examination platform (API, sync, exam engine)"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.6",
+  "uvicorn[standard]==0.32.1",
+  "sqlalchemy==2.0.36",
+  "psycopg[binary]==3.2.3",
+  "alembic==1.14.0",
+  "pydantic==2.10.3",
+  "pydantic-settings==2.6.1",
+  "argon2-cffi==23.1.0",
+  "pillow==11.0.0",
+  "segno==1.6.1",
+  "python-multipart==0.0.19",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.4", "httpx==0.28.1"]
+
+[project.scripts]
+hsa-app = "app.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["upstream: needs the real read-only HSA-question-bank on this machine"]

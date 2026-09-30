@@ -1,0 +1,44 @@
+# secrets / local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# node / build
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# runtime data (never commit question content, media or backups)
+data/
+media/
+backups/
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+*.jsonl
+!backend/tests/fixtures/*.jsonl
+!docs/examples/*.jsonl
+
+# upstream corpus must never be copied here
+source-original/
+question-bank/
+rendered/
+
+# editors / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
