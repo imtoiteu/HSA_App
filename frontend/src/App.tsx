@@ -46,12 +46,13 @@ function TopBar() {
             <NavLink to="/lich-su">Lịch sử</NavLink>
             <NavLink to="/cau-hoi-da-luu">Câu đã lưu</NavLink>
             {user.role === "admin" && <NavLink to="/admin">Quản trị</NavLink>}
+            <NavLink to="/tai-khoan" className="nav-account">Tài khoản</NavLink>
           </nav>
         )}
         <div className="spacer" />
         {user ? (
           <div className="row" style={{ gap: 6 }}>
-            <NavLink to="/tai-khoan" className="btn ghost sm" title="Tài khoản">{user.display_name}</NavLink>
+            <NavLink to="/tai-khoan" className="btn ghost sm user-name" title="Tài khoản">{user.display_name}</NavLink>
             <button className="btn secondary sm" onClick={logout}>Đăng xuất</button>
             <button className="icon-btn menu-btn" aria-label="Mở menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
               <Icon name="menu" />

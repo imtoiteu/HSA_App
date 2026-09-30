@@ -68,7 +68,7 @@ p { margin: 0 0 .8em; }
 .shell { min-height: 100vh; display: flex; flex-direction: column; }
 .container { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 20px; }
 .container.narrow { max-width: 820px; }
-.page { padding: 28px 0 56px; flex: 1; }
+.page { padding-top: 28px; padding-bottom: 56px; flex: 1; }
 .topbar {
   position: sticky; top: 0; z-index: 30; height: var(--header-h); background: rgba(255,255,255,.92);
   backdrop-filter: saturate(180%) blur(8px); border-bottom: 1px solid var(--line);
@@ -372,3 +372,13 @@ pre.json { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12
   .topbar, .footer, .runner-top, .runner-bottom, .side, .no-print { display: none !important; }
   body { background: #fff; }
 }
+
+/* compact header on phones */
+.brand span:last-child { white-space: nowrap; }
+@media (max-width: 560px) {
+  .topbar .container { gap: 10px; padding: 0 12px; }
+  .brand span:last-child { display: none; }
+  .topbar .user-name { display: none; }
+}
+.nav .nav-account { display: none; }
+@media (max-width: 860px) { .nav .nav-account { display: block; } }
