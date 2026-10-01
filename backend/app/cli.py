@@ -248,7 +248,7 @@ def resume_orphaned_sync(db):
     last = db.scalar(select(SyncRun).order_by(SyncRun.id.desc()).limit(1))
     if not last or last.status not in ("running", "interrupted"):
         return
-    with db.get_bind().connect() as probe:  # same dedicated-connection rule as sync_hsa
+    with db.get_bind().connect().execution_options(isolation_level="AUTOCOMMIT") as probe:  # as in sync_hsa
         if not probe.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
             return  # a live process is syncing
         probe.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})

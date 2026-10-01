@@ -224,7 +224,9 @@ def sync_hsa(db: Session, upstream_root: Path, media_root: Path, full: bool = Fa
     # The advisory lock lives on ONE dedicated connection for the whole run: the ORM session returns
     # its connection to the pool at every commit, so locking/unlocking through it could leave the lock
     # held by an idle pooled connection.
-    lock_conn = db.get_bind().connect()
+    # AUTOCOMMIT: a session-level advisory lock needs no transaction, and an "idle in transaction"
+    # connection would be terminated by idle_in_transaction_session_timeout, silently dropping the lock.
+    lock_conn = db.get_bind().connect().execution_options(isolation_level="AUTOCOMMIT")
     try:
         if not lock_conn.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
             raise RuntimeError("another synchronisation is running")

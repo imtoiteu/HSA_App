@@ -183,3 +183,26 @@ def test_concurrent_sync_is_refused(synced):
         a.execute(text("SELECT pg_advisory_unlock(72110001)"))
         a.close()
         b.close()
+
+
+def test_sync_lock_connection_is_never_idle_in_transaction(synced):
+    """Production terminates idle-in-transaction sessions after 60 s; if the lock connection sat in a
+    transaction its advisory lock would silently vanish and a second sync could start."""
+    states = []
+
+    def probe(stats):
+        with SessionLocal() as s:
+            states.extend(r[0] for r in s.execute(text(
+                "SELECT a.state FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid "
+                "WHERE l.locktype = 'advisory' AND l.objid = 72110001")))
+
+    import app.sync.importer as imp
+    old = imp.BATCH
+    imp.BATCH = 5
+    try:
+        db = SessionLocal()
+        sync_hsa(db, UP(), MEDIA(), full=True, progress=probe)
+        db.close()
+    finally:
+        imp.BATCH = old
+    assert states and all(st != "idle in transaction" for st in states), states
