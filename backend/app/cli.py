@@ -34,6 +34,13 @@ def cmd_recompute(a):
     db.commit()
 
 
+def cmd_refresh_flags(a):
+    from .sync.importer import apply_formula_checks
+    db = SessionLocal()
+    print(apply_formula_checks(db))
+    db.commit()
+
+
 def cmd_seed(a):
     from .seed import seed
     db = SessionLocal()
@@ -201,6 +208,8 @@ def main(argv=None):
     s.add_argument("--limit", type=int)
     s.set_defaults(fn=cmd_sync)
     sub.add_parser("recompute-policy", help="re-evaluate the serving policy").set_defaults(fn=cmd_recompute)
+    sub.add_parser("refresh-flags", help="re-derive content flags (formula/render warnings) from stored versions "
+                   "and re-evaluate the policy").set_defaults(fn=cmd_refresh_flags)
     sub.add_parser("seed", help="insert reference data (idempotent)").set_defaults(fn=cmd_seed)
     s = sub.add_parser("create-admin", help="create/promote an admin (password from HSA_ADMIN_PASSWORD or prompt)")
     s.add_argument("email")

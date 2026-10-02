@@ -86,3 +86,6 @@ Formulas are rendered on the web with KaTeX. `hsa-app export-tex f.json` → `no
 frontend/scripts/katex-check.mjs f.json r.json` → `hsa-app import-tex-check f.json r.json` stores the
 result per formula (`formula_check`) and flags questions: `formula_render_error` (stem/options/passage;
 blocks serving) and `solution_formula_render_error` (solution only; recorded, not blocking by default).
+
+`hsa-app refresh-flags` re-derives these content flags (and `render_warning`) from the stored current
+versions and re-evaluates the policy, without rebuilding content — used after a check is extended.

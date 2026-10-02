@@ -168,7 +168,7 @@ def app_profile(db: Session, bank: QuestionBank, media_root: Path, upstream_ids:
     served_by_subject, served_types, excluded_primary = (collections.Counter() for _ in range(3))
     answer_problems = collections.Counter()
     samples = collections.defaultdict(list)
-    tex_all, tex_served = set(), set()
+    tex_all, tex_served, tex_served_visible = set(), set(), set()
     img_missing_q = img_missing_served = 0
     original_subject_counts = collections.Counter()
     alias = {}
@@ -260,6 +260,7 @@ def app_profile(db: Session, bank: QuestionBank, media_root: Path, upstream_ids:
             tex_all |= tex
             if served:
                 tex_served |= tex
+                tex_served_visible |= collect_tex({k: content.get(k) for k in ("stem", "options", "group")})
     sha = lambda t: hashlib.sha256(t.encode("utf-8")).hexdigest()  # noqa: E731
     prof.update({
         "counts": dict(c), "editorial_state": dict(by_state.most_common()),
@@ -274,7 +275,8 @@ def app_profile(db: Session, bank: QuestionBank, media_root: Path, upstream_ids:
         "formulas": {"distinct_tex": len(tex_all), "distinct_tex_served": len(tex_served),
                      "checked_by_renderer": len({sha(t) for t in tex_all} & checked),
                      "failing_all": len({sha(t) for t in tex_all} & failing),
-                     "failing_served": len({sha(t) for t in tex_served} & failing)},
+                     "failing_served": len({sha(t) for t in tex_served} & failing),
+                     "failing_served_student_visible": len({sha(t) for t in tex_served_visible} & failing)},
         "deferred_source_documents": db.scalar(select(func.count()).where(SourceDocument.bank_id == bank.id)),
         "bank": {"code": bank.code, "version": bank.version, "last_synced_at": bank.last_synced_at.isoformat()
                  if bank.last_synced_at else None, "active": bank.is_active},
@@ -354,7 +356,11 @@ def reconciliation(r: dict) -> dict:
         "QUESTIONS MISSING RESOLVABLE ANSWERS (served auto-scored)": sum(app["served_auto_answer_problems"].values()),
         "QUESTIONS WITHOUT ANY ANSWER (imported)": c.get("questions", 0) - c.get("with_answer", 0),
         "SHARED GROUPS: questions in groups / snapshots missing": f"{c.get('in_group', 0)} / {c.get('group_snapshot_missing', 0)}",
-        "FORMULAS failing web renderer (all / served)": f"{app['formulas']['failing_all']} / {app['formulas']['failing_served']}",
+        "FORMULAS failing web renderer (all / served / served student-visible)":
+            f"{app['formulas']['failing_all']} / {app['formulas']['failing_served']} / "
+            f"{app['formulas'].get('failing_served_student_visible', '?')}",
+        "RENDER PLACEHOLDERS in stem/options/passage (all / served)":
+            f"{c.get('render_placeholders_student_visible', 0)} / {c.get('render_placeholders_served', 0)}",
         "DEFERRED SOURCE DOCUMENTS (scanned PDFs, NEEDS_MATH_AWARE_OCR)": app["deferred_source_documents"],
     }
 

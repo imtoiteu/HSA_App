@@ -79,7 +79,7 @@ def build_record(rec: dict, base: Path, media: MediaStore) -> BuiltQuestion:
     reasons = [problem] if problem else []
     if inp["kind"] == "choice" and len(options) < 2:
         reasons.append("too_few_options")
-    if _has_warn(stem) or _has_warn(options):
+    if _has_warn(stem) or _has_warn(options) or (group and _has_warn(group)):
         reasons.append("render_warning")
     content = {"type": rec["type"], "language": rec.get("language") or "vi", "input": inp, "group": group,
                "stem": stem, "options": options, "solution": solution, "explanation": explanation,

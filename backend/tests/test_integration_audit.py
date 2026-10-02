@@ -120,6 +120,25 @@ def test_passage_attached_to_wrong_question_is_not_served(synced, db):
     assert {"t": "range"} in header and not any(ch.isdigit() for ch in text)
 
 
+def test_placeholder_in_shared_passage_blocks_serving(synced):
+    db = SessionLocal()
+    q = q_by(db, synced["ids"]["g4_warn"])
+    assert q.editorial_state == "READY_TO_SERVE"
+    assert not q.is_served and "render_warning" in q.policy_reasons
+    # the stored-content refresh restores the flag on versions built before the check covered passages
+    q.content_flags = [f for f in q.content_flags if f != "render_warning"]
+    db.commit()
+    recompute_policy(db)
+    db.commit()
+    assert q_by(db, synced["ids"]["g4_warn"]).is_served
+    apply_formula_checks(db)
+    db.commit()
+    db.expire_all()
+    q = q_by(db, synced["ids"]["g4_warn"])
+    assert "render_warning" in q.content_flags and not q.is_served
+    db.close()
+
+
 def test_key_printed_in_stem_is_removed(synced, db):
     q = q_by(db, synced["ids"]["key_in_stem"])
     stem = q.current_version.content["stem"]

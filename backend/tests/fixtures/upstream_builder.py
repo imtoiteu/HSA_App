@@ -245,6 +245,13 @@ def build_standard(root: Path) -> dict:
                               {"kind": "labels", "labels": ["A"]}, subject="history", group=g3, doc_key="d4", number=5)
     ids["g3_out"] = b.question("g3_out", "Cho dung dịch X vào KOH. Dung dịch X là", ABCD("FeCl2", "AgNO3", "NaCl", "KCl"),
                                {"kind": "labels", "labels": ["A"]}, subject="chemistry", group=g3, doc_key="d4", number=9)
+    # a READY passage whose body holds an object the renderer cannot display
+    g4 = b.group("g4", "**Đọc đoạn sau và trả lời câu hỏi 1**", "Biểu đồ: {{unsupported:chart}} cho thấy dân số tăng.",
+                 doc_key="d5")
+    ids["g4_warn"] = b.question("g4_warn", "Theo biểu đồ, dân số", ABCD("tăng", "giảm", "không đổi", "không rõ"),
+                                {"kind": "labels", "labels": ["A"]}, subject="geography", group=g4, doc_key="d5",
+                                number=1)
+    b.manifest([{"question_id": ids["g4_warn"], "states": ["READY_TO_SERVE"], "notes": []}], vol="DiaLy_Vol01")
     # the source printed the key as the last paragraph of the stem
     ids["key_in_stem"] = b.question("key_in_stem", "Vòi tưới được gốc rau cao nhất bao nhiêu mét?\n\n4,5", None,
                                     {"kind": "numeric", "text": "4,5", "value": 4.5}, qtype="numeric_response")

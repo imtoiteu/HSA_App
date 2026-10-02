@@ -17,7 +17,7 @@ A question is **eligible** when all of the following hold:
    | `group_context_missing` | belongs to a passage group whose shared passage is empty upstream |
    | `inline_options_in_short_response` | a "short response" whose stem actually contains A/B/C/D options |
    | `empty_stem`, `too_few_options`, `empty_option` | structural problems |
-   | `render_warning` | something the student would see cannot be displayed |
+   | `render_warning` | something the student would see (stem, options or the shared passage) cannot be displayed, or is an unvalidated fallback picture of a formula |
    | `answer_not_in_options`, `answer_unparseable`, `answer_empty`, … | a provided key is unusable |
    | `no_input` | neither an answer format nor anything to compare with |
    | `removed_upstream` | the question disappeared from the canonical bank |
