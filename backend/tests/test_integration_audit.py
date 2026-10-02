@@ -65,8 +65,11 @@ def test_upstream_effective_subject_takes_precedence(synced, db):
     assert (q.source_subject, q.upstream_effective_subject, q.classification_source) == ("math", "chemistry",
                                                                                          "semantic_correction")
     assert q.subject_code == "chemistry" and q.subject_source == "upstream_effective"
-    v = q_by(db, ids["v2"])  # flagged for review upstream: keep the original subject
-    assert v.subject_code == "literature" and v.subject_source == "original" and v.classification_review
+    v = q_by(db, ids["v2"])  # flagged for review upstream: the final upstream subject still applies
+    assert v.subject_code == "english" and v.subject_source == "upstream_effective" and v.classification_review
+    e = q_by(db, ids["eng_vi"])  # upstream deliberately unclassified: the original label is not re-applied
+    assert (e.source_subject, e.upstream_effective_subject) == ("english", None)
+    assert e.subject_code == "general" and e.subject_source == "unclassified"
     n = q_by(db, ids["inf_none"])
     assert n.subject_code == "history" and n.subject_source == "upstream_effective"
     assert q_by(db, ids["inf_phys"]).subject_source == "inferred"  # no upstream record: second pass

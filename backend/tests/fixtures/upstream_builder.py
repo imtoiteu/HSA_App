@@ -277,6 +277,8 @@ def build_standard(root: Path) -> dict:
          "confidence": "high", "evidence": ["path 'Hoá học'"], "method": "subject_infer v1"},
     ])
     # upstream's validated final classification (covers only these in the fixture; the rest use the 2nd pass)
+    ids["eng_vi"] = b.question("eng_vi", "Câu hỏi tiếng Việt bị gắn nhãn tiếng Anh.", ABCD("1", "2", "3", "4"),
+                               {"kind": "labels", "labels": ["A"]}, subject="english")
     b.overlay("subject_effective", [
         {"question_id": ids["m4"], "original_subject": "math", "inferred_subject": None, "effective_subject": "chemistry",
          "classification_source": "semantic_correction", "classification_confidence": "high",
@@ -287,6 +289,9 @@ def build_standard(root: Path) -> dict:
         {"question_id": ids["inf_none"], "original_subject": None, "inferred_subject": None, "effective_subject": "history",
          "classification_source": "semantic_assignment", "classification_confidence": "medium",
          "classification_evidence": ["content model history p=0.93"], "review": None},
+        {"question_id": ids["eng_vi"], "original_subject": "english", "inferred_subject": None, "effective_subject": None,
+         "classification_source": "semantic_correction", "classification_confidence": "high",
+         "classification_evidence": ["R5 language test: Vietnamese text"], "review": None},
     ])
     # upstream pipeline state with one scanned PDF deferred for math-aware OCR
     inv = root / "inventory"

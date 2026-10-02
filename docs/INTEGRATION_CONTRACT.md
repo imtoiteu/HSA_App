@@ -33,7 +33,7 @@ provenance for admins).
 | `group_id` → `question_group` | `question.group_key` + group snapshot (header, passage, tables) inside each member's version |
 | `subject` | kept as `question.source_subject` (original) |
 | inference record | `inferred_subject`, `inference_confidence`, `inference_evidence` |
-| — | effective `subject_code` + `subject_source` (`admin` override → specific original → inferred with an accepted confidence → generic original such as `science` → `unclassified`); aliases map bank values to app subjects |
+| `editorial/subject_effective.jsonl` (final classification) | `upstream_effective_subject`, `classification_source/confidence/evidence/review`. The effective `subject_code` is this final subject as published (null → `general`, review flag kept as metadata); only an `admin` override replaces it. Aliases map bank values to app subjects. |
 | `topic`, `subtopic`, `cognitive_level` | stored; topic practice is enabled only when the configured coverage threshold is met |
 | `exam_systems`, representative occurrence (`document`, section, number) | provenance (admin only) |
 | `review_status`, `review_flags` | inputs of the serving policy |

@@ -1,6 +1,6 @@
 # Question-bank integration audit
 
-Latest full audit: **2026-10-02** (deep mode, production database), upstream revision `8a61c8ead8b9`
+Latest full audit: **2026-10-02** (deep mode, production database; subject reconciliation below), upstream revision `8a61c8ead8b9`
 (editorial build v2.2), app sync run 5 (`d5cf4c42e39d88bd@hsa-builder-3`), migration `0003`.
 
 Re-run at any time:
@@ -25,8 +25,8 @@ detect content changed since the last sync.
    - shared-passage snapshot is present;
    - render placeholders (`warn` nodes and unvalidated fallbacks) in stem, options and the shared passage;
    - every LaTeX string, checked against the stored KaTeX results (`formula_check`).
-4. **Subjects.** Original, upstream-effective and inferred subjects, and the resulting effective subject and
-   its source, are counted before and after classification.
+4. **Subjects.** Each question's app effective subject is compared with upstream's final subject, id by id,
+   and then followed through the serving policy, the student API and the rendered UI.
 5. **Serving.** Excluded questions are counted by their primary cause. Editorial state comes first, then the
    first blocking app check.
 6. **Rendering QA.** A headless browser opens a sample of 22 served questions in the student UI, covering
@@ -91,35 +91,77 @@ true_false_statements 3 · constructed_response 1.
 All 9 upstream types are imported and representable. Only `open_or_unknown` is marked
 `unsupported_for_serving`.
 
-## Subject classification
+## Subject reconciliation (2026-10-02, upstream `8a61c8e` → production → student UI)
 
-Resolution order: admin override → upstream effective subject (approved, confidence not low) → specific
-original subject → accepted second-pass inference → generic original (`science`) → unclassified
-(`general`). The original, inferred and upstream-effective subjects are stored separately, with confidence
-and evidence. Low-confidence results are never forced into a subject.
+Every `cq_` id is traced. Upstream is read from `canonical_question`, `editorial/subject_effective.jsonl`
+and the manifest states. Production is queried directly. The student numbers come from `/api/catalog`,
+the practice-session pool query, and the subject chips rendered in a headless browser at `/luyen-tap`.
 
-| Effective subject | Before | After | Served |
-|---|---:|---:|---:|
-| math | 14,604 | 32,316 | 6,098 |
-| general (unclassified) | 40,836 | 12,588 | 537 |
-| literature | 8,020 | 7,528 | 4,255 |
-| chemistry | 2,504 | 5,712 | 414 |
-| physics | 371 | 4,796 | 212 |
-| english | 2,433 | 3,497 | 1,085 |
-| history | 213 | 1,634 | 279 |
-| biology | 9 | 729 | 159 |
-| science (generic) | 840 | 573 | 304 |
-| geography | 15 | 531 | 121 |
-| logic | 136 | 77 | 6 |
+| Subject | Upstream final | App imported (same final subject) | App effective | Upstream READY | App eligible = served | Student API | UI chip | Excluded | Mismatch |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Toán | 32,304 | 32,304 | 32,304 | 7,190 | 6,088 | 6,088 | 6,088 | 26,216 | 0 |
+| Ngữ văn | 7,551 | 7,551 | 7,551 | 4,521 | 4,261 | 4,261 | 4,261 | 3,290 | 0 |
+| Tiếng Anh | 3,208 | 3,208 | 3,208 | 1,541 | 1,085 | 1,085 | 1,085 | 2,123 | 0 |
+| Vật lý | 4,803 | 4,803 | 4,803 | 267 | 214 | 214 | 214 | 4,589 | 0 |
+| Hóa học | 5,720 | 5,720 | 5,720 | 423 | 421 | 421 | 421 | 5,299 | 0 |
+| Sinh học | 739 | 739 | 739 | 180 | 164 | 164 | 164 | 575 | 0 |
+| Lịch sử | 1,642 | 1,642 | 1,642 | 296 | 283 | 283 | 283 | 1,359 | 0 |
+| Địa lý | 534 | 534 | 534 | 125 | 123 | 123 | 123 | 411 | 0 |
+| Chưa phân loại (`general`, UI "Tổng hợp") | 13,480 | 13,480 | 13,480 | 958 | 831 | 831 | 831 | 12,649 | 0 |
+| **Total** | **69,981** | **69,981** | **69,981** | **15,501** | **13,470** | **13,470** | **13,470** | **56,511** | **0** |
 
-Subject source:
+For every subject, imported = served + excluded, with no remainder. The student API count equals the database
+`is_served` count, which equals the practice pool. Practice allows self-check items, so nothing extra is filtered.
 
-- upstream_effective: 53,686
-- unclassified: 12,588
-- original: 3,707
+### Exclusion reasons by subject (primary cause)
 
-Upstream flags 10,317 classifications `SUBJECT_CLASSIFICATION_REVIEW`. For those, the app falls back to
-the original subject.
+| Subject | Formula review | Answer linking | Visual review | General review | App checks |
+|---|---:|---:|---:|---:|---|
+| Toán | 18,988 | 4,396 | 1,271 | 459 | passage missing 748, wrong passage 302, render 41, formula 7, answer∉options 2, inline options 2 |
+| Ngữ văn | 458 | 2,057 | 199 | 316 | wrong passage 126, passage missing 98, render 33, answer∉options 2, empty stem 1 |
+| Tiếng Anh | 159 | 951 | 205 | 352 | passage missing 444, render 7, empty stem 5 |
+| Vật lý | 3,416 | 871 | 135 | 114 | inline options in short response 48, passage missing 2, too few options 1, answer∉options 1, render 1 |
+| Hóa học | 1,698 | 2,777 | 255 | 567 | render 2 |
+| Sinh học | 98 | 331 | 39 | 91 | passage missing 16 |
+| Lịch sử | 203 | 1,036 | 19 | 88 | passage missing 11, render 2 |
+| Địa lý | 26 | 132 | 67 | 184 | passage missing 2 |
+| Chưa phân loại | 7,909 | 4,033 | 366 | 214 | passage missing 121, render 6 |
+
+The following contribute nothing to the exclusions:
+
+- subject-classification review (a flag only);
+- unsupported types: the 39 `open_or_unknown` questions are already excluded by QA state;
+- pagination, API or frontend filters;
+- inactive banks.
+
+**Physics:** 4,803 upstream = 4,803 imported = 214 served + 4,589 excluded. Of the excluded, 4,536 are not
+READY upstream (formula review 3,416, answer linking 871, visual review 135, review 114). The other 53 are
+READY but fail an app check: 48 short-response items with options typed inside the stem, 2 with an empty
+passage, and 1 each for too few options, answer not among options, and undisplayable content.
+
+### Subject semantics fix (2026-10-02)
+
+Before this fix, 996 questions had an app subject different from upstream's final subject, with no admin
+override:
+
+- 929 questions had a null upstream final subject (deliberately unclassified), but the app re-applied
+  the original label: `science` 564, `english` 290 (Vietnamese text removed from English by upstream rule
+  R5), and `logic_reasoning` 75.
+- 67 questions had a final subject flagged `SUBJECT_CLASSIFICATION_REVIEW` or of low confidence, and the
+  app ignored it.
+
+These two rules also created the app-only categories `science` (573) and `logic` (77). The resolver now
+uses upstream's final classification as published, so only an admin override can replace it. Production was
+recomputed after a backup (`backups/hsa_pre_subjectfix_20261002_0250.dump`):
+
+- 996 subjects changed, and 0 mismatches remain;
+- `science` and `logic` hold 0 questions;
+- 13,470 served before and after.
+
+Physics went from 212 to 214. The 296 served questions formerly in `science` are now *Chưa phân loại*, so they
+left the Khoa học exam pools. Those pools still hold 1,205 served questions, against a need of 50.
+
+`subject_source`: upstream_effective 56,501, unclassified 13,480, admin 0.
 
 ## Assets and formulas
 
@@ -140,9 +182,9 @@ These were fixed, not only reported:
   - 0 questions removed;
   - no history touched.
 - **Subject handling:**
-  - second-pass inference and the upstream effective subject were added, with an admin override and
-    filters;
-  - columns and the resolution order are described above (migrations `0002`, `0003`).
+  - original, inferred and upstream-final subjects are stored separately (migrations `0002`, `0003`);
+  - the upstream final subject is authoritative, and an admin override with filters is available;
+  - see the subject reconciliation above.
 - **Builder (`hsa-builder-3`):**
   - answer keys printed as the last paragraph of a stem are removed;
   - passages attached to questions outside their stated range are flagged;
@@ -181,4 +223,5 @@ correction:
 
 - 54,480 questions await upstream editorial review: formula retyping, answer linking and visual review.
   They become servable automatically when upstream marks them READY_TO_SERVE and the next sync runs.
-- 12,588 questions have no reliable subject. They stay `general` until upstream or an admin classifies them.
+- 13,480 questions are unclassified upstream, 9,558 of them flagged for classification review. They stay
+  *Chưa phân loại* until upstream or an admin classifies them.

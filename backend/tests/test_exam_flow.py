@@ -186,7 +186,7 @@ def test_other_users_cannot_access_session(student, anon, db):
 
 def test_groups_are_kept_together_with_passage(student, db):
     cfg = {"sections": [{"key": "doc", "title": "Đọc hiểu", "pools": [
-        {"subjects": ["literature"], "types": ["single_choice"], "count": 23}]}], "timing": "none",
+        {"subjects": ["literature"], "types": ["single_choice"], "count": 22}]}], "timing": "none",
         "keep_groups_together": True, "shuffle_options": False}
     bp = make_blueprint(db, f"grp_{uuid.uuid4().hex[:6]}", cfg)
     sid = student.post("/api/sessions", {"blueprint_id": bp.id}).json()["session"]["id"]

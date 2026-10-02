@@ -50,8 +50,18 @@ questions carry a topic; the current upstream bank has no topic classification y
 
 ## Subjects
 
-Students browse by the **effective subject**. Second-pass inferences are used only with an accepted
-confidence (`subject_inference_confidence`, default `high` and `medium`; upstream validated 99.1 %
-precision) and only when the original subject is generic/unknown (`generic_source_subjects`, default
-`""`, `science`, `logic_reasoning`). Anything else stays in *Tổng hợp (chưa phân loại)*. Admins can force
-a subject per question (Admin → câu hỏi → Phân loại môn); the override is app-side and survives syncs.
+Students browse by the **effective subject**. For the HSA bank this is upstream's **final**
+classification (`editorial/subject_effective.jsonl`), exactly as published. A `SUBJECT_CLASSIFICATION_REVIEW`
+flag or a low confidence is shown to admins but does not change the subject, and a null final subject means
+*Chưa phân loại* (`general`). The app never re-applies an original label that upstream removed, such as
+`science`, `logic_reasoning`, or Vietnamese text labelled `english`. The only app-side change is an explicit
+admin override (Admin → câu hỏi → Phân loại môn), which survives syncs and is listed as `subject_source = admin`.
+
+Banks without an upstream final classification fall back to:
+
+1. a specific original subject;
+2. a second-pass inference with an accepted confidence (`subject_inference_confidence`, default `high`
+   and `medium`), used only when the original is generic or unknown (`generic_source_subjects`);
+3. *Chưa phân loại*.
+
+`use_upstream_effective_subject: false` restores this fallback for the HSA bank too.
