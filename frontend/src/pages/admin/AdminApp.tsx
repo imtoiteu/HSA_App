@@ -5,25 +5,30 @@ import QuestionDetail from "./QuestionDetail";
 import Reports from "./Reports";
 import { Banks, Corrections, Subjects } from "./Content";
 import { BlueprintEditor, Blueprints } from "./Blueprints";
-import { Orders, Products, Transactions } from "./Commerce";
+import { Products, Transactions } from "./Commerce";
+import { OrderDetail, Orders, Plans } from "./Payments";
+import { QaQueues, SubjectReconciliation } from "./Reconcile";
 import { UserDetail, Users } from "./Users";
 import Settings from "./Settings";
 import Audit from "./Audit";
 
 const NAV: ([string, string] | string)[] = [
   ["/admin", "Tổng quan"],
-  "Nội dung",
+  "Ngân hàng câu hỏi",
   ["/admin/cau-hoi", "Câu hỏi"],
-  ["/admin/bao-loi", "Báo lỗi"],
-  ["/admin/de-xuat-sua", "Đề xuất sửa"],
+  ["/admin/hang-doi-qa", "Hàng đợi QA"],
+  ["/admin/doi-soat-mon", "Đối soát theo môn"],
   ["/admin/ngan-hang", "Ngân hàng & đồng bộ"],
   ["/admin/mon-hoc", "Môn học"],
-  "Đề thi",
-  ["/admin/de-thi", "Cấu trúc đề"],
+  ["/admin/bao-loi", "Báo lỗi"],
+  ["/admin/de-xuat-sua", "Đề xuất sửa"],
+  "Đề thi thử",
+  ["/admin/de-thi", "Đề thi & giá"],
   "Kinh doanh",
-  ["/admin/goi-ban", "Gói bán"],
-  ["/admin/don-hang", "Đơn hàng"],
-  ["/admin/giao-dich", "Giao dịch"],
+  ["/admin/goi", "Gói luyện tập & giá"],
+  ["/admin/don-hang", "Thanh toán & đơn hàng"],
+  ["/admin/giao-dich", "Giao dịch ngân hàng"],
+  ["/admin/goi-ban", "Gói lượt thi"],
   "Người dùng",
   ["/admin/nguoi-dung", "Người dùng"],
   "Hệ thống",
@@ -53,6 +58,10 @@ export default function AdminApp() {
           <Route path="de-thi/:id" element={<BlueprintEditor />} />
           <Route path="goi-ban" element={<Products />} />
           <Route path="don-hang" element={<Orders />} />
+          <Route path="don-hang/:code" element={<OrderDetail />} />
+          <Route path="goi" element={<Plans />} />
+          <Route path="hang-doi-qa" element={<QaQueues />} />
+          <Route path="doi-soat-mon" element={<SubjectReconciliation />} />
           <Route path="giao-dich" element={<Transactions />} />
           <Route path="nguoi-dung" element={<Users />} />
           <Route path="nguoi-dung/:id" element={<UserDetail />} />

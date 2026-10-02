@@ -18,7 +18,8 @@ from app.sync.importer import sync_hsa
 
 
 def make_blueprint(db, code, config, price=0, published=True):
-    bp = ExamBlueprint(code=code, name=f"Đề {code}", config=config, price_vnd=price, is_published=published)
+    bp = ExamBlueprint(code=code, name=f"Đề {code}", config=config, price_vnd=price,
+                       access="paid" if price else "free", is_published=published)
     db.add(bp)
     db.commit()
     return bp

@@ -4,7 +4,11 @@ import { ErrorBox, Spinner, useAsync, useToast } from "../components/ui";
 import { get, patch, post } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { dateOnly, dateTime, ORDER_STATUS, vnd } from "../lib/format";
-import type { Order } from "../lib/types";
+import type { MyPlan, Order } from "../lib/types";
+
+const SUB_STATE: Record<string, [string, string]> = {
+  active: ["Đang hiệu lực", "ok"], scheduled: ["Chờ đến lượt", "brand"], expired: ["Đã hết hạn", ""], revoked: ["Đã thu hồi", "bad"],
+};
 
 interface Ent { id: number; note: string | null; attempts_total: number | null; attempts_used: number; valid_until: string | null; status: string }
 
@@ -12,6 +16,7 @@ export default function Account() {
   const { user, setUser } = useAuth();
   const toast = useToast();
   const orders = useAsync(() => get<{ items: Order[] }>("/api/orders"), []);
+  const plan = useAsync(() => get<MyPlan>("/api/me/plan"), []);
   const ents = useAsync(() => get<{ items: Ent[] }>("/api/entitlements"), []);
   const [name, setName] = useState(user?.display_name || "");
   const [cur, setCur] = useState("");
@@ -41,6 +46,32 @@ export default function Account() {
   return (
     <div className="container narrow page">
       <h1>Tài khoản</h1>
+      {plan.data && (
+        <div className={"card mb plan-status " + (plan.data.plan === "PRO" ? "pro" : "")}>
+          <div className="row between" style={{ flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <div className="muted small">Gói luyện tập</div>
+              <div style={{ fontSize: "1.2rem", fontWeight: 700 }}>{plan.data.plan === "PRO" ? "Gói Pro" : plan.data.plan === "ADMIN" ? "Quản trị viên" : "Miễn phí"}</div>
+              {plan.data.plan === "PRO" && plan.data.pro_until
+                ? <div className="small">Hiệu lực đến <strong>{dateOnly(plan.data.pro_until)}</strong> · còn {plan.data.days_left} ngày</div>
+                : plan.data.plan === "FREE" && <div className="small muted">{plan.data.free_questions_per_subject} câu luyện tập mỗi môn{plan.data.expired_at ? ` · gói Pro đã hết hạn ngày ${dateOnly(plan.data.expired_at)}` : ""}</div>}
+            </div>
+            {plan.data.plan !== "ADMIN" && <Link to="/nang-cap" className={"btn " + (plan.data.plan === "PRO" ? "secondary" : "accent")}>{plan.data.plan === "PRO" ? "Gia hạn" : "Nâng cấp Pro"}</Link>}
+          </div>
+          {plan.data.subscriptions.length > 0 && (
+            <div className="table-wrap mt"><table className="data">
+              <thead><tr><th>Gói</th><th>Từ</th><th>Đến</th><th>Nguồn</th><th>Trạng thái</th></tr></thead>
+              <tbody>{plan.data.subscriptions.map((x) => {
+                const [l, c] = SUB_STATE[x.state] || [x.state, ""];
+                return (
+                  <tr key={x.id}><td>{x.name || x.plan_code}</td><td>{dateOnly(x.starts_at)}</td><td>{dateOnly(x.expires_at)}</td>
+                    <td>{x.source === "order" ? "Thanh toán" : "Quản trị viên cấp"}</td><td><span className={"badge " + c}>{l}</span></td></tr>
+                );
+              })}</tbody>
+            </table></div>
+          )}
+        </div>
+      )}
       <div className="grid cols-2">
         <form className="card stack" onSubmit={saveName}>
           <h3>Thông tin</h3>
@@ -60,7 +91,7 @@ export default function Account() {
         </form>
       </div>
 
-      <h2 className="mt-lg">Lượt thi đã mua</h2>
+      <h2 className="mt-lg">Lượt thi thử đã mua</h2>
       {ents.loading ? <Spinner /> : !ents.data?.items.length ? <div className="card empty">Chưa có. <Link to="/de-thi">Xem đề thi thử</Link></div> : (
         <div className="table-wrap"><table className="data">
           <thead><tr><th>Gói</th><th>Đã dùng</th><th>Hạn dùng</th><th>Trạng thái</th></tr></thead>
@@ -72,7 +103,7 @@ export default function Account() {
         </table></div>
       )}
 
-      <h2 className="mt-lg">Đơn hàng</h2>
+      <h2 className="mt-lg">Lịch sử thanh toán</h2>
       {orders.loading ? <Spinner /> : !orders.data?.items.length ? <div className="card empty">Chưa có đơn hàng.</div> : (
         <div className="table-wrap"><table className="data">
           <thead><tr><th>Mã đơn</th><th>Sản phẩm</th><th>Số tiền</th><th>Ngày tạo</th><th>Trạng thái</th></tr></thead>

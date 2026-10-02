@@ -235,11 +235,19 @@ class ExamBlueprint(Base):
     config: Mapped[dict] = mapped_column(JSONB)  # validated by exam.blueprint.BlueprintConfig
     version: Mapped[int] = mapped_column(Integer, default=1)  # bumped on every config change
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
-    price_vnd: Mapped[int] = mapped_column(Integer, default=0)  # 0 = free; >0 = one attempt costs this
+    # access: free | paid. A paid exam costs promo_price_vnd if set, else price_vnd, else the default
+    # mock-exam price (setting mock_exams.default_price_vnd) — see commerce.service.exam_price
+    access: Mapped[str] = mapped_column(String(8), default="free", server_default="free")
+    price_vnd: Mapped[int] = mapped_column(Integer, default=0)  # list price of one purchase; 0 = default price
+    promo_price_vnd: Mapped[int | None] = mapped_column(Integer)
+    attempts_per_purchase: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     sort_order: Mapped[int] = mapped_column(Integer, default=100)
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     updated_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now(), onupdate=func.now())
-    __table_args__ = (CheckConstraint("price_vnd >= 0", name="ck_bp_price"),)
+    __table_args__ = (CheckConstraint("price_vnd >= 0", name="ck_bp_price"),
+                      CheckConstraint("access in ('free','paid')", name="ck_bp_access"),
+                      CheckConstraint("promo_price_vnd is null or promo_price_vnd > 0", name="ck_bp_promo"),
+                      CheckConstraint("attempts_per_purchase between 1 and 100", name="ck_bp_attempts"))
 
 
 class ExamSession(Base):
@@ -257,6 +265,7 @@ class ExamSession(Base):
     pool_fingerprint: Mapped[str | None] = mapped_column(String(64))
     feedback: Mapped[str] = mapped_column(String(16), default="end")  # end | immediate
     status: Mapped[str] = mapped_column(String(16), default="in_progress")  # in_progress | submitted | abandoned
+    access_plan: Mapped[str | None] = mapped_column(String(8))  # FREE | PRO | ADMIN at creation (practice stats)
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     started_at: Mapped[dt.datetime] = mapped_column(TS)
     deadline_at: Mapped[dt.datetime | None] = mapped_column(TS)  # global deadline (null = untimed)
@@ -368,15 +377,67 @@ class Product(Base):
                       CheckConstraint("attempts is null or attempts > 0", name="ck_product_attempts"))
 
 
+class Plan(Base):
+    """Practice access plans (FREE, PRO). Prices/durations are data, edited in Admin → Gói & giá."""
+    __tablename__ = "plan"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(16), unique=True)  # FREE | PRO
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(Text)
+    price_vnd: Mapped[int] = mapped_column(Integer, default=0)
+    duration_days: Mapped[int | None] = mapped_column(Integer)  # validity of one purchase (PRO)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    features: Mapped[dict] = mapped_column(JSONB, default=dict)  # {"benefits": [str, ...]}
+    sort_order: Mapped[int] = mapped_column(Integer, default=100)
+    created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+    updated_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now(), onupdate=func.now())
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    __table_args__ = (CheckConstraint("price_vnd >= 0", name="ck_plan_price"),
+                      CheckConstraint("duration_days is null or duration_days > 0", name="ck_plan_duration"))
+
+
+class PlanSubscription(Base):
+    """One PRO validity period (purchase, renewal or admin grant). Rows are never overwritten: renewals
+    add a period starting when the previous one ends; revocation keeps the row with who/when/why."""
+    __tablename__ = "plan_subscription"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), index=True)
+    plan_code: Mapped[str] = mapped_column(String(16))
+    plan_snapshot: Mapped[dict] = mapped_column(JSONB, default=dict)  # name, price, duration at purchase
+    starts_at: Mapped[dt.datetime] = mapped_column(TS)
+    expires_at: Mapped[dt.datetime] = mapped_column(TS)
+    status: Mapped[str] = mapped_column(String(16), default="active")  # active | revoked (expiry is by time)
+    source: Mapped[str] = mapped_column(String(16))  # order | admin_grant
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("payment_order.id"), unique=True)
+    granted_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    revoked_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    revoked_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    revoke_reason: Mapped[str | None] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+    updated_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now(), onupdate=func.now())
+    __table_args__ = (CheckConstraint("status in ('active','revoked')", name="ck_sub_status"),
+                      CheckConstraint("source in ('order','admin_grant')", name="ck_sub_source"),
+                      CheckConstraint("expires_at > starts_at", name="ck_sub_period"),
+                      Index("ix_sub_user_period", "user_id", "status", "expires_at"))
+
+
 class PaymentOrder(Base):
+    """Amount, reference and destination are fixed at creation (DB trigger trg_order_immutable)."""
     __tablename__ = "payment_order"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     code: Mapped[str] = mapped_column(String(20), unique=True)  # reference code put in the transfer content
     user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(16), default="product")  # pro | exam | product
+    plan_code: Mapped[str | None] = mapped_column(String(16))  # kind = pro
     product_id: Mapped[int | None] = mapped_column(ForeignKey("product.id"))  # bundle / pass
     blueprint_id: Mapped[int | None] = mapped_column(ForeignKey("exam_blueprint.id"))  # single attempt of an exam
     product_snapshot: Mapped[dict] = mapped_column(JSONB)  # {name, attempts, duration_days, blueprint_ids}
     amount_vnd: Mapped[int] = mapped_column(Integer)
+    list_price_vnd: Mapped[int | None] = mapped_column(Integer)  # configured price before a promotion
+    transfer_content: Mapped[str | None] = mapped_column(String(40))  # e.g. "HSA K7M2PQX9"
+    bank_snapshot: Mapped[dict | None] = mapped_column(JSONB)  # destination account at creation
+    updated_at: Mapped[dt.datetime | None] = mapped_column(TS, server_default=func.now(), onupdate=func.now())
     status: Mapped[str] = mapped_column(String(16), default="pending")
     provider: Mapped[str | None] = mapped_column(String(24))  # which provider confirmed it
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
@@ -385,9 +446,24 @@ class PaymentOrder(Base):
     paid_amount_vnd: Mapped[int | None] = mapped_column(Integer)
     confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))  # admin for manual
     note: Mapped[str | None] = mapped_column(Text)
-    __table_args__ = (CheckConstraint("status in ('pending','paid','expired','cancelled','refunded')",
+    __table_args__ = (CheckConstraint("status in ('pending','paid','expired','cancelled','failed','refunded')",
                                       name="ck_order_status"),
+                      CheckConstraint("kind in ('pro','exam','product')", name="ck_order_kind"),
                       CheckConstraint("amount_vnd > 0", name="ck_order_amount"))
+
+
+class PaymentOrderEvent(Base):
+    """Every state change of an order (and admin notes): who, when, from → to, why."""
+    __tablename__ = "payment_order_event"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("payment_order.id"), index=True)
+    from_status: Mapped[str | None] = mapped_column(String(16))
+    to_status: Mapped[str | None] = mapped_column(String(16))  # null for a note
+    source: Mapped[str] = mapped_column(String(16))  # user | admin | webhook | system
+    actor_user_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    note: Mapped[str | None] = mapped_column(Text)
+    data: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
 
 
 class PaymentTransaction(Base):
@@ -522,4 +598,31 @@ IMMUTABILITY_SQL = [
     """,
     "CREATE TRIGGER trg_item_frozen BEFORE UPDATE OR DELETE ON exam_item "
     "FOR EACH ROW EXECUTE FUNCTION hsa_freeze_submitted_item();",
+]
+
+# Orders keep what the customer was asked to pay, where and with which reference (migration 0004)
+ORDER_IMMUTABILITY_SQL = [
+    """
+    CREATE OR REPLACE FUNCTION hsa_order_immutable() RETURNS trigger AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'payment orders are never deleted';
+      END IF;
+      IF NEW.code <> OLD.code OR NEW.user_id <> OLD.user_id OR NEW.amount_vnd <> OLD.amount_vnd
+         OR NEW.kind <> OLD.kind
+         OR NEW.transfer_content IS DISTINCT FROM OLD.transfer_content
+         OR NEW.list_price_vnd IS DISTINCT FROM OLD.list_price_vnd
+         OR NEW.bank_snapshot IS DISTINCT FROM OLD.bank_snapshot
+         OR NEW.product_snapshot IS DISTINCT FROM OLD.product_snapshot
+         OR NEW.plan_code IS DISTINCT FROM OLD.plan_code
+         OR NEW.product_id IS DISTINCT FROM OLD.product_id
+         OR NEW.blueprint_id IS DISTINCT FROM OLD.blueprint_id
+         OR NEW.created_at <> OLD.created_at OR NEW.expires_at <> OLD.expires_at THEN
+        RAISE EXCEPTION 'order % : amount, reference, product and destination are immutable', OLD.code;
+      END IF;
+      RETURN NEW;
+    END; $$ LANGUAGE plpgsql;
+    """,
+    "CREATE TRIGGER trg_order_immutable BEFORE UPDATE OR DELETE ON payment_order "
+    "FOR EACH ROW EXECUTE FUNCTION hsa_order_immutable();",
 ]

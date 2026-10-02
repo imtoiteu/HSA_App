@@ -8,6 +8,7 @@ from sqlalchemy import and_, case, exists, func, select
 from sqlalchemy.orm import Session
 
 from .. import auth
+from ..commerce import access as plans
 from ..commerce import service as commerce
 from ..db import get_db
 from ..exam import service as ex
@@ -26,8 +27,11 @@ router = APIRouter(prefix="/api", tags=["student"])
 # ------------------------------------------------------------------------------------------------
 def blueprint_public(db: Session, bp: ExamBlueprint, user: User | None) -> dict:
     cfg = parse_config(bp.config)
+    pr = commerce.exam_price(db, bp)
     return {"id": bp.id, "code": bp.code, "name": bp.name, "description": bp.description, "kind": bp.kind,
-            "price_vnd": bp.price_vnd, "total_questions": cfg.total_questions, "total_minutes": cfg.total_minutes,
+            "paid": pr["paid"], "price_vnd": pr["price_vnd"], "list_price_vnd": pr["list_price_vnd"],
+            "promo": pr["promo"], "attempts_per_purchase": bp.attempts_per_purchase,
+            "total_questions": cfg.total_questions, "total_minutes": cfg.total_minutes,
             "timing": cfg.timing, "sections": [{"key": s.key, "title": s.title, "description": s.description,
                                                 "duration_minutes": s.duration_minutes,
                                                 "count": sum(p.count for p in s.pools) + len(s.items)}
@@ -39,13 +43,25 @@ def blueprint_public(db: Session, bp: ExamBlueprint, user: User | None) -> dict:
 def catalog(db: Session = Depends(get_db), user: User | None = Depends(auth.optional_user)):
     counts = dict(db.execute(select(Question.subject_code, func.count()).where(
         Question.is_served.is_(True)).group_by(Question.subject_code)).all())
-    subjects = [{"code": s.code, "name": s.name, "short_name": s.short_name, "color": s.color,
-                 "available": counts.get(s.code, 0)}
-                for s in db.scalars(select(Subject).where(Subject.is_active.is_(True), Subject.practice_enabled.is_(True))
-                                    .order_by(Subject.sort_order))]
-    bps = [blueprint_public(db, bp, user) for bp in db.scalars(
-        select(ExamBlueprint).where(ExamBlueprint.is_published.is_(True)).order_by(ExamBlueprint.sort_order,
-                                                                                   ExamBlueprint.id))]
+    acc = plans.practice_access(db, user)
+    subjects = []
+    for s in db.scalars(select(Subject).where(Subject.is_active.is_(True), Subject.practice_enabled.is_(True))
+                        .order_by(Subject.sort_order)):
+        total = counts.get(s.code, 0)
+        free_n = len(plans.free_pool(db, s.code)) if total else 0
+        # "available" = what this account can practise; "total" = the whole served bank of the subject
+        subjects.append({"code": s.code, "name": s.name, "short_name": s.short_name, "color": s.color,
+                         "available": total if acc["limit"] is None else free_n, "total": total,
+                         "free_available": free_n})
+    pro = commerce.get_plan(db, "PRO")
+    paid_on = get_setting(db, "mock_exams").get("paid_enabled", True)
+    bps = []
+    for bp in db.scalars(select(ExamBlueprint).where(ExamBlueprint.is_published.is_(True))
+                         .order_by(ExamBlueprint.sort_order, ExamBlueprint.id)):
+        pub = blueprint_public(db, bp, user)
+        if pub["paid"] and not paid_on and not pub["access"].get("allowed"):
+            continue  # paid exams switched off: only shown to accounts that still hold attempts
+        bps.append(pub)
     policy = get_setting(db, "serving_policy")
     served = sum(counts.values())
     with_topic = db.scalar(select(func.count()).where(Question.is_served.is_(True), Question.topic.is_not(None))) or 0
@@ -59,6 +75,10 @@ def catalog(db: Session = Depends(get_db), user: User | None = Depends(auth.opti
     practice = get_setting(db, "practice")
     site = get_setting(db, "site")
     return {"subjects": subjects, "blueprints": bps, "served_total": served, "topics_enabled": topics_enabled,
+            "access": {"plan": acc["plan"], "free_limit": plans.free_limit(db), "pro_until": acc["pro_until"],
+                       "pro_available": bool(pro and pro.is_active and pro.price_vnd > 0),
+                       "pro_price_vnd": pro.price_vnd if pro else None,
+                       "pro_duration_days": pro.duration_days if pro else None},
             "topics": topics, "practice": {"max_questions": practice["max_questions"],
                                            "default_questions": practice["default_questions"]},
             "site": {"name": site.get("name"), "announcement": site.get("announcement"),
@@ -124,10 +144,13 @@ def create(body: CreateSessionIn, db: Session = Depends(get_db), user: User = De
         cfg = parse_config(bp.config)
         acc = commerce.access_status(db, user, bp)
         if not acc["allowed"]:
-            raise err(402, "payment_required", "Bạn cần mua lượt thi cho đề này.", price_vnd=bp.price_vnd,
+            raise err(402, "payment_required", "Bạn cần mua lượt thi cho đề này.", price_vnd=acc.get("price_vnd"),
                       blueprint_id=bp.id)
 
+        exam_plan = plans.practice_access(db, user)["plan"]
+
         def spend(s):
+            s.access_plan = exam_plan
             ent = commerce.consume(db, user, bp, s.id)
             if ent:
                 s.entitlement_id = ent.id
@@ -156,8 +179,17 @@ def create(body: CreateSessionIn, db: Session = Depends(get_db), user: User = De
     policy = get_setting(db, "serving_policy")
     require_auto = not policy["practice_allow_self_check"]
     flt = _practice_filter(user, body.source)
+    acc = plans.practice_access(db, user)
+    allowed = plans.allowed_question_ids(db, user, subjects)
+    if allowed is not None:  # FREE plan: only the free pool of the requested subjects, whatever the request
+        src_flt = flt
+        flt = (lambda st: src_flt(st).where(Question.id.in_(allowed))) if src_flt else \
+            (lambda st: st.where(Question.id.in_(allowed)))
     avail = len([1 for _ in _available(db, pool, require_auto, flt)])
     if avail == 0:
+        if allowed is not None and any(True for _ in _available(db, pool, require_auto, _practice_filter(user, body.source))):
+            raise err(402, "free_limit", f"Gói Miễn phí cho phép luyện {acc['limit']} câu mỗi môn. Nâng cấp Pro để "
+                      "luyện toàn bộ ngân hàng câu hỏi.", limit=acc["limit"], plan="FREE")
         raise err(409, "not_enough_questions", "Không có câu hỏi phù hợp với lựa chọn này.")
     pool.count = min(count, avail)
     names = {s.code: s.short_name or s.name for s in db.scalars(select(Subject))}
@@ -171,12 +203,13 @@ def create(body: CreateSessionIn, db: Session = Depends(get_db), user: User = De
                           timing="global" if body.time_limit_minutes else "none",
                           duration_minutes=body.time_limit_minutes, shuffle_options=body.shuffle_options,
                           require_auto_scoring=require_auto, feedback=body.feedback, max_group_size=8)
+    tag = lambda sess: setattr(sess, "access_plan", acc["plan"])  # noqa: E731
     try:
-        s = ex.create_session(db, user, cfg, mode="practice", title=title, extra_filter=flt)
+        s = ex.create_session(db, user, cfg, mode="practice", title=title, extra_filter=flt, before_commit=tag)
     except SelectionError:
         # groups may not fit exactly; retry without keeping passages whole
         cfg.keep_groups_together = False
-        s = ex.create_session(db, user, cfg, mode="practice", title=title, extra_filter=flt)
+        s = ex.create_session(db, user, cfg, mode="practice", title=title, extra_filter=flt, before_commit=tag)
     return {"session": ex.session_summary(s), "resumed": False}
 
 

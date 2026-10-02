@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Confirm, ErrorBox, Spinner, useToast } from "../components/ui";
 import { get, post } from "../lib/api";
-import { clock, dateTime, ORDER_STATUS, vnd } from "../lib/format";
+import { clock, dateOnly, dateTime, ORDER_STATUS, vnd } from "../lib/format";
 import type { Order } from "../lib/types";
 
 function Copy({ text }: { text: string }) {
@@ -56,25 +56,38 @@ export default function Checkout() {
         <div className="card pad-lg center">
           <div style={{ fontSize: "2.6rem" }}>🎉</div>
           <h2>Thanh toán thành công</h2>
-          <p className="muted">{order.name} đã được kích hoạt cho tài khoản của bạn.</p>
-          <div className="row" style={{ justifyContent: "center" }}>
-            <button className="btn lg" onClick={() => nav("/de-thi")}>Vào làm bài</button>
-          </div>
+          {order.kind === "pro" ? <>
+            <p className="muted">Gói Pro đã được kích hoạt{order.subscription ? <> – hiệu lực từ {dateOnly(order.subscription.starts_at)} đến <strong>{dateOnly(order.subscription.expires_at)}</strong></> : null}.
+              Bạn có thể luyện tập toàn bộ ngân hàng câu hỏi đủ điều kiện.</p>
+            <div className="row" style={{ justifyContent: "center" }}>
+              <button className="btn lg" onClick={() => nav("/luyen-tap")}>Bắt đầu luyện tập</button>
+            </div>
+          </> : <>
+            <p className="muted">{order.name} đã được kích hoạt cho tài khoản của bạn.</p>
+            <div className="row" style={{ justifyContent: "center" }}>
+              <button className="btn lg" onClick={() => nav("/de-thi")}>Vào làm bài</button>
+            </div>
+          </>}
         </div>
       )}
 
       {order.status === "pending" && (
         <div className="card pad-lg">
-          <p>Quét mã QR bằng ứng dụng ngân hàng bất kỳ hoặc chuyển khoản theo thông tin bên dưới. Hệ thống tự xác nhận khi nhận được tiền.</p>
+          <p>Quét mã QR bằng ứng dụng ngân hàng bất kỳ hoặc chuyển khoản theo thông tin bên dưới. Đơn được xác nhận khi giao dịch về tài khoản
+            (tự động nếu đã kết nối, nếu không quản trị viên sẽ đối soát thủ công) – hiển thị mã QR không có nghĩa là đã thanh toán.</p>
           {order.bank ? (
             <div className="qr-box mt">
-              <div className="qr" aria-label="Mã QR VietQR" dangerouslySetInnerHTML={{ __html: order.qr_svg || "" }} />
+              {order.qr_svg ? <div className="qr" aria-label="Mã QR VietQR" dangerouslySetInnerHTML={{ __html: order.qr_svg }} />
+                : <div className="qr muted small center" style={{ padding: 16 }}>Chuyển khoản theo thông tin bên cạnh.</div>}
               <dl className="kv">
                 <dt>Sản phẩm</dt><dd>{order.name}</dd>
-                <dt>Số tiền</dt><dd style={{ fontSize: "1.2rem", color: "var(--brand-700)" }}>{vnd(order.amount_vnd)}</dd>
+                <dt>Số tiền</dt><dd style={{ fontSize: "1.2rem", color: "var(--brand-700)" }} className="row" >
+                  {vnd(order.amount_vnd)}<Copy text={String(order.amount_vnd)} />
+                  {order.list_price_vnd && order.list_price_vnd > order.amount_vnd ? <s className="muted small">{vnd(order.list_price_vnd)}</s> : null}
+                </dd>
                 <dt>Ngân hàng</dt><dd>{order.bank.bank_name || order.bank.bin}</dd>
                 <dt>Số tài khoản</dt><dd className="row" style={{ gap: 4 }}>{order.bank.account_number}<Copy text={order.bank.account_number} /></dd>
-                <dt>Chủ tài khoản</dt><dd>{order.bank.account_name}</dd>
+                <dt>Chủ tài khoản</dt><dd>{order.bank.account_name || <span className="muted small">Ứng dụng ngân hàng hiển thị tên chủ tài khoản khi bạn nhập số tài khoản – vui lòng kiểm tra trước khi chuyển.</span>}</dd>
                 <dt>Nội dung CK</dt><dd className="row" style={{ gap: 4 }}><span className="mono" style={{ fontSize: "1.05rem" }}>{order.transfer_content}</span><Copy text={order.transfer_content} /></dd>
                 <dt>Hết hạn sau</dt><dd>{left > 0 ? clock(left) : "đã hết hạn"}</dd>
               </dl>
@@ -82,6 +95,7 @@ export default function Checkout() {
           ) : (
             <div className="alert warn">Tài khoản nhận tiền chưa được cấu hình. Vui lòng liên hệ quản trị viên và cung cấp mã đơn <strong className="mono">{order.code}</strong>.</div>
           )}
+          {order.instructions && <div className="alert mt" style={{ whiteSpace: "pre-line" }}>{order.instructions}</div>}
           <div className="alert info mt">
             Vui lòng giữ nguyên nội dung chuyển khoản <strong className="mono">{order.transfer_content}</strong> để hệ thống nhận diện đơn hàng.
             Nếu đã chuyển mà chưa được xác nhận sau vài phút, hãy liên hệ hỗ trợ kèm mã đơn.
@@ -93,11 +107,11 @@ export default function Checkout() {
         </div>
       )}
 
-      {(order.status === "expired" || order.status === "cancelled") && (
+      {["expired", "cancelled", "failed", "refunded"].includes(order.status) && (
         <div className="card pad-lg">
-          <p>Đơn hàng <span className="mono">{order.code}</span> {order.status === "expired" ? "đã hết hạn" : "đã bị huỷ"}.</p>
-          <p className="muted small">Nếu bạn đã chuyển khoản cho đơn này, tiền vẫn được ghi nhận và quyền làm bài sẽ được kích hoạt khi hệ thống nhận được giao dịch.</p>
-          <Link to="/de-thi" className="btn">Quay lại danh sách đề</Link>
+          <p>Đơn hàng <span className="mono">{order.code}</span> {{ expired: "đã hết hạn", cancelled: "đã bị huỷ", failed: "không thành công", refunded: "đã được hoàn tiền" }[order.status as "expired"]}.</p>
+          {order.status !== "refunded" && <p className="muted small">Nếu bạn đã chuyển khoản cho đơn này, hãy liên hệ hỗ trợ kèm mã đơn <span className="mono">{order.code}</span>: giao dịch sẽ được đối soát và quyền lợi được kích hoạt.</p>}
+          <Link to={order.kind === "pro" ? "/nang-cap" : "/de-thi"} className="btn">{order.kind === "pro" ? "Tạo đơn nâng cấp mới" : "Quay lại danh sách đề"}</Link>
         </div>
       )}
 

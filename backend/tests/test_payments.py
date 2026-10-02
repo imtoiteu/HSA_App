@@ -18,6 +18,7 @@ SMALL = {"sections": [{"key": "t", "title": "T", "pools": [{"subjects": ["math"]
 def paid_bp(price=20000):
     db = SessionLocal()
     bp = ExamBlueprint(code=f"paid_{uuid.uuid4().hex[:6]}", name="Đề có phí", config=SMALL, price_vnd=price,
+                       access="paid" if price else "free",
                        is_published=True)
     db.add(bp)
     db.commit()
@@ -130,11 +131,8 @@ def test_expired_order_is_still_honoured_when_paid(student, admin, anon):
     configure_bank(admin)
     bid = paid_bp(20000)
     o = student.post("/api/orders", {"blueprint_id": bid}).json()
-    db = SessionLocal()
-    order = db.scalar(select(PaymentOrder).where(PaymentOrder.code == o["code"]))
-    order.expires_at = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
-    db.commit()
-    assert commerce.expire_orders(db) >= 1
+    db = SessionLocal()  # the expiry time itself is immutable: let the clock pass it instead
+    assert commerce.expire_orders(db, now=dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=31)) >= 1
     db.close()
     assert student.get(f"/api/orders/{o['code']}").json()["status"] == "expired"
     assert sepay_call(anon, o["code"], 20000, 9301).json()["results"][0]["status"] == "matched"

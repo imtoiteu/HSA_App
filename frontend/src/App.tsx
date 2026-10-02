@@ -6,6 +6,7 @@ import Landing from "./pages/Landing";
 import { Forgot, Login, Register, Reset } from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Practice from "./pages/Practice";
+import Upgrade from "./pages/Upgrade";
 import Exams from "./pages/Exams";
 import Runner from "./pages/Runner";
 import Result from "./pages/Result";
@@ -45,6 +46,7 @@ function TopBar() {
             <NavLink to="/de-thi">Đề thi thử</NavLink>
             <NavLink to="/lich-su">Lịch sử</NavLink>
             <NavLink to="/cau-hoi-da-luu">Câu đã lưu</NavLink>
+            {user.role !== "admin" && <NavLink to="/nang-cap" className="nav-pro">Gói Pro</NavLink>}
             {user.role === "admin" && <NavLink to="/admin">Quản trị</NavLink>}
             <NavLink to="/tai-khoan" className="nav-account">Tài khoản</NavLink>
           </nav>
@@ -112,6 +114,7 @@ export default function App() {
               <Route path="/cau-hoi-da-luu" element={<RequireAuth><Bookmarks /></RequireAuth>} />
               <Route path="/thanh-toan/:code" element={<RequireAuth><Checkout /></RequireAuth>} />
               <Route path="/tai-khoan" element={<RequireAuth><Account /></RequireAuth>} />
+              <Route path="/nang-cap" element={<Upgrade />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Shell>} />

@@ -68,5 +68,6 @@ export const ORDER_STATUS: Record<string, [string, string]> = {
   paid: ["Đã thanh toán", "ok"],
   expired: ["Hết hạn", ""],
   cancelled: ["Đã huỷ", ""],
+  failed: ["Thất bại", "bad"],
   refunded: ["Đã hoàn tiền", "bad"],
 };

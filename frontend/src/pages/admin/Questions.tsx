@@ -20,7 +20,12 @@ const RAW_SUBJECTS: [string, string][] = [
   ["geography", "geography"], ["science", "science"], ["logic_reasoning", "logic_reasoning"],
 ];
 const SIZE = 25;
-const boolParam = (v: string) => (v === "yes" ? "true" : v === "no" ? "false" : undefined);
+// URL booleans: "yes"/"no" from the selects, "true"/"false" from drill-down links (dashboard, reconciliation, QA queues)
+const boolParam = (v: string) => (v === "yes" || v === "true" ? "true" : v === "no" || v === "false" ? "false" : undefined);
+const SPECIAL: Record<string, string> = {
+  upstream_subject: "Môn theo nguồn", free_pool: "Thuộc tập câu Miễn phí", subject_mismatch: "Lệch môn so với nguồn",
+  ready_upstream: "READY ở nguồn", classification_review: "Cần xem lại môn", active_bank: "Ngân hàng đang hoạt động",
+};
 
 export default function Questions() {
   const u = useUrlState();
@@ -36,15 +41,21 @@ export default function Questions() {
     inferred_subject: u.get("inferred_subject"), subject_source: u.get("subject_source"),
     has_answer: boolParam(u.get("has_answer")), has_formula: boolParam(u.get("has_formula")),
     has_image: boolParam(u.get("has_image")), eligible: boolParam(u.get("eligible")),
-    scoring_mode: u.get("scoring_mode"), page, size: SIZE,
+    scoring_mode: u.get("scoring_mode"), upstream_subject: u.get("upstream_subject"),
+    classification_review: boolParam(u.get("classification_review")), has_table: boolParam(u.get("has_table")),
+    cognitive_level: u.get("cognitive_level"), free_pool: boolParam(u.get("free_pool")),
+    subject_mismatch: boolParam(u.get("subject_mismatch")), ready_upstream: boolParam(u.get("ready_upstream")),
+    active_bank: boolParam(u.get("active_bank")), sort: u.get("sort") || undefined, page, size: SIZE,
   };
+  const special = Object.keys(SPECIAL).filter((k) => u.get(k));
   const key = JSON.stringify(params);
   const list = useAsync(() => get<{ total: number; items: QRow[] }>("/api/admin/questions" + qs(params)), [key]);
 
   const sel = (id: string, label: string, name: string, options: [string, string][]) => (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} className="input" value={u.get(name)} onChange={(e) => u.set({ [name]: e.target.value })}>
+      <select id={id} className="input" onChange={(e) => u.set({ [name]: e.target.value })}
+              value={options.some((o) => o[0] === "yes") ? ({ true: "yes", false: "no" } as Record<string, string>)[u.get(name)] ?? u.get(name) : u.get(name)}>
         <option value="">Tất cả</option>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
@@ -77,6 +88,11 @@ export default function Questions() {
         {sel("f-mode", "Chấm điểm", "scoring_mode", [["auto", "Tự động"], ["self_check", "Tự đánh giá"], ["none", "Không chấm"]])}
         {sel("f-formula", "Công thức", "has_formula", [["yes", "Có công thức"], ["no", "Không"]])}
         {sel("f-image", "Hình ảnh", "has_image", [["yes", "Có hình"], ["no", "Không"]])}
+        {sel("f-table", "Bảng", "has_table", [["yes", "Có bảng"], ["no", "Không"]])}
+        {sel("f-upsub", "Môn theo nguồn", "upstream_subject", (subjects.data?.items || []).map((s) => [s.code, s.name] as [string, string]))}
+        {sel("f-review", "Xem lại môn (nguồn)", "classification_review", [["yes", "SUBJECT_CLASSIFICATION_REVIEW"], ["no", "Không"]])}
+        {sel("f-level", "Mức độ nhận thức", "cognitive_level", [["_none", "(chưa có)"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]])}
+        {sel("f-sort", "Sắp xếp", "sort", [["subject", "Theo môn"], ["state", "Theo trạng thái"], ["type", "Theo dạng"], ["-updated", "Đồng bộ mới nhất"]])}
         <div className="field">
           <label htmlFor="f-reason">Lý do loại</label>
           <input id="f-reason" className="input" defaultValue={u.get("reason")} placeholder="vd: group_context_missing"
@@ -84,6 +100,11 @@ export default function Questions() {
         </div>
         <button className="btn ghost sm" type="button" onClick={() => { setQ(""); nav("/admin/cau-hoi", { replace: true }); }}>Xoá lọc</button>
       </div>
+      {special.length > 0 && (
+        <div className="alert info mb small">Bộ lọc từ trang đối soát: {special.map((k) => `${SPECIAL[k]} = ${u.get(k)}`).join(" · ")}
+          {" "}<button className="btn ghost sm" onClick={() => u.set(Object.fromEntries(special.map((k) => [k, ""])))}>Bỏ</button></div>
+      )}
+      {list.data && <div className="muted small mb">{list.data.total.toLocaleString("vi-VN")} câu hỏi</div>}
       {list.loading ? <Spinner /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.items.length ? (
         <Empty title="Không có câu hỏi phù hợp." />
       ) : (

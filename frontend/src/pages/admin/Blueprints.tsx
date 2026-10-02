@@ -12,6 +12,8 @@ interface Availability {
 interface BP {
   id: number; code: string; name: string; description: string | null; kind: "random" | "fixed"; config: Record<string, unknown>;
   version: number; is_published: boolean; price_vnd: number; sort_order: number; updated_at: string; attempts: number;
+  access: "free" | "paid"; promo_price_vnd: number | null; attempts_per_purchase: number; purchases: number;
+  effective_price: { paid: boolean; price_vnd: number; list_price_vnd: number; promo: boolean };
   availability?: Availability;
 }
 
@@ -23,13 +25,16 @@ export function Blueprints() {
       <PageHead title="Cấu trúc đề thi"><Link to="/admin/de-thi/moi" className="btn">+ Tạo đề mới</Link></PageHead>
       {list.loading ? <Spinner /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.items.length ? <Empty title="Chưa có đề nào." /> : (
         <div className="table-wrap"><table className="data">
-          <thead><tr><th>Tên</th><th>Mã</th><th>Loại</th><th>Giá</th><th>Công khai</th><th>Phiên bản</th><th>Lượt làm</th><th>Đủ câu hỏi</th><th>Cập nhật</th></tr></thead>
+          <thead><tr><th>Tên</th><th>Mã</th><th>Loại</th><th>Truy cập / giá</th><th>Công khai</th><th>Phiên bản</th><th>Lượt làm</th><th>Đủ câu hỏi</th><th>Cập nhật</th></tr></thead>
           <tbody>{list.data.items.map((b) => (
             <tr key={b.id} className="clickable" onClick={() => nav(`/admin/de-thi/${b.id}`)}>
               <td><strong>{b.name}</strong><div className="small muted">{b.availability?.total_questions} câu · {b.availability?.total_minutes ?? "∞"} phút</div></td>
               <td className="mono small">{b.code}</td>
               <td>{b.kind === "fixed" ? "Cố định" : "Ngẫu nhiên"}</td>
-              <td>{b.price_vnd > 0 ? <span className="badge accent">{vnd(b.price_vnd)}</span> : <span className="badge ok">Miễn phí</span>}</td>
+              <td>{b.access === "paid" ? <><span className="badge accent">{vnd(b.effective_price.price_vnd)}{b.attempts_per_purchase > 1 ? ` / ${b.attempts_per_purchase} lượt` : ""}</span>
+                {b.effective_price.promo && <div className="small muted"><s>{vnd(b.effective_price.list_price_vnd)}</s> khuyến mãi</div>}
+                {!b.price_vnd && <div className="small muted">giá mặc định</div>}
+                <div className="small muted">{b.purchases} lượt mua</div></> : <span className="badge ok">Miễn phí</span>}</td>
               <td>{b.is_published ? <span className="badge ok">Có</span> : <span className="badge">Ẩn</span>}</td>
               <td>v{b.version}</td>
               <td>{b.attempts}</td>
@@ -97,7 +102,8 @@ export function BlueprintEditor() {
   const nav = useNavigate();
   const toast = useToast();
   const list = useAsync(() => (isNew ? Promise.resolve({ items: [] as BP[] }) : get<{ items: BP[] }>("/api/admin/blueprints")), [id]);
-  const [f, setF] = useState({ code: "", name: "", description: "", kind: "random", price_vnd: "0", is_published: false, sort_order: "100" });
+  const [f, setF] = useState({ code: "", name: "", description: "", kind: "random", access: "free", price_vnd: "0", promo: "",
+                               attempts: "1", is_published: false, sort_order: "100" });
   const [cfg, setCfg] = useState(JSON.stringify(TEMPLATE, null, 2));
   const [val, setVal] = useState<ValResult | null>(null);
   const [err, setErr] = useState("");
@@ -106,7 +112,8 @@ export function BlueprintEditor() {
 
   useEffect(() => {
     if (bp) {
-      setF({ code: bp.code, name: bp.name, description: bp.description || "", kind: bp.kind, price_vnd: String(bp.price_vnd),
+      setF({ code: bp.code, name: bp.name, description: bp.description || "", kind: bp.kind, access: bp.access, price_vnd: String(bp.price_vnd),
+             promo: bp.promo_price_vnd ? String(bp.promo_price_vnd) : "", attempts: String(bp.attempts_per_purchase),
              is_published: bp.is_published, sort_order: String(bp.sort_order) });
       setCfg(JSON.stringify(bp.config, null, 2));
       if (bp.availability) setVal({ valid: true, ...bp.availability });
@@ -126,11 +133,16 @@ export function BlueprintEditor() {
     setErr("");
     const c = parse();
     if (!c) return;
-    const price = Number(f.price_vnd);
+    const price = Number(f.price_vnd || 0);
+    const promo = f.promo.trim() ? Number(f.promo) : null;
+    const attempts = Number(f.attempts || 1);
     if (!Number.isInteger(price) || price < 0) { setErr("Giá phải là số nguyên ≥ 0."); return; }
+    if (promo != null && (!Number.isInteger(promo) || promo <= 0)) { setErr("Giá khuyến mãi phải là số nguyên > 0 (để trống nếu không có)."); return; }
+    if (!Number.isInteger(attempts) || attempts < 1 || attempts > 100) { setErr("Số lượt mỗi lần mua: 1–100."); return; }
     setBusy(true);
     const body = { code: f.code, name: f.name, description: f.description || null, kind: f.kind, config: c, is_published: f.is_published,
-                   price_vnd: price, sort_order: Number(f.sort_order) || 100 };
+                   access: f.access, price_vnd: f.access === "paid" ? price : 0, promo_price_vnd: f.access === "paid" ? promo : null,
+                   attempts_per_purchase: attempts, sort_order: Number(f.sort_order) || 100 };
     try {
       const r = isNew ? await post<BP>("/api/admin/blueprints", body) : await put<BP>(`/api/admin/blueprints/${id}`, body);
       toast("Đã lưu đề thi.", "ok");
@@ -160,9 +172,19 @@ export function BlueprintEditor() {
                 <select id="bp-kind" className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>
                   <option value="random">Ngẫu nhiên theo cấu trúc</option><option value="fixed">Bộ đề cố định</option>
                 </select></div>
-              <div className="field"><label htmlFor="bp-price">Giá mỗi lượt (VNĐ, 0 = miễn phí)</label>
-                <input id="bp-price" className="input" type="number" min={0} step={1000} value={f.price_vnd} onChange={(e) => setF({ ...f, price_vnd: e.target.value })} />
-                <span className="hint">{Number(f.price_vnd) > 0 ? vnd(Number(f.price_vnd)) : "Miễn phí"}</span></div>
+              <div className="field"><label htmlFor="bp-access">Truy cập</label>
+                <select id="bp-access" className="input" value={f.access} onChange={(e) => setF({ ...f, access: e.target.value })}>
+                  <option value="free">Miễn phí</option><option value="paid">Có phí (mua lượt)</option>
+                </select></div>
+              {f.access === "paid" && <>
+                <div className="field"><label htmlFor="bp-price">Giá một lần mua (VND, 0 = giá mặc định)</label>
+                  <input id="bp-price" className="input" type="number" min={0} step={1000} value={f.price_vnd} onChange={(e) => setF({ ...f, price_vnd: e.target.value })} />
+                  <span className="hint">{Number(f.price_vnd) > 0 ? vnd(Number(f.price_vnd)) : <>Dùng giá mặc định (<Link to="/admin/cai-dat?tab=mock_exams">Cài đặt → Đề thi thử</Link>)</>}</span></div>
+                <div className="field"><label htmlFor="bp-promo">Giá khuyến mãi (VND, trống = không)</label>
+                  <input id="bp-promo" className="input" type="number" min={0} step={1000} value={f.promo} onChange={(e) => setF({ ...f, promo: e.target.value })} /></div>
+                <div className="field"><label htmlFor="bp-att">Số lượt làm bài mỗi lần mua</label>
+                  <input id="bp-att" className="input" type="number" min={1} max={100} value={f.attempts} onChange={(e) => setF({ ...f, attempts: e.target.value })} /></div>
+              </>}
               <div className="field"><label htmlFor="bp-sort">Thứ tự hiển thị</label>
                 <input id="bp-sort" className="input" type="number" value={f.sort_order} onChange={(e) => setF({ ...f, sort_order: e.target.value })} /></div>
               <div className="field"><span className="label">Hiển thị</span>

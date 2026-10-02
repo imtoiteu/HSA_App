@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from .. import auth
 from ..admin_ops import audit, export_corrections
+from ..commerce import access as plans_access
 from ..commerce import service as commerce
 from ..config import get_settings
 from ..db import SessionLocal, get_db
@@ -100,7 +101,12 @@ def list_questions(q: str | None = None, subject: str | None = None, state: str 
                    source_subject: str | None = None, inferred_subject: str | None = None,
                    subject_source: str | None = None, has_answer: bool | None = None,
                    has_formula: bool | None = None, has_image: bool | None = None, eligible: bool | None = None,
-                   scoring_mode: str | None = None,
+                   scoring_mode: str | None = None, upstream_subject: str | None = None,
+                   classification_review: bool | None = None, has_table: bool | None = None,
+                   cognitive_level: str | None = None, free_pool: bool | None = None,
+                   subject_mismatch: bool | None = None, ready_upstream: bool | None = None,
+                   active_bank: bool | None = None,
+                   sort: Literal["external_id", "subject", "state", "type", "updated", "-updated"] = "external_id",
                    page: int = 1, size: int = 25, db: Session = Depends(get_db)):
     off, lim = page_params(page, size, 100)
     st = select(Question, QuestionBank.code).join(QuestionBank, QuestionBank.id == Question.bank_id)
@@ -152,8 +158,36 @@ def list_questions(q: str | None = None, subject: str | None = None, state: str 
     if reported:
         st = st.where(select(QuestionReport.id).where(QuestionReport.question_id == Question.id,
                                                       QuestionReport.status.in_(["open", "triaged"])).exists())
+    if upstream_subject:  # the bank's final classification, in app subject codes (drill-down of reconciliation)
+        # same bucketing as the subject reconciliation: no final subject = "general" (Chưa phân loại)
+        st = st.where(func.coalesce(_upstream_subject_expr(), "general") == upstream_subject)
+    if classification_review is not None:
+        st = st.where(Question.classification_review.is_not(None) if classification_review
+                      else Question.classification_review.is_(None))
+    if active_bank is not None:
+        st = st.where(QuestionBank.is_active.is_(active_bank))
+    if has_table is not None:
+        st = st.where(Question.has_table.is_(has_table))
+    if cognitive_level:
+        st = st.where(Question.cognitive_level == cognitive_level) if cognitive_level != "_none" \
+            else st.where(Question.cognitive_level.is_(None))
+    if ready_upstream is not None:
+        st = st.where((Question.editorial_state == "READY_TO_SERVE") if ready_upstream
+                      else (Question.editorial_state != "READY_TO_SERVE"))
+    if subject_mismatch is not None:
+        diff = func.coalesce(_upstream_subject_expr(), "general").is_distinct_from(
+            func.coalesce(Question.subject_code, "general"))
+        st = st.where(diff if subject_mismatch else ~diff)
+    if free_pool is not None:
+        ids: set = set()
+        for code in ([subject] if subject and subject != "_none" else plans_access.practice_subjects(db)):
+            ids.update(plans_access.free_pool(db, code))
+        st = st.where(Question.id.in_(ids) if free_pool else Question.id.not_in(ids))
     total = db.scalar(select(func.count()).select_from(st.subquery()))
-    rows = db.execute(st.order_by(Question.external_id).offset(off).limit(lim)).all()
+    order = {"external_id": Question.external_id, "subject": Question.subject_code, "state": Question.editorial_state,
+             "type": Question.question_type, "updated": Question.last_synced_at,
+             "-updated": Question.last_synced_at.desc()}[sort]
+    rows = db.execute(st.order_by(order, Question.external_id).offset(off).limit(lim)).all()
     from ..content.render import plain_text
     items = []
     for qu, bcode in rows:
@@ -165,9 +199,21 @@ def list_questions(q: str | None = None, subject: str | None = None, state: str 
                       "type": qu.question_type, "state": qu.editorial_state, "state_source": qu.state_source,
                       "served": qu.is_served, "eligible": qu.policy_eligible, "reasons": qu.policy_reasons,
                       "override": qu.admin_override, "scoring_mode": qu.scoring_mode,
-                      "removed": qu.removed_upstream,
+                      "removed": qu.removed_upstream, "upstream_subject": qu.upstream_effective_subject,
+                      "classification_review": qu.classification_review, "cognitive_level": qu.cognitive_level,
+                      "has_formula": qu.has_formula, "has_image": qu.has_image, "has_table": qu.has_table,
                       "preview": plain_text(v.content["stem"])[:220] if v else ""})
     return {"total": total, "items": items}
+
+
+def _upstream_subject_expr():
+    """Upstream final subject mapped to app subject codes (via the bank's aliases); for questions without an
+    upstream classification record, the app subject itself."""
+    alias = select(SubjectAlias.subject_code).where(
+        SubjectAlias.bank_id == Question.bank_id,
+        SubjectAlias.source_value == func.coalesce(Question.upstream_effective_subject, "")).scalar_subquery()
+    from sqlalchemy import case
+    return case((Question.classification_source.is_(None), Question.subject_code), else_=alias)
 
 
 def _q(db, qid) -> Question:
@@ -384,14 +430,27 @@ class BlueprintIn(BaseModel):
     kind: Literal["random", "fixed"] = "random"
     config: dict
     is_published: bool = False
-    price_vnd: int = Field(default=0, ge=0, le=100_000_000)
+    # access: free | paid (omitted = paid when a price is given, for older clients)
+    access: Literal["free", "paid"] | None = None
+    price_vnd: int = Field(default=0, ge=0, le=100_000_000)  # paid: 0 = use the default mock-exam price
+    promo_price_vnd: int | None = Field(default=None, gt=0, le=100_000_000)
+    attempts_per_purchase: int = Field(default=1, ge=1, le=100)
     sort_order: int = 100
+
+    def values(self) -> dict:
+        d = self.model_dump()
+        if d["access"] is None:
+            d["access"] = "paid" if d["price_vnd"] > 0 else "free"
+        return d
 
 
 def _bp(db, bp: ExamBlueprint, with_availability=False) -> dict:
     d = {"id": bp.id, "code": bp.code, "name": bp.name, "description": bp.description, "kind": bp.kind,
          "config": bp.config, "version": bp.version, "is_published": bp.is_published, "price_vnd": bp.price_vnd,
-         "sort_order": bp.sort_order, "updated_at": iso(bp.updated_at),
+         "access": bp.access, "promo_price_vnd": bp.promo_price_vnd, "attempts_per_purchase": bp.attempts_per_purchase,
+         "effective_price": commerce.exam_price(db, bp), "sort_order": bp.sort_order, "updated_at": iso(bp.updated_at),
+         "purchases": db.scalar(select(func.count()).where(PaymentOrder.blueprint_id == bp.id,
+                                                           PaymentOrder.status == "paid")),
          "attempts": db.scalar(select(func.count()).where(ExamSession.blueprint_id == bp.id))}
     if with_availability:
         d["availability"] = availability(db, bp.config)
@@ -447,10 +506,11 @@ def create_blueprint(body: BlueprintIn, db: Session = Depends(get_db), admin: Us
     _check_cfg(body.config)
     if db.scalar(select(ExamBlueprint).where(ExamBlueprint.code == body.code)):
         raise err(409, "code_taken", "Mã đề đã tồn tại.")
-    bp = ExamBlueprint(**body.model_dump())
+    bp = ExamBlueprint(**body.values())
     db.add(bp)
     db.flush()
-    audit(db, admin, "blueprint_created", "exam_blueprint", bp.id, {"code": bp.code, "price": bp.price_vnd})
+    audit(db, admin, "blueprint_created", "exam_blueprint", bp.id, {"code": bp.code, "access": bp.access,
+                                                                    "price": bp.price_vnd})
     db.commit()
     return _bp(db, bp, True)
 
@@ -463,14 +523,14 @@ def update_blueprint(bid: int, body: BlueprintIn, db: Session = Depends(get_db),
         raise err(404, "not_found", "Không tìm thấy đề.")
     _check_cfg(body.config)
     changed_cfg = bp.config != body.config
-    before = {"price": bp.price_vnd, "published": bp.is_published}
-    for k, v in body.model_dump().items():
+    keys = ("access", "price_vnd", "promo_price_vnd", "attempts_per_purchase", "is_published")
+    before = {k: getattr(bp, k) for k in keys}
+    for k, v in body.values().items():
         setattr(bp, k, v)
     if changed_cfg:
         bp.version += 1  # sessions keep the snapshot of the version they used
     audit(db, admin, "blueprint_updated", "exam_blueprint", bp.id,
-          {"before": before, "after": {"price": bp.price_vnd, "published": bp.is_published},
-           "config_changed": changed_cfg})
+          {"before": before, "after": {k: getattr(bp, k) for k in keys}, "config_changed": changed_cfg})
     db.commit()
     return _bp(db, bp, True)
 
@@ -526,30 +586,91 @@ def update_product(pid: int, body: ProductIn, db: Session = Depends(get_db), adm
 
 
 def _order(o: PaymentOrder, email=None) -> dict:
-    return {"id": o.id, "code": o.code, "user_id": o.user_id, "user_email": email, "status": o.status,
-            "amount_vnd": o.amount_vnd, "paid_amount_vnd": o.paid_amount_vnd, "name": o.product_snapshot.get("name"),
-            "provider": o.provider, "created_at": iso(o.created_at), "expires_at": iso(o.expires_at),
-            "paid_at": iso(o.paid_at), "note": o.note, "product_id": o.product_id, "blueprint_id": o.blueprint_id}
+    return {"id": o.id, "code": o.code, "kind": o.kind, "plan_code": o.plan_code, "user_id": o.user_id,
+            "user_email": email, "status": o.status, "amount_vnd": o.amount_vnd, "list_price_vnd": o.list_price_vnd,
+            "paid_amount_vnd": o.paid_amount_vnd, "name": o.product_snapshot.get("name"),
+            "transfer_content": o.transfer_content or o.code, "provider": o.provider, "created_at": iso(o.created_at),
+            "expires_at": iso(o.expires_at), "paid_at": iso(o.paid_at), "note": o.note, "product_id": o.product_id,
+            "blueprint_id": o.blueprint_id, "confirmed_by": o.confirmed_by}
+
+
+ORDER_STATUSES = ("pending", "paid", "expired", "cancelled", "failed", "refunded")
 
 
 @router.get("/orders")
-def list_orders(status: str | None = None, q: str | None = None, page: int = 1, size: int = 50,
-                db: Session = Depends(get_db)):
+def list_orders(status: str | None = None, q: str | None = None, kind: str | None = None,
+                user: str | None = None, reference: str | None = None, amount_min: int | None = None,
+                amount_max: int | None = None, date_from: dt.date | None = None, date_to: dt.date | None = None,
+                page: int = 1, size: int = 50, db: Session = Depends(get_db)):
     commerce.expire_orders(db)
     off, lim = page_params(page, size, 200)
     st = select(PaymentOrder, User.email).join(User, User.id == PaymentOrder.user_id)
     if status:
         st = st.where(PaymentOrder.status == status)
+    if kind:
+        st = st.where(PaymentOrder.kind == kind)
     if q:
         st = st.where(or_(PaymentOrder.code.ilike(f"%{q.strip()}%"), User.email.ilike(f"%{q.strip()}%")))
+    if user:
+        st = st.where(or_(User.email.ilike(f"%{user.strip()}%"), User.display_name.ilike(f"%{user.strip()}%")))
+    if reference:  # transfer content as typed by the customer: spaces/case do not matter
+        flat = "".join(ch for ch in reference.upper() if ch.isalnum())
+        st = st.where(func.replace(PaymentOrder.transfer_content, " ", "").ilike(f"%{flat}%")
+                      | PaymentOrder.code.ilike(f"%{flat}%"))
+    if amount_min is not None:
+        st = st.where(PaymentOrder.amount_vnd >= amount_min)
+    if amount_max is not None:
+        st = st.where(PaymentOrder.amount_vnd <= amount_max)
+    if date_from:
+        st = st.where(PaymentOrder.created_at >= dt.datetime.combine(date_from, dt.time(), dt.timezone.utc))
+    if date_to:
+        st = st.where(PaymentOrder.created_at < dt.datetime.combine(date_to + dt.timedelta(days=1), dt.time(),
+                                                                    dt.timezone.utc))
     total = db.scalar(select(func.count()).select_from(st.subquery()))
     return {"total": total, "items": [_order(o, e) for o, e in db.execute(
         st.order_by(PaymentOrder.id.desc()).offset(off).limit(lim)).all()]}
 
 
+@router.get("/orders/{code}")
+def order_detail(code: str, db: Session = Depends(get_db)):
+    from ..models import PaymentOrderEvent, PlanSubscription
+    o = _order_by_code(db, code)
+    u = db.get(User, o.user_id)
+    names = {}
+
+    def who(uid):
+        if uid and uid not in names:
+            x = db.get(User, uid)
+            names[uid] = x.email if x else str(uid)
+        return names.get(uid)
+    events = db.scalars(select(PaymentOrderEvent).where(PaymentOrderEvent.order_id == o.id)
+                        .order_by(PaymentOrderEvent.created_at, PaymentOrderEvent.id)).all()
+    txns = db.scalars(select(PaymentTransaction).where(PaymentTransaction.order_id == o.id)
+                      .order_by(PaymentTransaction.id)).all()
+    sub = db.scalar(select(PlanSubscription).where(PlanSubscription.order_id == o.id))
+    ent = db.scalar(select(Entitlement).where(Entitlement.order_id == o.id))
+    return {"order": dict(_order(o, u.email if u else None), product_snapshot=o.product_snapshot,
+                          bank_snapshot=o.bank_snapshot, confirmed_by_email=who(o.confirmed_by)),
+            "user": {"id": u.id, "email": u.email, "display_name": u.display_name,
+                     "plan": plans_access.practice_access(db, u)["plan"]} if u else None,
+            "events": [{"at": iso(e.created_at), "from": e.from_status, "to": e.to_status, "source": e.source,
+                        "actor": who(e.actor_user_id), "note": e.note, "data": e.data} for e in events],
+            "transactions": [{"id": t.id, "provider": t.provider, "provider_txn_id": t.provider_txn_id,
+                              "amount_vnd": t.amount_vnd, "content": t.content, "status": t.status, "note": t.note,
+                              "received_at": iso(t.received_at)} for t in txns],
+            "subscription": commerce.subscription_payload(sub) if sub else None,
+            "entitlement": {"id": ent.id, "note": ent.note, "attempts_total": ent.attempts_total,
+                            "attempts_used": ent.attempts_used, "valid_until": iso(ent.valid_until),
+                            "status": ent.status} if ent else None}
+
+
 class ConfirmIn(BaseModel):
     amount_vnd: int | None = Field(default=None, gt=0)
     note: str | None = Field(default=None, max_length=1000)
+
+
+class ReasonIn(BaseModel):
+    note: str = Field(min_length=3, max_length=1000)
 
 
 def _order_by_code(db, code) -> PaymentOrder:
@@ -562,11 +683,45 @@ def _order_by_code(db, code) -> PaymentOrder:
 @router.post("/orders/{code}/confirm")
 def confirm_order(code: str, body: ConfirmIn, db: Session = Depends(get_db), admin: User = Depends(auth.require_admin)):
     o = _order_by_code(db, code)
-    if o.status not in ("pending", "expired"):
+    if o.status not in commerce.CONFIRMABLE_BY_ADMIN:
         raise err(409, "not_confirmable", f"Đơn đang ở trạng thái {o.status}.")
+    if o.status != "pending" and not (body.note or "").strip():
+        raise err(422, "note_required", "Đơn không còn chờ thanh toán: hãy ghi chú lý do xác nhận (mã giao dịch ngân hàng…).")
     done = commerce.admin_confirm(db, o, admin, body.amount_vnd, body.note)
     db.refresh(o)
     return {"confirmed": done, "order": _order(o)}
+
+
+@router.post("/orders/{code}/cancel")
+def admin_cancel_order(code: str, body: ReasonIn, db: Session = Depends(get_db),
+                       admin: User = Depends(auth.require_admin)):
+    o = _order_by_code(db, code)
+    try:
+        commerce.cancel_order(db, o, admin, body.note, source="admin")
+    except commerce.CommerceError as e:
+        raise err(e.status, e.code, str(e))
+    db.refresh(o)
+    return {"order": _order(o)}
+
+
+@router.post("/orders/{code}/fail")
+def admin_fail_order(code: str, body: ReasonIn, db: Session = Depends(get_db),
+                     admin: User = Depends(auth.require_admin)):
+    o = _order_by_code(db, code)
+    try:
+        commerce.fail_order(db, o, admin, body.note)
+    except commerce.CommerceError as e:
+        raise err(e.status, e.code, str(e))
+    db.refresh(o)
+    return {"order": _order(o)}
+
+
+@router.post("/orders/{code}/note")
+def admin_order_note(code: str, body: ReasonIn, db: Session = Depends(get_db),
+                     admin: User = Depends(auth.require_admin)):
+    o = _order_by_code(db, code)
+    commerce.add_note(db, o, admin, body.note)
+    return {"ok": True}
 
 
 @router.post("/orders/{code}/refund")
@@ -609,7 +764,8 @@ def assign_transaction(tid: int, body: AssignIn, db: Session = Depends(get_db),
         raise err(409, "already_matched", "Giao dịch đã được đối soát.")
     o = _order_by_code(db, body.order_code)
     done = commerce.mark_paid(db, o, provider=t.provider, amount=t.amount_vnd, admin_id=admin.id,
-                              note=body.note or f"assigned from transaction {t.id}")
+                              note=body.note or f"assigned from transaction {t.id}", source="admin",
+                              allowed=commerce.CONFIRMABLE_BY_ADMIN)
     if not done:
         raise err(409, "not_confirmable", f"Đơn đang ở trạng thái {o.status}.")
     t.status, t.order_id, t.note = "matched", o.id, (t.note or "") + f" | assigned by admin {admin.email}"
@@ -621,20 +777,49 @@ def assign_transaction(tid: int, body: AssignIn, db: Session = Depends(get_db),
 # ------------------------------------------------------------------------------------------------
 # users
 # ------------------------------------------------------------------------------------------------
+def _pro_now():
+    from ..models import PlanSubscription
+    now = commerce.utcnow()
+    active = select(PlanSubscription.user_id).where(PlanSubscription.status == "active",
+                                                    PlanSubscription.starts_at <= now, PlanSubscription.expires_at > now)
+    ever = select(PlanSubscription.user_id).where(PlanSubscription.status == "active")
+    return active, ever
+
+
 @router.get("/users")
-def users(q: str | None = None, role: str | None = None, page: int = 1, size: int = 50, db: Session = Depends(get_db)):
+def users(q: str | None = None, role: str | None = None, plan: Literal["free", "pro", "expired"] | None = None,
+          page: int = 1, size: int = 50, db: Session = Depends(get_db)):
+    from ..models import PlanSubscription
     off, lim = page_params(page, size, 200)
     st = select(User)
     if q:
         st = st.where(or_(User.email.ilike(f"%{q.strip()}%"), User.display_name.ilike(f"%{q.strip()}%")))
     if role:
         st = st.where(User.role == role)
+    active, ever = _pro_now()
+    if plan == "pro":
+        st = st.where(User.id.in_(active))
+    elif plan == "free":
+        st = st.where(User.id.not_in(active), User.role == "student")
+    elif plan == "expired":
+        st = st.where(User.id.in_(ever), User.id.not_in(active))
     total = db.scalar(select(func.count()).select_from(st.subquery()))
     rows = db.scalars(st.order_by(User.id.desc()).offset(off).limit(lim)).all()
+    ids = [u.id for u in rows]
     counts = dict(db.execute(select(ExamSession.user_id, func.count()).where(
-        ExamSession.user_id.in_([u.id for u in rows])).group_by(ExamSession.user_id)).all())
+        ExamSession.user_id.in_(ids)).group_by(ExamSession.user_id)).all())
+    now = commerce.utcnow()
+    until = dict(db.execute(select(PlanSubscription.user_id, func.max(PlanSubscription.expires_at)).where(
+        PlanSubscription.user_id.in_(ids), PlanSubscription.status == "active").group_by(PlanSubscription.user_id)).all())
+    pro_ids = set(db.scalars(active.where(PlanSubscription.user_id.in_(ids))))
+
+    def plan_of(u):
+        if u.role == "admin":
+            return "ADMIN"
+        return "PRO" if u.id in pro_ids else ("EXPIRED" if u.id in until and until[u.id] <= now else "FREE")
     return {"total": total, "items": [dict(user_public(u), is_active=u.is_active, last_login_at=iso(u.last_login_at),
-                                           sessions=counts.get(u.id, 0)) for u in rows]}
+                                           created_at=iso(u.created_at), sessions=counts.get(u.id, 0),
+                                           plan=plan_of(u), pro_until=iso(until.get(u.id))) for u in rows]}
 
 
 @router.get("/users/{uid}")
@@ -648,11 +833,60 @@ def user_detail(uid: int, db: Session = Depends(get_db)):
     from ..exam.service import session_summary
     sessions = db.scalars(select(ExamSession).where(ExamSession.user_id == uid).order_by(ExamSession.created_at.desc())
                           .limit(50)).all()
-    return {"user": dict(user_public(u), is_active=u.is_active, last_login_at=iso(u.last_login_at)),
+    from ..models import Bookmark, PlanSubscription
+    subs = db.scalars(select(PlanSubscription).where(PlanSubscription.user_id == uid)
+                      .order_by(PlanSubscription.starts_at.desc(), PlanSubscription.id.desc())).all()
+    answered = db.execute(select(Question.subject_code, func.count()).select_from(ExamItem)
+                          .join(ExamSession, ExamSession.id == ExamItem.session_id)
+                          .join(Question, Question.id == ExamItem.question_id)
+                          .where(ExamSession.user_id == uid, ExamSession.mode == "practice",
+                                 ExamItem.answered_at.is_not(None))
+                          .group_by(Question.subject_code)).all()
+    by_mode = dict(db.execute(select(ExamSession.mode, func.count()).where(ExamSession.user_id == uid)
+                              .group_by(ExamSession.mode)).all())
+    acc = plans_access.practice_access(db, u)
+    until = commerce.pro_until(db, uid)
+    return {"user": dict(user_public(u), is_active=u.is_active, last_login_at=iso(u.last_login_at),
+                         created_at=iso(u.created_at)),
+            "plan": {"plan": acc["plan"], "pro_until": iso(until), "free_limit": plans_access.free_limit(db)},
+            "subscriptions": [commerce.subscription_payload(x) for x in subs],
+            "usage": {"practice_sessions": by_mode.get("practice", 0), "exam_sessions": by_mode.get("exam", 0),
+                      "practice_answered_by_subject": {k or "?": n for k, n in answered},
+                      "bookmarks": db.scalar(select(func.count()).where(Bookmark.user_id == uid)),
+                      "reports": db.scalar(select(func.count()).where(QuestionReport.user_id == uid))},
             "entitlements": [{"id": e.id, "note": e.note, "blueprint_ids": e.blueprint_ids,
                               "attempts_total": e.attempts_total, "attempts_used": e.attempts_used,
                               "valid_until": iso(e.valid_until), "status": e.status} for e in ents],
             "orders": [_order(o) for o in orders], "sessions": [session_summary(s) for s in sessions]}
+
+
+class ProGrantIn(BaseModel):
+    days: int = Field(gt=0, le=3650)
+    note: str = Field(min_length=3, max_length=500)
+
+
+@router.post("/users/{uid}/pro")
+def grant_pro(uid: int, body: ProGrantIn, db: Session = Depends(get_db), admin: User = Depends(auth.require_admin)):
+    """Manually grant (or extend) PRO, e.g. a payment received outside the order flow. Audited."""
+    u = db.get(User, uid)
+    if u is None:
+        raise err(404, "not_found", "Không tìm thấy người dùng.")
+    sub = commerce.admin_grant_pro(db, admin, u, body.days, body.note)
+    return commerce.subscription_payload(sub)
+
+
+@router.post("/subscriptions/{sid}/revoke")
+def revoke_pro(sid: int, body: ReasonIn, db: Session = Depends(get_db), admin: User = Depends(auth.require_admin)):
+    """Revoke one PRO period (kept in history with who/when/why; payments and study history are untouched)."""
+    from ..models import PlanSubscription
+    sub = db.get(PlanSubscription, sid)
+    if sub is None:
+        raise err(404, "not_found", "Không tìm thấy quyền Pro.")
+    try:
+        commerce.revoke_subscription(db, admin, sub, body.note)
+    except commerce.CommerceError as e:
+        raise err(e.status, e.code, str(e))
+    return commerce.subscription_payload(sub)
 
 
 class UserUpdate(BaseModel):
@@ -719,14 +953,65 @@ def revoke(eid: int, db: Session = Depends(get_db), admin: User = Depends(auth.r
 # ------------------------------------------------------------------------------------------------
 # settings, subjects, banks, sync
 # ------------------------------------------------------------------------------------------------
-SETTING_KEYS = {"serving_policy", "payment", "practice", "site"}
+SETTING_KEYS = {"serving_policy", "payment", "practice", "mock_exams", "site"}
+
+
+def _validate_setting(key: str, v: dict) -> dict:
+    """Type-check and bound every admin-editable value; unknown keys are rejected."""
+    from ..settings_store import DEFAULTS
+    if key in DEFAULTS and DEFAULTS[key]:
+        unknown = set(v) - set(DEFAULTS[key])
+        if unknown:
+            raise err(422, "invalid", f"Khoá cấu hình không hợp lệ: {', '.join(sorted(unknown))}")
+
+    def int_in(name, lo, hi, label):
+        if name in v:
+            x = v[name]
+            if isinstance(x, bool) or not isinstance(x, int) or not lo <= x <= hi:
+                raise err(422, "invalid", f"{label} phải là số nguyên từ {lo:,} đến {hi:,}.".replace(",", "."))
+
+    def boolean(name):
+        if name in v and not isinstance(v[name], bool):
+            raise err(422, "invalid", f"{name} phải là true/false.")
+    if key == "practice":
+        int_in("free_questions_per_subject", 1, 100_000, "Số câu miễn phí mỗi môn")
+        int_in("max_questions", 1, 200, "Số câu tối đa mỗi lượt luyện")
+        int_in("default_questions", 1, 200, "Số câu mặc định")
+        boolean("free")
+    if key == "mock_exams":
+        int_in("default_price_vnd", 1000, 100_000_000, "Giá đề mặc định")
+        boolean("paid_enabled")
+        boolean("pro_includes_paid_exams")
+    if key == "payment":
+        import re as _re
+        if v.get("bank_bin") and not _re.fullmatch(r"\d{6}", str(v["bank_bin"])):
+            raise err(422, "invalid", "Mã BIN ngân hàng phải là 6 chữ số (MB Bank: 970422).")
+        if v.get("account_number") and not _re.fullmatch(r"[0-9A-Za-z]{4,19}", str(v["account_number"])):
+            raise err(422, "invalid", "Số tài khoản chỉ gồm chữ/số, 4–19 ký tự.")
+        if v.get("code_prefix") and not _re.fullmatch(r"[A-Za-z0-9]{2,6}", str(v["code_prefix"])):
+            raise err(422, "invalid", "Tiền tố nội dung chuyển khoản: 2–6 chữ/số, không dấu.")
+        int_in("order_ttl_minutes", 5, 7 * 24 * 60, "Thời hạn đơn (phút)")
+        boolean("enabled")
+        boolean("qr_enabled")
+        for f in ("bank_name", "account_name", "instructions"):
+            if f in v and not isinstance(v[f], str):
+                raise err(422, "invalid", f"{f} phải là chuỗi.")
+        if len(str(v.get("instructions") or "")) > 2000:
+            raise err(422, "invalid", "Hướng dẫn thanh toán tối đa 2000 ký tự.")
+        bad = set(v.get("providers") or []) - {"manual", "sepay", "casso", "generic"}
+        if bad:
+            raise err(422, "invalid", f"Kênh thanh toán không hỗ trợ: {', '.join(bad)}")
+    return v
 
 
 @router.get("/settings/{key}")
 def get_settings_key(key: str, db: Session = Depends(get_db)):
     if key not in SETTING_KEYS:
         raise err(404, "not_found", "Không có cấu hình này.")
-    out = {"key": key, "value": get_setting(db, key)}
+    from ..models import AppSetting
+    row = db.get(AppSetting, key)
+    out = {"key": key, "value": get_setting(db, key), "updated_at": iso(row.updated_at) if row else None,
+           "updated_by": (db.get(User, row.updated_by).email if row and row.updated_by else None)}
     if key == "serving_policy":
         out["reference"] = {"states": EDITORIAL_STATES, "reasons": APP_REASONS}
     if key == "payment":
@@ -747,18 +1032,23 @@ def put_setting(key: str, body: SettingIn, db: Session = Depends(get_db), admin:
     if key not in SETTING_KEYS:
         raise err(404, "not_found", "Không có cấu hình này.")
     v = body.value
-    if key == "payment":
-        if v.get("bank_bin") and not str(v["bank_bin"]).isdigit():
-            raise err(422, "invalid", "Mã BIN ngân hàng phải là 6 chữ số.")
-        bad = set(v.get("providers") or []) - {"manual", "sepay", "casso", "generic"}
-        if bad:
-            raise err(422, "invalid", f"Kênh thanh toán không hỗ trợ: {', '.join(bad)}")
+    if key != "serving_policy":
+        v = _validate_setting(key, v)
+        # partial updates: keys not sent keep their current value
+        before = get_setting(db, key)
+        v = {**before, **v}
+    else:
+        before = get_setting(db, key)
     if key == "serving_policy":
         unknown = set(v.get("allowed_states") or []) - set(EDITORIAL_STATES)
         if unknown:
             raise err(422, "invalid", f"Trạng thái không hợp lệ: {', '.join(unknown)}")
     value = set_setting(db, key, v, admin.id)
-    audit(db, admin, "setting_updated", "app_setting", key, v)
+    changes = {k: {"before": before.get(k), "after": value.get(k)} for k in set(before) | set(value)
+               if before.get(k) != value.get(k)}
+    audit(db, admin, "setting_updated", "app_setting", key, {"changes": changes})
+    if key == "practice":
+        plans_access.clear_cache()
     result = {"key": key, "value": value}
     if key == "serving_policy":
         result["recomputed"] = recompute_policy(db)
@@ -1035,9 +1325,16 @@ def recompute(db: Session = Depends(get_db), admin: User = Depends(auth.require_
 
 
 @router.get("/audit")
-def audit_log(page: int = 1, size: int = 50, db: Session = Depends(get_db)):
+def audit_log(action: str | None = None, entity: str | None = None, entity_id: str | None = None,
+              page: int = 1, size: int = 50, db: Session = Depends(get_db)):
     off, lim = page_params(page, size, 200)
-    rows = db.execute(select(AuditLog, User.email).outerjoin(User, User.id == AuditLog.actor_user_id)
-                      .order_by(AuditLog.id.desc()).offset(off).limit(lim)).all()
-    return {"total": db.scalar(select(func.count()).select_from(AuditLog)), "items": [{"id": a.id, "actor": e, "action": a.action, "entity": a.entity, "entity_id": a.entity_id,
+    st = select(AuditLog, User.email).outerjoin(User, User.id == AuditLog.actor_user_id)
+    if action:
+        st = st.where(AuditLog.action == action)
+    if entity:
+        st = st.where(AuditLog.entity == entity)
+    if entity_id:
+        st = st.where(AuditLog.entity_id == entity_id)
+    rows = db.execute(st.order_by(AuditLog.id.desc()).offset(off).limit(lim)).all()
+    return {"total": db.scalar(select(func.count()).select_from(st.subquery())), "items": [{"id": a.id, "actor": e, "action": a.action, "entity": a.entity, "entity_id": a.entity_id,
                        "data": a.data, "created_at": iso(a.created_at)} for a, e in rows]}

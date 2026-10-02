@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .exam.blueprint import parse_config
-from .models import ExamBlueprint, Product, Subject, SubjectAlias
+from .models import ExamBlueprint, Plan, Product, Subject, SubjectAlias
 from .sync.importer import ensure_bank
 
 SUBJECTS = [
@@ -68,8 +68,24 @@ PRODUCTS = [
 ]
 
 
+# Practice plans. Price, duration, benefits and availability are edited in Admin → Gói & giá; the seed
+# only creates missing rows and never overwrites what an admin changed.
+PLANS = [
+    ("FREE", "Miễn phí", "Luyện tập một phần ngân hàng câu hỏi của mỗi môn.", 0, None, 10,
+     ["Luyện tập giới hạn số câu mỗi môn", "Làm các đề thi thử miễn phí", "Lưu câu hỏi, xem lịch sử và lời giải"]),
+    ("PRO", "Gói Pro", "Luyện tập toàn bộ ngân hàng câu hỏi đã kiểm duyệt của mọi môn.", 300000, 365, 20,
+     ["Toàn bộ ngân hàng câu hỏi đủ điều kiện của mọi môn", "Luyện tập không giới hạn theo môn và dạng câu",
+      "Ôn lại câu sai, câu chưa làm trên toàn bộ ngân hàng"]),
+]
+
+
 def seed(db: Session) -> dict:
-    out = {"subjects": 0, "aliases": 0, "blueprints": 0, "products": 0}
+    out = {"subjects": 0, "aliases": 0, "blueprints": 0, "products": 0, "plans": 0}
+    for code, name, desc, price, days, order, benefits in PLANS:
+        if db.scalar(select(Plan).where(Plan.code == code)) is None:
+            db.add(Plan(code=code, name=name, description=desc, price_vnd=price, duration_days=days, is_active=True,
+                        features={"benefits": benefits}, sort_order=order))
+            out["plans"] += 1
     bank = ensure_bank(db)
     for code, name, short, color, order, upstream in SUBJECTS:
         if db.get(Subject, code) is None:
@@ -85,7 +101,7 @@ def seed(db: Session) -> dict:
         if db.scalar(select(ExamBlueprint).where(ExamBlueprint.code == code)) is None:
             parse_config(cfg)  # validate
             db.add(ExamBlueprint(code=code, name=name, description=desc, kind="random", config=cfg, price_vnd=price,
-                                 is_published=True, sort_order=order))
+                                 access="paid" if price > 0 else "free", is_published=True, sort_order=order))
             out["blueprints"] += 1
     for code, name, desc, price, attempts, days, active in PRODUCTS:
         if db.scalar(select(Product).where(Product.code == code)) is None:

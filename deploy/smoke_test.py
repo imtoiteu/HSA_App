@@ -53,7 +53,7 @@ class Client:
                 if not idempotent or attempt == 2:  # only idempotent calls are retried
                     raise SystemExit(f"FAIL {method} {path}: {type(e).__name__}")
                 time.sleep(0.5)
-        if status != expect:
+        if expect is not None and status != expect:
             raise SystemExit(f"FAIL {method} {path}: {status} (expected {expect}) {text[:300]}")
         return json.loads(text) if text and text[0] in "[{" else text
 
@@ -116,6 +116,33 @@ def main():
     if paid:
         r = s.call("POST", "/api/sessions", {"blueprint_id": paid[0]["id"]}, expect=402)
         ok(f"paid exam requires purchase ({paid[0]['price_vnd']} VND)")
+    # practice plans: a new account is FREE and limited per subject; PRO is bought through an order
+    acc = cat["access"]
+    assert acc["plan"] == "FREE", acc
+    lim = acc["free_limit"]
+    assert all(x["available"] <= min(lim, x["total"]) for x in cat["subjects"]), cat["subjects"]
+    ok(f"FREE plan: ≤ {lim} practice questions per subject (" + ", ".join(
+        f"{x['code']} {x['available']}/{x['total']}" for x in cat["subjects"] if x["total"]) + ")")
+    plans = {p["code"]: p for p in s.call("GET", "/api/plans")["items"]}
+    pro = plans.get("PRO")
+    if pro:
+        r = s.call("POST", "/api/orders", {"plan_code": "PRO", "amount_vnd": 1}, expect=None)
+        if r.get("code") == "payment_not_configured" or (isinstance(r.get("detail"), dict)
+                                                          and r["detail"].get("code") == "payment_not_configured"):
+            ok("PRO order: destination account not configured yet (orders refused)")
+        else:
+            assert r["amount_vnd"] == pro["price_vnd"] and r["kind"] == "pro", r
+            assert r["transfer_content"].replace(" ", "") == r["code"] and r["bank"]["account_number"], r
+            assert r["qr_payload"] is None or r["qr_payload"].startswith("000201")
+            ok(f"PRO order {r['code']}: {r['amount_vnd']} VND (server price, client amount ignored), "
+               f"'{r['transfer_content']}' → {r['bank']['bank_name']} {r['bank']['account_number']}")
+            c = s.call("POST", f"/api/orders/{r['code']}/cancel")
+            assert c["status"] == "cancelled"
+            ok("smoke order cancelled (no payment recorded)")
+    assert s.call("GET", "/api/me/plan")["plan"] == "FREE"
+    for path in ("/api/admin/dashboard", "/api/admin/orders"):
+        s.call("GET", path, expect=403)
+    ok("student denied admin APIs")
     hist = s.call("GET", "/api/sessions?status=submitted")
     ok(f"history: {hist['total']} submitted")
     if a.admin_email:
@@ -129,6 +156,18 @@ def main():
         d = ad.call("GET", f"/api/admin/questions/{q['id']}")
         assert d["current_version"]["content"]["stem"]
         ok(f"question detail {d['external_id']} ({d['editorial_state']}, {d['state_source']})")
+        dash = ad.call("GET", "/api/admin/dashboard")
+        ok(f"dashboard: {dash['users']['free']} FREE / {dash['users']['pro_active']} PRO users, orders pending "
+           f"{dash['payments']['pending']} paid {dash['payments']['paid']}, free limit "
+           f"{dash['config']['free_questions_per_subject']}, PRO {dash['config']['pro_price_vnd']} VND / "
+           f"{dash['config']['pro_duration_days']} days")
+        rec = ad.call("GET", "/api/admin/reconciliation/subjects")
+        bad = [x["subject"] for x in rec["items"]
+               if (x["student_api"] != x["served"] if rec["practice_allow_self_check"] else x["student_api"] > x["served"])
+               or x["effective"] != x["served"] + x["excluded"]]
+        assert not bad, f"subject reconciliation mismatch: {bad}"
+        ok("subject reconciliation: " + ", ".join(f"{x['subject']} {x['served']}/{x['effective']}"
+                                                  for x in rec["items"] if x["effective"]))
         bps = ad.call("GET", "/api/admin/blueprints")["items"]
         ok("blueprint availability: " + ", ".join(f"{b['code']}={'ok' if b['availability']['ok'] else 'SHORT'}"
                                                    for b in bps))

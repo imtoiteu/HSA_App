@@ -6,15 +6,19 @@ import { useAuth } from "../lib/auth";
 import { vnd } from "../lib/format";
 import type { Blueprint, Catalog, Order, SessionSummary } from "../lib/types";
 
+export function Price({ bp }: { bp: Blueprint }) {
+  return bp.promo ? <><s className="muted" style={{ fontWeight: 400 }}>{vnd(bp.list_price_vnd)}</s> {vnd(bp.price_vnd)}</> : <>{vnd(bp.price_vnd)}</>;
+}
+
 export function ExamCard({ bp, onOpen }: { bp: Blueprint; onOpen: (bp: Blueprint) => void }) {
   const acc = bp.access;
   return (
     <button className="card card-link" style={{ textAlign: "left", cursor: "pointer" }} onClick={() => onOpen(bp)}>
       <div className="row between" style={{ alignItems: "flex-start" }}>
         <h3 style={{ margin: 0 }}>{bp.name}</h3>
-        {bp.price_vnd > 0 ? (
-          acc.allowed ? <span className="badge ok">{acc.admin ? "Quản trị" : acc.unlimited ? "Không giới hạn" : `Còn ${acc.remaining_attempts} lượt`}</span>
-            : <span className="badge accent">{vnd(bp.price_vnd)}/lượt</span>
+        {bp.paid ? (
+          acc.allowed ? <span className="badge ok">{acc.admin ? "Quản trị" : acc.via_pro ? "Gói Pro" : acc.unlimited ? "Không giới hạn" : `Còn ${acc.remaining_attempts} lượt`}</span>
+            : <span className="badge accent"><Price bp={bp} />{bp.attempts_per_purchase > 1 ? ` / ${bp.attempts_per_purchase} lượt` : "/lượt"}</span>
         ) : <span className="badge brand">Miễn phí</span>}
       </div>
       <p className="muted small mt" style={{ minHeight: 40 }}>{bp.description}</p>
@@ -51,7 +55,8 @@ export function StartExam({ bp, onClose }: { bp: Blueprint; onClose: () => void 
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<unknown>(null);
-  const needsPay = bp.price_vnd > 0 && !bp.access.allowed;
+  const needsPay = bp.paid && !bp.access.allowed;
+  const purchase = bp.attempts_per_purchase > 1 ? `${bp.attempts_per_purchase} lượt` : "1 lượt";
 
   const start = async () => {
     setBusy(true);
@@ -83,7 +88,7 @@ export function StartExam({ bp, onClose }: { bp: Blueprint; onClose: () => void 
         <Link className="btn" to={`/dang-nhap?next=/de-thi`}>Đăng nhập để làm bài</Link>
       </> : needsPay ? <>
         <button className="btn secondary" onClick={onClose}>Để sau</button>
-        <button className="btn accent" onClick={buy} disabled={busy}>{busy ? "Đang tạo đơn…" : `Mua lượt thi – ${vnd(bp.price_vnd)}`}</button>
+        <button className="btn accent" onClick={buy} disabled={busy}>{busy ? "Đang tạo đơn…" : `Mua ${purchase} – ${vnd(bp.price_vnd)}`}</button>
       </> : <>
         <button className="btn secondary" onClick={onClose}>Huỷ</button>
         <button className="btn" onClick={start} disabled={busy}>{busy ? "Đang chuẩn bị đề…" : "Bắt đầu làm bài"}</button>
@@ -104,7 +109,7 @@ export function StartExam({ bp, onClose }: { bp: Blueprint; onClose: () => void 
         {bp.timing === "global" && <li>Đồng hồ đếm ngược bắt đầu ngay khi vào bài và vẫn chạy nếu bạn tạm rời đi.</li>}
         <li>Câu trả lời được lưu tự động; bạn có thể tải lại trang mà không mất bài.</li>
         <li>Hết giờ, bài được nộp tự động. Đáp án và lời giải hiển thị sau khi nộp.</li>
-        {bp.price_vnd > 0 && <li>Mỗi lượt làm bài dùng 1 lượt đã mua ({vnd(bp.price_vnd)}/lượt). Nếu đang làm dở, bạn sẽ được tiếp tục bài cũ, không mất thêm lượt.</li>}
+        {bp.paid && <li>Đề có phí: mỗi lần mua {vnd(bp.price_vnd)} được {purchase} làm bài. Mỗi lần bắt đầu dùng 1 lượt; nếu đang làm dở, bạn được tiếp tục bài cũ, không mất thêm lượt. Đề thi thử được mua riêng, không thuộc gói luyện tập Pro{bp.access.via_pro ? " (hiện gói Pro của bạn đã bao gồm đề này)" : ""}.</li>}
       </ul>
       <ErrorBox error={err} />
     </Modal>

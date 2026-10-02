@@ -137,15 +137,49 @@ export interface Blueprint {
   name: string;
   description: string | null;
   kind: string;
+  paid: boolean;
   price_vnd: number;
+  list_price_vnd: number;
+  promo: boolean;
+  attempts_per_purchase: number;
   total_questions: number;
   total_minutes: number | null;
   timing: string;
   sections: { key: string; title: string; description?: string | null; duration_minutes?: number | null; count: number }[];
-  access: { free: boolean; allowed: boolean; price_vnd?: number; remaining_attempts?: number | null; unlimited?: boolean; admin?: boolean };
+  access: {
+    free: boolean; allowed: boolean; price_vnd?: number; list_price_vnd?: number; promo?: boolean; on_sale?: boolean;
+    remaining_attempts?: number | null; unlimited?: boolean; admin?: boolean; via_pro?: boolean;
+  };
 }
 
-export interface SubjectInfo { code: string; name: string; short_name: string | null; color: string | null; available: number }
+/** available = what this account may practise; total = served bank of the subject (PRO). */
+export interface SubjectInfo {
+  code: string; name: string; short_name: string | null; color: string | null; available: number; total: number;
+  free_available: number;
+}
+
+export type PlanCode = "FREE" | "PRO" | "ADMIN";
+
+export interface AccessInfo {
+  plan: PlanCode; free_limit: number; pro_until: string | null; pro_available: boolean;
+  pro_price_vnd: number | null; pro_duration_days: number | null;
+}
+
+export interface PlanInfo {
+  code: string; name: string; description: string | null; price_vnd: number; duration_days: number | null;
+  is_active: boolean; benefits: string[];
+}
+
+export interface Subscription {
+  id: number; plan_code: string; name: string | null; starts_at: string; expires_at: string;
+  state: "active" | "scheduled" | "expired" | "revoked"; source: "order" | "admin_grant"; order_id: number | null;
+  note: string | null; revoke_reason: string | null; revoked_at: string | null; created_at: string | null;
+}
+
+export interface MyPlan {
+  plan: PlanCode; free_questions_per_subject: number; pro_until: string | null; days_left: number;
+  expired_at: string | null; subscriptions: Subscription[];
+}
 
 export interface Catalog {
   subjects: SubjectInfo[];
@@ -154,13 +188,20 @@ export interface Catalog {
   topics_enabled: boolean;
   topics: { subject: string; topic: string; available: number }[];
   practice: { max_questions: number; default_questions: number };
+  access: AccessInfo;
   site: { name: string; announcement: string; support_contact: string };
 }
 
 export interface Order {
   code: string;
-  status: "pending" | "paid" | "expired" | "cancelled" | "refunded";
+  kind: "pro" | "exam" | "product";
+  plan_code: string | null;
+  status: "pending" | "paid" | "expired" | "cancelled" | "failed" | "refunded";
   amount_vnd: number;
+  list_price_vnd: number | null;
+  duration_days: number | null;
+  instructions: string;
+  subscription?: { starts_at: string; expires_at: string; status: string };
   name: string;
   created_at: string;
   expires_at: string;
@@ -168,7 +209,7 @@ export interface Order {
   transfer_content: string;
   blueprint_id: number | null;
   product_id: number | null;
-  bank: { bank_name: string; account_number: string; account_name: string; bin: string } | null;
+  bank: { bank_name: string; account_number: string; account_name: string | null; bin: string } | null;
   qr_svg: string | null;
   qr_payload: string | null;
 }

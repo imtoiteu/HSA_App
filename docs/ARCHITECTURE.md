@@ -50,7 +50,7 @@ backlog drops visible in `/proc/net/softnet_stat`):
 | `content/` | hsa-md → render-ready block model; answer normalisation |
 | `sync/` | upstream reader, editorial-state derivation, serving policy, asset store, idempotent import |
 | `exam/` | blueprint validation, deterministic selection, sessions, scoring |
-| `commerce/` | products, orders, VietQR payloads, provider adapters, entitlements |
+| `commerce/` | practice plans and the FREE pool (`access.py`), orders, PRO subscriptions, VietQR payloads, provider adapters, exam entitlements |
 | `api/` | HTTP routers: auth, catalog, sessions, me (history/bookmarks/reports), payments, admin |
 | `cli.py` | `sync`, `create-admin`, `seed`, `expire-orders`, `export-corrections` |
 
@@ -67,8 +67,10 @@ backlog drops visible in `/proc/net/softnet_stat`):
   `exam_response` (answer, flag, time). Results are written once at submission.
 * **Users**: `app_user`, `auth_session`, `password_reset`, `bookmark`, `question_report`,
   `question_correction` (the correction/feedback layer keyed by `cq_…`).
-* **Commerce**: `product`, `payment_order` (unique reference code), `payment_transaction`
-  (unique per provider transaction id → idempotent), `entitlement`, `entitlement_usage`.
+* **Commerce**: `plan` (FREE/PRO), `plan_subscription` (PRO periods, one per order, never overwritten),
+  `product`, `payment_order` (unique reference; amount/reference/destination frozen by a trigger),
+  `payment_order_event` (state history), `payment_transaction` (unique per provider transaction id →
+  idempotent), `entitlement`, `entitlement_usage`. See [PAYMENTS.md](PAYMENTS.md).
 * **Ops**: `sync_run`, `app_setting` (serving policy, payment receiving account, feature flags),
   `audit_log`, `rate_limit`.
 

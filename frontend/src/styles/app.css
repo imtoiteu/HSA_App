@@ -382,3 +382,41 @@ pre.json { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12
 }
 .nav .nav-account { display: none; }
 @media (max-width: 860px) { .nav .nav-account { display: block; } }
+
+/* ---------------------------------------------------------------- plans (FREE / PRO) */
+.plan-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  border-radius: 12px; padding: 12px 16px; margin: 12px 0 16px; border: 1px solid var(--brand-100); background: var(--brand-50); }
+.plan-banner.pro { justify-content: flex-start; background: var(--ok-50); border-color: #bfe7cc; }
+.plan-banner.free .small { color: var(--ink-2); }
+.nav a.nav-pro { color: #c2410c; }
+.nav a.nav-pro.active { background: var(--accent-50); }
+.plan-status.pro { border-color: #bfe7cc; background: linear-gradient(0deg, #fff, var(--ok-50)); }
+.plan-grid .plan-price { font-size: 1.8rem; font-weight: 800; color: var(--ink); }
+.plan-grid .plan-pro { border: 2px solid var(--accent); }
+.benefits { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 8px; }
+.benefits li { padding-left: 26px; position: relative; }
+.benefits li::before { content: "✓"; position: absolute; left: 4px; color: var(--ok); font-weight: 800; }
+.upgrade-state { border: 1px dashed var(--accent); background: var(--accent-50); }
+
+/* ---------------------------------------------------------------- admin portal additions */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.kpi { border: 1px solid var(--line, #e5e7eb); border-radius: 12px; padding: 10px 12px; background: #fff; }
+.kpi .v { font-size: 1.35rem; font-weight: 800; display: block; color: var(--ink); }
+.kpi .k { font-size: .8rem; color: var(--ink-2); }
+.kpi.warn { border-color: #f5dea3; background: var(--warn-50); }
+.kpi.bad { border-color: #f6c9c9; background: var(--bad-50); }
+.kpi.ok { border-color: #bfe7cc; background: var(--ok-50); }
+a.kpi:hover { text-decoration: none; border-color: var(--brand); }
+.dash-section { margin-top: 22px; }
+.dash-section > h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
+.filters .field { margin: 0; }
+.filters .input { min-width: 0; }
+.timeline { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--brand-100); }
+.timeline li { padding: 4px 0 10px 14px; position: relative; }
+.timeline li::before { content: ""; position: absolute; left: -6px; top: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td a.drill { text-decoration: underline dotted; }
+tr.mismatch td { background: var(--warn-50); }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.help { font-size: .82rem; color: var(--ink-2); margin-top: 4px; }

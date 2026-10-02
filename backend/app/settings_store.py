@@ -15,13 +15,21 @@ DEFAULTS: dict = {
         "bank_bin": "",            # NAPAS BIN, e.g. 970436 (Vietcombank)
         "bank_name": "",
         "account_number": "",
-        "account_name": "",
+        "account_name": "",        # account holder exactly as registered at the bank (set by an admin)
+        "qr_enabled": True,        # show a VietQR code on the checkout page
+        "instructions": "",        # extra text shown on the checkout page
         "providers": ["manual"],   # enabled confirmation channels: manual | sepay | casso | generic
     },
     "practice": {
-        "free": True,              # practice modes are free; exams follow each blueprint's price
+        "free": True,              # practice is open to every account (FREE plan within its limit)
+        "free_questions_per_subject": 100,  # FREE plan: practice pool size per subject (PRO: whole bank)
         "max_questions": 100,
         "default_questions": 20,
+    },
+    "mock_exams": {
+        "paid_enabled": True,             # paid mock exams can be bought and started
+        "default_price_vnd": 20000,       # price of a paid exam that has no own price
+        "pro_includes_paid_exams": False,  # an active PRO plan also unlocks paid mock exams
     },
     "sync_request": {},  # set by Admin → "Đồng bộ ngay"; consumed by the scheduler
     "audit_request": {},  # set by Admin → "Kiểm tra đối soát"; consumed by the scheduler

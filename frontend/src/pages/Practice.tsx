@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { PlanBanner, UpgradeState } from "../components/PlanBanner";
 import { ErrorBox, Spinner, useAsync } from "../components/ui";
-import { get, post } from "../lib/api";
+import { ApiError, get, post } from "../lib/api";
 import { TYPE_LABELS } from "../lib/format";
 import type { Catalog, SessionSummary } from "../lib/types";
 
@@ -38,6 +39,8 @@ export default function Practice() {
   if (loading) return <Spinner />;
   if (error || !cat) return <div className="container page"><ErrorBox error={error} /></div>;
 
+  const free = cat.access.plan === "FREE";
+  const limitErr = err instanceof ApiError && err.code === "free_limit" ? err : null;
   const toggle = (arr: string[], v: string, set: (x: string[]) => void) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const available = cat.subjects.filter((s) => s.available > 0);
   const pool = subjects.length ? available.filter((s) => subjects.includes(s.code)).reduce((a, s) => a + s.available, 0)
@@ -61,6 +64,7 @@ export default function Practice() {
     <div className="container narrow page">
       <h1>Luyện tập</h1>
       <p className="muted">Tạo một bài luyện tập theo ý bạn. Chỉ các câu hỏi đã được kiểm duyệt đáp án mới được dùng.</p>
+      <PlanBanner access={cat.access} />
 
       <div className="card pad-lg stack" style={{ gap: 22 }}>
         <section>
@@ -87,7 +91,10 @@ export default function Practice() {
               <button key={s.code} type="button" className={"chip" + (subjects.includes(s.code) ? " on" : "")}
                       aria-pressed={subjects.includes(s.code)} onClick={() => toggle(subjects, s.code, setSubjects)}>
                 <span className="dot" style={{ background: s.color || "#94a3b8" }} />
-                {s.short_name || s.name} <small>{s.available.toLocaleString("vi-VN")}</small>
+                {s.short_name || s.name}{" "}
+                <small title={free ? `Gói Miễn phí: ${s.available} / ${s.total} câu của môn` : undefined}>
+                  {s.available.toLocaleString("vi-VN")}{free && s.total > s.available ? <span className="muted"> / {s.total.toLocaleString("vi-VN")}</span> : null}
+                </small>
               </button>
             ))}
           </div>
@@ -131,9 +138,11 @@ export default function Practice() {
           </div>
         </section>
 
-        <ErrorBox error={err} />
+        {limitErr ? <UpgradeState limit={limitErr.data.limit as number} message={limitErr.message} /> : <ErrorBox error={err} />}
         <div className="row between">
-          <span className="muted small">Kho câu phù hợp: khoảng {pool.toLocaleString("vi-VN")} câu</span>
+          <span className="muted small">
+            {free ? "Câu bạn được luyện" : "Kho câu phù hợp"}: khoảng {pool.toLocaleString("vi-VN")} câu
+          </span>
           <button className="btn lg" onClick={start} disabled={busy || pool === 0}>{busy ? "Đang tạo bài…" : "Bắt đầu luyện tập"}</button>
         </div>
       </div>

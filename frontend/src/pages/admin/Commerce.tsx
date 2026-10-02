@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { get, post, put, qs } from "../../lib/api";
-import { dateTime, ORDER_STATUS, vnd } from "../../lib/format";
+import { dateTime, vnd } from "../../lib/format";
 import { Confirm, Empty, ErrorBox, Modal, Pager, Spinner, useAsync, useToast } from "../../components/ui";
 import { errMsg, numOrNull, PageHead, useUrlState } from "./common";
 
@@ -94,94 +93,6 @@ export function Products() {
             {err && <div className="error-text">{err}</div>}
           </div>
         </Modal>
-      )}
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------------------------------ orders
-interface AOrder {
-  id: number; code: string; user_id: number; user_email: string | null; status: string; amount_vnd: number; paid_amount_vnd: number | null;
-  name: string; provider: string | null; created_at: string; expires_at: string; paid_at: string | null; note: string | null;
-}
-
-export function Orders() {
-  const u = useUrlState();
-  const page = Number(u.get("page") || 1);
-  const [q, setQ] = useState(u.get("q"));
-  const list = useAsync(() => get<{ total: number; items: AOrder[] }>("/api/admin/orders" + qs({ status: u.get("status"), q: u.get("q"), page, size: 50 })),
-    [u.get("status"), u.get("q"), page]);
-  const [act, setAct] = useState<{ kind: "confirm" | "refund"; o: AOrder; amount: string; note: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const toast = useToast();
-  const run = async () => {
-    if (!act) return;
-    setBusy(true);
-    try {
-      if (act.kind === "confirm") {
-        await post(`/api/admin/orders/${act.o.code}/confirm`, { amount_vnd: numOrNull(act.amount), note: act.note || null });
-        toast("Đã xác nhận thanh toán và cấp quyền.", "ok");
-      } else {
-        await post(`/api/admin/orders/${act.o.code}/refund`, { note: act.note || null });
-        toast("Đã đánh dấu hoàn tiền và thu hồi quyền.", "ok");
-      }
-      setAct(null); list.reload();
-    } catch (e) { toast(errMsg(e), "error"); } finally { setBusy(false); }
-  };
-  return (
-    <div>
-      <PageHead title="Đơn hàng" />
-      <div className="tabs">
-        {[["", "Tất cả"], ...Object.entries(ORDER_STATUS).map(([k, v]) => [k, v[0]])].map(([k, l]) => (
-          <button key={k} className={u.get("status") === k ? "active" : ""} onClick={() => u.set({ status: k })}>{l}</button>))}
-      </div>
-      <form className="toolbar" onSubmit={(e) => { e.preventDefault(); u.set({ q }); }}>
-        <div className="field" style={{ minWidth: 260 }}><label htmlFor="o-q">Mã đơn hoặc email</label>
-          <input id="o-q" className="input" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <button className="btn" type="submit">Tìm</button>
-      </form>
-      {list.loading ? <Spinner /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.items.length ? <Empty title="Không có đơn hàng." /> : (
-        <>
-          <div className="table-wrap"><table className="data">
-            <thead><tr><th>Mã</th><th>Người mua</th><th>Sản phẩm</th><th>Số tiền</th><th>Trạng thái</th><th>Tạo lúc</th><th>Thanh toán</th><th /></tr></thead>
-            <tbody>{list.data.items.map((o) => {
-              const [label, tone] = ORDER_STATUS[o.status] || [o.status, ""];
-              return (
-                <tr key={o.id}>
-                  <td className="mono">{o.code}</td>
-                  <td><Link to={`/admin/nguoi-dung/${o.user_id}`}>{o.user_email || `#${o.user_id}`}</Link></td>
-                  <td className="small">{o.name}</td>
-                  <td>{vnd(o.amount_vnd)}{o.paid_amount_vnd != null && o.paid_amount_vnd !== o.amount_vnd && <div className="small muted">nhận {vnd(o.paid_amount_vnd)}</div>}</td>
-                  <td><span className={"badge " + tone}>{label}</span>{o.provider && <div className="small muted">{o.provider}</div>}</td>
-                  <td className="small nowrap">{dateTime(o.created_at)}</td>
-                  <td className="small nowrap">{dateTime(o.paid_at)}{o.note && <div className="muted">{o.note}</div>}</td>
-                  <td className="nowrap">
-                    {(o.status === "pending" || o.status === "expired") && <button className="btn ok sm" onClick={() => setAct({ kind: "confirm", o, amount: String(o.amount_vnd), note: "" })}>Xác nhận</button>}
-                    {o.status === "paid" && <button className="btn secondary sm" onClick={() => setAct({ kind: "refund", o, amount: "", note: "" })}>Hoàn tiền</button>}
-                  </td>
-                </tr>
-              );
-            })}</tbody>
-          </table></div>
-          <Pager page={page} size={50} total={list.data.total} onPage={(p) => u.set({ page: p }, false)} />
-        </>
-      )}
-      {act && (
-        <Confirm title={act.kind === "confirm" ? `Xác nhận thủ công đơn ${act.o.code}` : `Hoàn tiền đơn ${act.o.code}`} danger={act.kind === "refund"}
-                 confirmText={act.kind === "confirm" ? "Xác nhận đã nhận tiền" : "Đánh dấu hoàn tiền"} busy={busy} onConfirm={run} onClose={() => setAct(null)}>
-          <div className="stack">
-            {act.kind === "confirm" ? (
-              <>
-                <div className="alert warn">Đối soát thủ công: chỉ xác nhận khi đã thấy khoản chuyển khoản {vnd(act.o.amount_vnd)} với nội dung
-                  <strong className="mono"> {act.o.code}</strong> trong tài khoản nhận. Hệ thống sẽ cấp quyền ngay và ghi nhật ký.</div>
-                <div className="field"><label htmlFor="c-amt">Số tiền thực nhận (VNĐ)</label>
-                  <input id="c-amt" className="input" type="number" value={act.amount} onChange={(e) => setAct({ ...act, amount: e.target.value })} /></div>
-              </>
-            ) : <div className="alert warn">Quyền sử dụng của đơn này sẽ bị thu hồi. Việc chuyển trả tiền thực hiện ngoài hệ thống.</div>}
-            <div className="field"><label htmlFor="c-note">Ghi chú</label>
-              <input id="c-note" className="input" value={act.note} onChange={(e) => setAct({ ...act, note: e.target.value })} /></div>
-          </div>
-        </Confirm>
       )}
     </div>
   );

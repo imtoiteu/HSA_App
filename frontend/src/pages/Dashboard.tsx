@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { PlanBanner } from "../components/PlanBanner";
 import { ErrorBox, Spinner, useAsync } from "../components/ui";
 import { get } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -69,13 +70,18 @@ export default function Dashboard() {
 
       <section className="mt-lg">
         <div className="row between"><h2>Luyện nhanh theo môn</h2><Link to="/luyen-tap">Tuỳ chỉnh bài luyện →</Link></div>
+        <PlanBanner access={cat.access} compact />
         <div className="grid cols-4">
           {cat.subjects.filter((s) => s.available > 0).map((s) => {
             const st = dash.by_subject.find((x) => x.code === s.code);
             return (
               <Link key={s.code} to={`/luyen-tap?mon=${s.code}`} className="card card-link" style={{ borderTop: `4px solid ${s.color || "#94a3b8"}` }}>
                 <strong>{s.short_name || s.name}</strong>
-                <div className="muted small">{s.available.toLocaleString("vi-VN")} câu</div>
+                <div className="muted small">
+                  {cat.access.plan === "FREE" && s.total > s.available
+                    ? `${s.available.toLocaleString("vi-VN")} / ${s.total.toLocaleString("vi-VN")} câu`
+                    : `${s.available.toLocaleString("vi-VN")} câu`}
+                </div>
                 {st && st.attempted > 0 && (
                   <>
                     <div className="progress mt"><span style={{ width: pct(st.accuracy), background: s.color || undefined }} /></div>
