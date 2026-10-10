@@ -1,5 +1,31 @@
 # Question-bank integration audit
 
+## Latest sync — 2026-10-10 (upstream `9700756`, canonical export of 2026-10-02)
+
+Sync run 6 (incremental, by `cq_` id) took 604 s and had 0 errors. Production was backed up first
+(`backups/hsa_pre_sync90k_20261010_1112.dump`).
+
+| | |
+|---|---|
+| Upstream canonical / app imported / unique | 90,228 / 90,228 / 90,228 |
+| Missing / extra / duplicates | 0 / 0 / 0 |
+| New / updated / unchanged | 20,247 / 4,255 / 65,726 (1,933 content changes, 22,180 new versions) |
+| READY_TO_SERVE upstream = in app | 16,012 |
+| Served to students | 13,977 (13,107 auto-scored, 870 self-check), of which 173 are new questions |
+| Excluded by QA state | NEEDS_FORMULA_REVIEW 46,049 · NEEDS_ANSWER_LINKING 17,579 · NEEDS_REVIEW 6,570 · NEEDS_VISUAL_REVIEW 4,018 |
+| Excluded by app checks (READY upstream) | 2,035 (passage missing 1,442 · wrong passage 428 · render 92 · inline options 50 · formula 7 · other 16) |
+| Missing assets (all / served) · student-visible formula errors · placeholders served | 0 / 0 · 0 · 0 |
+| Subject mismatches vs upstream final subject | 0 |
+
+Served by subject: math 6,091 · literature 4,264 · english 1,085 · chemistry 919 · general 834 ·
+history 283 · physics 214 · biology 164 · geography 123.
+
+The remediation overlays added on upstream main (`editorial/remediation/`: verified content,
+corrected/solved answers, figures) are **not yet exported** into the canonical bank. Upstream applies
+them with `remediate apply` and then `export-db`. The app syncs them automatically once upstream exports
+them.
+
+## Previous audit
 Latest full audit: **2026-10-02** (deep mode, production database; subject reconciliation below), upstream revision `8a61c8ead8b9`
 (editorial build v2.2), app sync run 5 (`d5cf4c42e39d88bd@hsa-builder-3`), migration `0003`.
 
