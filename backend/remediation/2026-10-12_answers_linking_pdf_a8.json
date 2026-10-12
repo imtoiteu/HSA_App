@@ -1,0 +1,842 @@
+[
+ {
+  "cq_id": "cq_7285a7e9c611a89c",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_b56643bd9607edac",
+  "answer": "C",
+  "subject": "chemistry",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Hóa học"
+ },
+ {
+  "cq_id": "cq_a6b42785c55367a3",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_6e1d1c737790e29e",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_3ff2d399af1de09c",
+  "answer": "A",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_5184d712796edcba",
+  "answer": "C",
+  "subject": "geography",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_0b3c6d25cae555d6",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_01a9c1e9e5f6953e",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_70689c65d15f5dc5",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_9e9a677a08cba201",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_3b93fe49367626ac",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_37b39877deaeb139",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_7b37fa29d008474e",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_eba215150d0e6ca4",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_63491b1603de694a",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_c29419dab731c4a0",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_4e3039746c3030e4",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_d8ec72a46e8cadd4",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_7caf89c6512b4859",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_58decb1793edf692",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_671082e7b4a5ee81",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_5429fbcc7ddf999f",
+  "answer": "C",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_bf36233d28d38ee7",
+  "answer": "A",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_ed31b86814b89fff",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_dac023dc30697150",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_d30608acb8e1da01",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_f50c35759a1a4d56",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_f0b674c6824a26ba",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_0920190b090a49f6",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_5aceb418fd5b2545",
+  "answer": "D",
+  "subject": "geography",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_cfe32a2b9aa433e8",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_893ddc1a4dcaade3",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_996dd688d3d638e1",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_fe3c03c906001ec0",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_e32da934868f955b",
+  "answer": "D",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_3dd71cb5db8ab7c5",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_72ca0220e98c1eb9",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_a0a75093182b1fd8",
+  "answer": "A",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_a41605e8d0275c75",
+  "answer": "B",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_6bdbe09f20abe022",
+  "answer": "A",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_d571260cfbe3a073",
+  "answer": "A",
+  "subject": "physics",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Vật lí"
+ },
+ {
+  "cq_id": "cq_11dacb98d1df4fc7",
+  "answer": "C",
+  "subject": "geography",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_0ee45ce2126c2e91",
+  "answer": "C",
+  "subject": "geography",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_aa2d8c8f372c41ba",
+  "answer": "A",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_751361e52ee08809",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_a29c5ad99d55947e",
+  "answer": "B",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_b01b5bd5e2aadfa0",
+  "answer": "D",
+  "subject": "chemistry",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Hóa học"
+ },
+ {
+  "cq_id": "cq_f30d8779fde01e21",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_0a80f6f185d253d3",
+  "answer": "B",
+  "subject": "geography",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_4fd024ab194fc3d6",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_96fa308e9c869271",
+  "answer": "C",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_fa72c9eea1fd3174",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_3c4d73d5069197f5",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_f794407e7f1e9cf8",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_1b0df3434a92db68",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_b3dad79130d6dab5",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_db672a8329c79853",
+  "answer": "C",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_c2acdcf33325f0e3",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_f1bd01b623059cf7",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_cfbbca859c2da0a9",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_cf3e83bb196477f5",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_b0df7755b2037896",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_ff036cc550b0a6d3",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_862dbeea87ff4ce9",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_f6d1142a8fc6a1aa",
+  "answer": "B",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_a424c154e90fde7b",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_591f0f3162a79606",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_12f758fe112dc7a9",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_24a6a890265830c7",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_1bca30b358d8a475",
+  "answer": "B",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_6eb4cb53fbff87fa",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_b1d1c8d5a1390087",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_07b46b42d3802408",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_957d9429c496832a",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_34e34f3ac3a1d87e",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_c2057c806fbfb841",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_bfa7ed860ec519a4",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_af3ecea74ffa5955",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_317875cd42ef3e2e",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_0eda3350ff16c710",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_89c02759ba1d0b10",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_1089faa4f15919e9",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_e3a04827ad1a7ae5",
+  "answer": "B",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_b21f5aa6c481d76b",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_5db88f9da55e11b0",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_841929325218bdb5",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_3059bb1771b75183",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_811ce2a48500acea",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_c834fc8ca8d1aab0",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_d7d3404b5bc12113",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_44b2985780aab64e",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_e96e8ae85f18befc",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_439ec3cb19d69194",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_3369098b51497842",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_43cc92e5cd67f5cb",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_6874aea4201b13c4",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_89c4ea652f618fa9",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_9d27fc19325f566e",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_2322d2342ae1dfce",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_d83b0e9eab64843d",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_83373715a1755131",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_84f937731db26859",
+  "answer": "C",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_f471a01aafc92fa7",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_3bc32d0ce16d40f1",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_c494fb36124f990d",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_97fa63fc74bc209f",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_3ef9d6f0ca06e318",
+  "answer": "D",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_8f9ff290ad70381b",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_20c97fbf19807616",
+  "answer": "A",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_a34e6cf37fadfcdb",
+  "answer": "B",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_0698802a304f88ea",
+  "answer": "C",
+  "subject": "history",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Lịch sử"
+ },
+ {
+  "cq_id": "cq_a27950c6b27cca15",
+  "answer": "D",
+  "subject": "geography",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_0f57e4a7664c76af",
+  "answer": "B",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_40b3fef1a48910ff",
+  "answer": "D",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_c8dda8d40886d3bb",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_28baedfe9bfa5430",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_523b92c0f4545b62",
+  "answer": "C",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_87660fff430bb5b0",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_fd5f06a67edb2961",
+  "answer": "A",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án A (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_9f05eb2830947265",
+  "answer": "B",
+  "subject": "literature",
+  "confirm_subject": true,
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập: đáp án B (câu văn bản PDF không chứa công thức); môn Ngữ văn"
+ }
+]
