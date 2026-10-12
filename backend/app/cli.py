@@ -143,6 +143,15 @@ def cmd_review_refresh(a):
     print(json.dumps(r, ensure_ascii=False))
 
 
+def cmd_remediate(a):
+    """Promote not-ready questions that a batch can verify against their source (dry run unless --apply)."""
+    from .review.remediate import run
+    db = SessionLocal()
+    r = run(db, a.batch, limit=a.limit, apply=a.apply, media_root=get_settings().media_root,
+            log=(lambda *x: None) if a.quiet else print)
+    print(json.dumps(r, ensure_ascii=False))
+
+
 def cmd_worker(a):
     """Scheduler loop: source documents for the Review Studio (every few seconds), maintenance and the
     incremental review refresh (every HSA_MAINTENANCE_INTERVAL seconds) in niced subprocesses."""
@@ -260,6 +269,12 @@ def main(argv=None):
     s.add_argument("--all", action="store_true", help="re-validate every question")
     s.add_argument("--limit", type=int)
     s.set_defaults(fn=cmd_review_refresh)
+    s = sub.add_parser("remediate", help="verify a batch of not-ready questions against their source")
+    s.add_argument("batch")
+    s.add_argument("--limit", type=int)
+    s.add_argument("--apply", action="store_true", help="write the fixes/approvals (default: dry run)")
+    s.add_argument("--quiet", action="store_true")
+    s.set_defaults(fn=cmd_remediate)
     s = sub.add_parser("worker", help="scheduler loop (source documents, maintenance, review refresh)")
     s.add_argument("--sources-only", action="store_true", help="only prepare source documents (sources service)")
     s.add_argument("--no-sources", action="store_true", help="everything except source documents")

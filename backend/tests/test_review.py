@@ -335,3 +335,20 @@ def test_source_materialize_from_zip(tmp_path):
     if shutil.which("pdftoppm"):
         assert store.render(sha, 1, 110) is not None
     assert store.prepare("doc_ffffffffffffffff")["status"] == "unavailable"
+
+
+def test_remediation_matching_unit():
+    from app.review import remediate as M
+    pages = ["Đề thi thử\nCâu 3. Từ nào viết đúng chính tả trong các từ sau đây?\nA. sáng sủa  B. xáng sủa\nC. sáng xủa D. xáng xủa\n",
+             "Câu 4. Câu khác hoàn toàn"]
+    c = {"stem": plain("Từ nào viết đúng chính tả trong các từ sau đây?"),
+         "options": [{"label": l, "content": plain(t)} for l, t in zip("ABCD", ["sáng sủa", "xáng sủa", "sáng xủa", "xáng xủa"])]}
+    v = M.check_source_text(c, pages)
+    assert v.ok and v.page == 1
+    bad = dict(c, options=c["options"][:3] + [{"label": "D", "content": plain("không có trong nguồn")}])
+    assert not M.check_source_text(bad, pages).ok
+    assert not M.check_source_text(dict(c, stem=plain("Một câu hỏi không hề có trong tài liệu gốc")), pages).ok
+    nfd = {"stem": plain(__import__("unicodedata").normalize("NFD", "Tiếng Việt")), "options": []}
+    fixed, changed = M.nfc_content(nfd)
+    assert changed and fixed["stem"][0]["c"][0]["v"] == "Tiếng Việt"
+    assert M.LABEL_RE.search("Vậy chọn đáp án C.").group(1) == "C"

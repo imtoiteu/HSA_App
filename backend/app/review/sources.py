@@ -85,6 +85,25 @@ class Upstream:
                         "blocks": (loc.get("blocks") or [])[:3]})
         return out
 
+    def occurrences_answers(self, canonical_id: str) -> list[dict]:
+        """Source answer of every occurrence of a canonical question: labels + evidence (answer key table…)."""
+        con = self._con()
+        if con is None:
+            return []
+        try:
+            rows = con.execute("SELECT question_id, correct_answer, answer_source_type, answer_evidence "
+                               "FROM question_occurrence WHERE canonical_question_id=?", (canonical_id,)).fetchall()
+        finally:
+            con.close()
+        out = []
+        for qid, ans, src, ev in rows:
+            if src not in ("SOURCE_PROVIDED_ANSWER", "SOURCE_PROVIDED_SOLUTION"):
+                continue
+            a = json.loads(ans or "null") or {}
+            out.append({"occurrence_id": qid, "labels": sorted(a.get("labels") or []), "source": src,
+                        "evidence": json.loads(ev or "[]")})
+        return out
+
     def page_map(self) -> dict:
         """occurrence id → first page (PDF text-layer occurrences), for review-refresh."""
         con = self._con()
@@ -179,15 +198,40 @@ class SourceStore:
             cur = find_nfc(self.upstream_root / "source-original", steps[0]["path"])
             try:
                 for i, step in enumerate(steps[1:]):
+                    # an intermediate archive already extracted for another document (keyed by its sha256)
+                    cached = self._arch(step.get("parent_blob"))
+                    if cached is not None:
+                        cur = cached
                     if cur is None:
                         break
                     nxt = tmp / f"step{i}_{Path(step['path']).name[-60:]}"
                     cur = extract_member(cur, step["path"], nxt)
+                    if cur is not None and i + 2 < len(steps):
+                        self._keep_arch(cur, steps[i + 2].get("parent_blob"))
                 if cur is not None and cur.exists() and sha256_file(cur) == sha:
                     return cur
             except Exception as ex:  # noqa: BLE001  try the next chain
                 log.warning("source chain failed for %s: %s", doc["document_id"], ex)
         return None
+
+    def _arch_path(self, sha: str) -> Path:
+        return self.root / "arch" / sha[:2] / sha
+
+    def _arch(self, sha: str | None) -> Path | None:
+        p = self._arch_path(sha) if sha else None
+        return p if p is not None and p.exists() else None
+
+    def _keep_arch(self, path: Path, sha: str | None):
+        """Cache an extracted nested archive when it is the verified parent of the next chain step."""
+        if not sha or path.stat().st_size > 800 * 1024 * 1024 or self._arch(sha):
+            return
+        if sha256_file(path) != sha:
+            return
+        dst = self._arch_path(sha)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        part = dst.with_suffix(".part")
+        shutil.copyfile(path, part)
+        part.replace(dst)
 
     # --------------------------------------------------------------------------------------------
     def render(self, sha: str, page: int, dpi: int) -> Path | None:

@@ -509,7 +509,7 @@ def set_topic(db: Session, q: Question, user: User, topic: str | None, note: str
 
 
 def confirm(db: Session, q: Question, user: User, dim: str, state: str | None, note: str | None,
-            media_root=None) -> dict:
+            media_root=None, method: str = "human_review") -> dict:
     """Confirm one QA dimension (ok | na | fail) for the working version, or clear it (state None)."""
     if dim not in C.DIMENSIONS:
         raise ReviewError("Tiêu chí không hợp lệ.", 422, "invalid")
@@ -528,7 +528,7 @@ def confirm(db: Session, q: Question, user: User, dim: str, state: str | None, n
         dims.pop(dim, None)
     else:
         dims[dim] = {"s": state, "h": C.dim_hash(dim, parts), "by": user.id, "at": now().isoformat(),
-                     "note": (note or None), "v": v.id}
+                     "note": (note or None), "v": v.id, "m": method}
     r.dims = dims
     event(db, q, user, "confirm", [{"field": f"qa:{dim}", "old": old, "new": state}], note)
     view = dim_view(q, r, v)
@@ -537,7 +537,7 @@ def confirm(db: Session, q: Question, user: User, dim: str, state: str | None, n
     elif not view["complete"] and r.status == "reviewed":
         r.status = "draft" if r.draft_version_id else "none"
     r.updated_by, r.updated_at = user.id, now()
-    r.verified_by, r.verified_at, r.verification_method = user.id, now(), "human_review"
+    r.verified_by, r.verified_at, r.verification_method = user.id, now(), method
     refresh(db, q, r, media_root=media_root)
     return {"dims": dim_view(q, r, v)["status"], "status": r.status}
 
