@@ -39,7 +39,7 @@ export function blocksToHtml(blocks: Block[] | null | undefined): string {
       case "p":
         return `<p${b.display ? ' data-display="1"' : ""}>${inlineHtml(b.c) || "<br>"}</p>`;
       case "img":
-        return `<figure class="ed-figure" contenteditable="false" data-src="${esc(b.src)}"${b.w ? ` data-w="${b.w}"` : ""}${b.h ? ` data-h="${b.h}"` : ""} data-alt="${esc(b.alt || "")}" data-caption="${esc(b.caption || "")}"><img src="${MEDIA}${esc(b.src)}" alt="${esc(b.alt || "")}" style="max-width:${Math.min(b.w || 640, 640)}px">${b.caption ? `<figcaption>${esc(b.caption)}</figcaption>` : ""}</figure>`;
+        return `<figure class="ed-figure" contenteditable="false" data-src="${esc(b.src)}"${b.w ? ` data-w="${b.w}"` : ""}${b.h ? ` data-h="${b.h}"` : ""} data-alt="${esc(b.alt || "")}" data-caption="${esc(b.caption || "")}"><img src="${MEDIA}${esc(b.src)}" alt="${esc(b.alt || "")}" style="max-width:min(100%, ${Math.min(b.w || 640, 640)}px)">${b.caption ? `<figcaption>${esc(b.caption)}</figcaption>` : ""}</figure>`;
       case "table":
         return `<table class="ed-table"><tbody>${b.rows.map((r) => `<tr>${r.map((c) => `<td${c.colspan ? ` colspan="${c.colspan}"` : ""}${c.rowspan ? ` rowspan="${c.rowspan}"` : ""}>${blocksToHtml(c.c) || "<p><br></p>"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
       case "list": {

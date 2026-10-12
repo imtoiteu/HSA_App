@@ -556,3 +556,10 @@ kbd { border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 
 }
 .mini-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 @media (max-width: 600px) { .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* studio layout fixes: grid children must be allowed to shrink (the thumbnail strip scrolls inside) */
+.src-pane, .studio-right, .studio-split > * { min-width: 0; }
+.src-thumbs { max-width: 100%; }
+.studio .tabs { margin-bottom: 8px; }
+.studio .tabs button { padding: 8px 10px; font-size: .9rem; }
+.studio-foot .field { flex: 1 1 100%; margin: 0; }
+@media (min-width: 1500px) { .studio-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); } }

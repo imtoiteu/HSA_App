@@ -208,8 +208,8 @@ export default function ReviewStudio() {
           <StateBadge state={d.editorial_state} />
           <span className={"badge " + (d.ready ? "ok" : "")}>{d.ready ? "READY" : "Chưa READY"}</span>
           <span className={"badge " + (d.served ? "ok" : "")}>{d.served ? "Đang phục vụ" : "Không phục vụ"}</span>
-          <span className="badge brand">{STATUS_LABEL[d.review.status] || d.review.status}</span>
-          {d.review.draft_version_id && <span className="badge warn" title="Có bản nháp chưa phê duyệt; học sinh vẫn thấy phiên bản đang phục vụ">Bản nháp</span>}
+          <span className={"badge " + (d.review.status === "draft" ? "warn" : "brand")} title={d.review.draft_version_id ? "Học sinh vẫn thấy phiên bản đang phục vụ cho đến khi bản nháp được phê duyệt" : ""}>{STATUS_LABEL[d.review.status] || d.review.status}</span>
+          {d.review.draft_version_id && d.review.status !== "draft" && <span className="badge warn" title="Có bản nháp chưa phê duyệt; học sinh vẫn thấy phiên bản đang phục vụ">Có bản nháp</span>}
           {d.gate === "blocked" && <span className="badge bad">Bị chặn bởi người duyệt</span>}
           {d.review.upstream_changed && <span className="badge warn">Nguồn đã thay đổi</span>}
           {d.review.assignee && <span className="small muted">Giao cho: {d.review.assignee.name}</span>}
