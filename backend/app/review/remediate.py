@@ -970,7 +970,8 @@ PLAIN_BATCHES = {"pdf_text_plain"}
 _MATH_CHARS = re.compile(r"[=<>≤≥≠±×÷^√∫∑∏∞πΔ∆∈∉⊂⊃∪∩→⇒⇔|/+−\\{}\[\]_~*'′″°]")
 _MATH_WORDS = re.compile(r"\b(?:log|ln|lg|sin|cos|tan|tg|cot|cotg|lim|max|min|arcsin|arccos|arctan|vec|mod)\b", re.I)
 _LETTER_DIGIT = re.compile(r"[^\W\d_]\d|\d[^\W\d_](?<![đ])")
-_DIGIT_GAP = re.compile(r"\d\s+\d")
+_DIGIT_GAP = re.compile(r"\d\s+\d|(?<!\w)\d{1,3}\s+[A-Z][a-z]?(?!\w)|(?<!\w)[A-Z][a-z]?\s\d(?!\w)|"
+                        r"(?:\d+\.\s*[A-D]\s+){3}")  # isotope/ion layouts, key tables
 
 
 def flattened_math(nodes) -> str | None:
@@ -1002,9 +1003,10 @@ def flattened_math(nodes) -> str | None:
     except ValueError as e:
         return str(e)
     lines.append("".join(cur))
-    for ln in (x.strip() for x in lines):
-        if not ln:
-            continue
+    lines = [x.strip() for x in lines if x.strip()]
+    if len(lines) > 1 and any(re.fullmatch(r"[\d\s.,]+", x) for x in lines):
+        return "number-only line inside a multi-line text (flattened super/subscript)"
+    for ln in lines:
         if len(ln) <= 3 and not re.fullmatch(r"[A-D]?\.?|\d+[.,]?", ln):
             return f"stray fragment “{ln}”"
         if re.fullmatch(r"[\d\W]+", ln) and not re.fullmatch(r"\d+(?:[.,]\d+)?\s*%?\.?", ln):
@@ -1101,7 +1103,17 @@ BATCHES["answer_linking"] = BASE.replace(  # the missing-answer finding is what 
       AND q.question_type = 'single_choice' AND NOT q.has_formula AND NOT q.has_image AND NOT q.has_table
       AND (q.provenance->>'extraction_method') <> 'pdf_text_layer'
 """
-ANSWER_BATCHES = {"answer_linking"}
+# the same for pdf-text-layer items, behind the flattened-math guard (answers solved independently as above)
+BATCHES["answer_linking_pdf"] = BATCHES["answer_linking"].replace(
+    "AND (q.provenance->>'extraction_method') <> 'pdf_text_layer'",
+    "AND (q.provenance->>'extraction_method') = 'pdf_text_layer'").replace(
+    "AND q.editorial_states = '{NEEDS_ANSWER_LINKING}'",
+    "AND q.editorial_states = '{NEEDS_ANSWER_LINKING,NEEDS_REVIEW}' "
+    "AND q.review_flags <@ ARRAY['pdf_text_layer_fidelity','not_nfc_normalized','option_label_normalized',"
+    "'missing_answer']::varchar[] AND NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id "
+    "AND f.status = 'open' AND f.code IN ('ocr_garbage', 'raw_latex_in_text'))")
+ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf"}
+PLAIN_BATCHES.add("answer_linking_pdf")
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 # the same with formulas (the formulas are the bank's version; only the figure was flagged)
 BATCHES["visual_lowres_formula"] = BATCHES["visual_lowres"].replace(
