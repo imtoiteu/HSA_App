@@ -471,3 +471,33 @@ def test_strip_furniture_unit():
     assert changed and M.plain_text(out["stem"]).strip() == "The organization encourages_______ in the local community."
     assert M.plain_text(out["solution"]).strip() == "Giải thích."
     assert M.strip_furniture({"stem": plain("Mệnh đề nào dưới đây đúng?"), "options": []})[1] is False
+
+
+def test_group_instruction_only():
+    from app.review import content as Cn
+    from app.review import remediate as M
+    hdr = [{"t": "p", "c": [{"t": "s", "v": "Question "}, {"t": "range"},
+                            {"t": "s", "v": ": Choose a suitable word or phrase (marked A, B, C or D) to fill in each blank."}]}]
+    c = {"stem": plain("The lecture was so _______ that half the students fell asleep."),
+         "group": {"key": "g", "header": hdr, "passage": []}}
+    assert M.check_group_instruction(c).ok and M.group_english_instruction(c)
+    assert "group_context_missing" in Cn.derived_flags(c, None)
+    c["group"]["instruction_only"] = True
+    assert "group_context_missing" not in Cn.derived_flags(c, None)
+    # a numbered blank of a lost passage, a stem that leans on the passage, a header that announces data
+    assert not M.check_group_instruction(dict(c, stem=plain("(31) ______"))).ok
+    assert not M.check_group_instruction(dict(c, stem=plain("According to the passage, why did the author leave?"))).ok
+    data = {"key": "g", "header": [{"t": "p", "c": [{"t": "s", "v": "Sử dụng thông tin dưới đây trả lời câu hỏi 3-5"}]}],
+            "passage": []}
+    assert not M.check_group_instruction(dict(c, group=data)).ok
+    err = {"key": "g", "header": [{"t": "p", "c": [{"t": "s", "v": "Each of the following sentences has one error "
+                                                                   "(A, B, C or D). Find it and blacken your choice on your answer sheet."}]}],
+           "passage": []}
+    assert not M.check_group_instruction(dict(c, group=err, stem=plain("He go to school every days by bus."))).ok
+    pages = ["Question 1-2: Choose a suitable word or phrase (marked A, B, C or D) to fill in each blank.\n"
+             "1. The lecture was so _______ that half the students fell asleep.\nA. Interesting B. Dull C. Lively D. Engaging"]
+    texts = ["The lecture was so _______ that half the students fell asleep.", "Interesting", "Dull", "Lively", "Engaging"]
+    assert M.check_group_source(c, texts, pages, 1).ok
+    lost = [pages[0].replace("blank.\n", "blank.\nThe history of the bicycle began in the early nineteenth century when "
+                                         "inventors in Europe tried many designs for a human powered machine.\n")]
+    assert not M.check_group_source(c, texts, lost, 1).ok

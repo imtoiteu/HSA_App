@@ -292,6 +292,8 @@ def build_content(base: dict, edit: dict, known_src) -> dict:
             c["group"] = {"key": str(g.get("key") or (base.get("group") or {}).get("key") or "")[:80],
                           "header": sanitize_blocks(g.get("header"), known_src),
                           "passage": sanitize_blocks(g.get("passage"), known_src)}
+            if g.get("instruction_only") and not c["group"]["passage"]:
+                c["group"]["instruction_only"] = True  # verified: the header is only an instruction, no shared data
     if len(json.dumps(c, ensure_ascii=False)) > MAX_CONTENT_BYTES:
         raise ContentError("Nội dung quá lớn.")
     return c
@@ -333,7 +335,7 @@ def derived_flags(content: dict, answer: dict | None) -> set:
         if any(not o.get("content") for o in options):
             flags.add("empty_option")
     g = content.get("group")
-    if g is not None and not g.get("passage"):
+    if g is not None and not g.get("passage") and not g.get("instruction_only"):
         flags.add("group_context_missing")
     if _has_warn(stem) or _has_warn(options) or (g and _has_warn(g)):
         flags.add("render_warning")

@@ -112,6 +112,73 @@ def check_complete(content: dict) -> Verdict:
     return Verdict(False, f"incomplete: refers to “{m.group(1)}” but the question has no figure/table")
 
 
+# a group header that is only an instruction (the section's question numbers + what to do), no shared data
+GROUP_INSTRUCTION = re.compile(
+    r"^\W*(?:questions?\W*)?(?:\(\s*)?(?:which of the following best restates each of the given sentences|"
+    r"each of the following sentences has one error \(a, b, c,? (?:or )?d\)\. find it and blacken your choice on "
+    r"your answer sheet|choose a suitable word or phrase \((?:marked )?a, b, c,? (?:or )?d\) to fill in each blank|"
+    r"(?:đọc và )?trả lời các câu hỏi)\W*$", re.I)
+# the stem leans on context that is not in the question itself
+CONTEXT_REF = re.compile(
+    r"(passage|paragraph|the text\b|the author|the writer|according to|in line \d|the (?:article|extract|reading)|"
+    r"đoạn|bài đọc|bài thơ|văn bản|tác giả|nhân vật|ngữ liệu|thông tin (?:trên|đã cho|được cung cấp)|"
+    r"dữ liệu|bảng|biểu đồ|hình|theo (?:bài|đoạn|văn bản|thông tin)|trên đây|nêu trên|ở trên|câu chuyện)", re.I)
+
+
+def check_group_instruction(content: dict) -> Verdict:
+    """A group without shared data: the header must be a plain instruction and the stem self-contained."""
+    g = content.get("group") or {}
+    if g.get("passage"):
+        return Verdict(False, "group has a passage")
+    hdr = unicodedata.normalize("NFC", plain_text(g.get("header") or [])).strip()
+    hdr = re.sub(r"\d+", " ", hdr)
+    if not GROUP_INSTRUCTION.match(re.sub(r"\s+", " ", hdr).strip()):
+        return Verdict(False, f"group header is not a plain instruction: “{hdr[:60]}”")
+    stem = unicodedata.normalize("NFC", plain_text(content.get("stem") or [])).strip()
+    if len(re.sub(r"[\W\d_]+", "", stem)) < 15:
+        return Verdict(False, "stem too short to stand alone (likely a numbered blank of a shared passage)")
+    m = CONTEXT_REF.search(stem)
+    if m:
+        return Verdict(False, f"stem refers to shared context (“{m.group(1)}”)")
+    if "has one error" in hdr.lower():
+        marked = [n for b in content.get("stem") or [] for n in b.get("c") or [] if "u" in (n.get("m") or [])]
+        if len(marked) < 3:
+            return Verdict(False, "error identification without the underlined parts in the stem")
+    return Verdict(True, "tiêu đề nhóm chỉ là lời dẫn; câu hỏi tự đủ nghĩa")
+
+
+def group_english_instruction(content: dict) -> bool:
+    hdr = plain_text((content.get("group") or {}).get("header") or []).lower()
+    return bool(re.search(r"restates each of the given sentences|has one error|fill in each blank", hdr))
+
+
+def check_group_source(content: dict, member_texts: list[str], pages: list[str], n_members: int = 1) -> Verdict:
+    """In the source, between the group's instruction and this question there is nothing but the group's own
+    questions (no shared passage that the parse lost)."""
+    joined = "".join(norm(p) for p in pages)
+    hdr = norm(re.sub(r"^\W*questions?\b", "", plain_text((content.get("group") or {}).get("header") or []),
+                      flags=re.I))
+    hdr = re.sub(r"\d+", "", hdr)
+    stem = norm(_text_without_math(content.get("stem") or []))[:40]
+    pos = joined.find(stem) if len(stem) >= 12 else -1
+    if pos < 0 or not hdr:
+        return Verdict(False, "stem/group header not located in the source")
+    h = joined.rfind(hdr, 0, pos)
+    if h < 0:
+        return Verdict(False, "group instruction not found before the question in the source")
+    gap = joined[h + len(hdr):pos]
+    if len(gap) > 20000:
+        return Verdict(False, "group instruction too far before the question")
+    for t in sorted((norm(x) for x in member_texts), key=len, reverse=True):
+        if len(t) >= 6:
+            gap = gap.replace(t, "")
+    rest = re.sub(r"(questions?|cau|dapan|loigiai|chon|huongdan|giai)", "", re.sub(r"\d+", "", gap))
+    if len(rest) > 30 + 15 * n_members:  # option letters, numbering left per question
+        return Verdict(False, f"unaccounted source text between the group instruction and the question "
+                              f"({len(rest)} chars: {rest[:40]}…) — possible lost passage")
+    return Verdict(True, "trong tài liệu gốc, lời dẫn nhóm đứng ngay trước các câu của nhóm (không có đoạn dữ liệu chung)")
+
+
 def check_source_text(content: dict, pages: list[str]) -> Verdict:
     """Stem and every option must occur in the source text, options shortly after the stem."""
     full = [norm(p) for p in pages]
@@ -335,7 +402,8 @@ def check_subject(q: Question, content: dict) -> Verdict:
                        details={"suggest": sec, "scores": sc})
     if best == subj and mine >= 1 and not contradict:
         return Verdict(True, f"nội dung nghiêng về môn {subj} (từ khoá {mine}, không môn nào khác hơn)")
-    if high and not contradict:
+    if high and not contradict and (mine >= 1 or sc[best] == 0):  # no evidence for the label but some for another
+        # subject: the upstream label is not enough (e.g. geography questions of a mixed exam labelled math)
         return Verdict(True, f"phân loại cuối của ngân hàng ({q.classification_source}/{q.classification_confidence}),"
                              f" nội dung không mâu thuẫn")
     if sc[best] == 0:
@@ -600,6 +668,14 @@ BATCHES["visual_lowres"] = BASE + f"""
       AND EXISTS (SELECT 1 FROM unnest(q.state_notes) n WHERE n !~ '({_WM_RE})')
       AND q.question_type = 'single_choice' AND NOT q.has_formula
 """
+# upstream READY, blocked only because the group has no passage: verified instruction-only groups
+BATCHES["group_instruction_only"] = BASE.replace(  # the missing-passage finding is what this batch resolves
+    "r.findings_critical = 0", "NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND "
+    "f.status = 'open' AND f.severity = 'critical' AND f.code <> 'group_passage_missing')") + """
+      AND q.editorial_states = '{READY_TO_SERVE}' AND q.policy_reasons = '{group_context_missing}'
+      AND q.question_type = 'single_choice' AND NOT q.has_formula AND NOT q.has_image AND NOT q.has_table
+"""
+GROUP_BATCHES = {"group_instruction_only"}
 NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
 TRANSFORMS = {"watermark_only": "watermark"}
 
@@ -672,6 +748,32 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             if C.images(content) or C.has_table(content):
                 unresolved("other figures remain after removing the watermark (needs a visual check)")
                 continue
+        group_marked = False
+        if batch in GROUP_BATCHES:
+            gv = check_group_instruction(content)
+            if gv.ok:
+                members = db.scalars(select(Question).options(lazyload(Question.current_version))
+                                     .where(Question.group_key == q.group_key)).all()
+                texts = []
+                for m in members:
+                    mc = m.current_version.content if m.current_version else {}
+                    texts += [_text_without_math(mc.get(k) or []) for k in ("stem", "solution", "explanation")]
+                    texts += [_text_without_math(o.get("content") or []) for o in mc.get("options") or []]
+                gv = check_group_source(content, [t for t in texts if t], page_cache[sc.blob_sha256], len(members))
+            if not gv.ok:
+                unresolved(gv.reason)
+                continue
+            content = json.loads(json.dumps(content))
+            content["group"]["instruction_only"] = True
+            group_marked = True
+            if apply and group_english_instruction(content) and q.subject_code != "english":
+                # an English-language section (its instruction and the question are in English)
+                why = (f"[{batch}] câu tiếng Anh (lời dẫn “{plain_text(content['group']['header'])[:60]}”), "
+                       f"không phải {q.subject_code}")
+                S.set_subject(db, q, who, "english", why, media_root=media_root)
+                S.confirm(db, q, who, "subject", "ok", why, media_root=media_root, method=METHOD)
+                stats["subject_fixed"] += 1
+                r = S.get_review(db, q)
         sv = check_source_text(content, page_cache[sc.blob_sha256])
         trimmed = []
         if not sv.ok and "options" in sv.reason:
@@ -727,8 +829,9 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 + ("; watermark removed" if wm_removed else ""))
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
-        if nfc_changed or wm_removed or trimmed:
-            what = "; ".join(x for x in ("chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
+        if nfc_changed or wm_removed or trimmed or group_marked:
+            what = "; ".join(x for x in ("nhóm chỉ có lời dẫn, không có đoạn dữ liệu chung (đối chiếu tài liệu gốc)"
+                                         if group_marked else "","chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
                                          "bỏ ảnh quảng cáo/watermark Tailieuchuan.vn (không thuộc câu hỏi)"
                                          if wm_removed else "",
                                          f"cắt dòng thừa dính vào phương án {', '.join(trimmed)} theo đúng tài liệu gốc"
@@ -738,7 +841,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             if content.get("group") is not None:
                 edit["group"] = content["group"]
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
-            stats["structural_fixed"] += bool(nfc_changed or trimmed)
+            stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked)
             stats["visual_fixed"] += wm_removed
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)

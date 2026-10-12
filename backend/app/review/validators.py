@@ -228,7 +228,7 @@ def validate(q, content: dict, answer: dict | None, media_root: Path | None, fai
     if q.group_key and not g:
         add("group_key_mismatch", "content", f"thuộc nhóm {q.group_key} nhưng không có đoạn chung")
     if g is not None:
-        if not g.get("passage"):
+        if not g.get("passage") and not g.get("instruction_only"):
             add("group_passage_missing", "content", g.get("key") or "")
         if q.group_key and g.get("key") and g["key"] != q.group_key:
             add("group_key_mismatch", "content", f"{g['key']} ≠ {q.group_key}")
