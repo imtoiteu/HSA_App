@@ -570,7 +570,8 @@ SUBJECT_TERMS = {
     "chemistry": ["phản ứng", "dung dịch", "mol", "nguyên tử", "phân tử", "oxi hóa", "oxi hoá", "axit", "bazơ",
                   "kim loại", "este", "ancol", "polime", "hợp chất", "nguyên tố", "cation", "anion", "kết tủa",
                   "điện phân", "hiđrocacbon", "amin", "glucozơ", "chất béo", "liên kết ion", "liên kết cộng hóa trị",
-                  "số oxi hóa", "đồng vị", "hóa trị", "hoá trị", "nồng độ"],
+                  "số oxi hóa", "đồng vị", "hóa trị", "hoá trị", "nồng độ", "amino axit", "aminoaxit", "peptit",
+                  "anilin", "glyxin", "alanin", "amin ", "protein", "đồng phân", "cấu hình electron"],
     "biology": ["gen", "adn", "arn", "nhiễm sắc thể", "tế bào", "quần thể", "quần xã", "đột biến", "di truyền",
                 "alen", "kiểu gen", "kiểu hình", "sinh vật", "enzim", "hệ sinh thái", "quang hợp", "hô hấp",
                 "tiến hóa", "tiến hoá", "loài", "nuclêôtit", "prôtêin", "thụ tinh"],
@@ -958,6 +959,16 @@ BATCHES["group_passage_recover"] = BASE.replace(
       AND (q.provenance->>'document_id') IS NOT NULL
 """
 RECOVER_BATCHES = {"group_passage_recover"}
+# answer not linked by the bank: content verified against the source here, the answer by solving the question
+# (confirm_answer / answer decisions, method claude_review) — never taken from position alone
+BATCHES["answer_linking"] = BASE.replace(  # the missing-answer finding is what this batch resolves
+    "r.findings_critical = 0", "NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND "
+    "f.status = 'open' AND f.severity = 'critical' AND f.code <> 'answer_missing')") + """
+      AND q.editorial_states = '{NEEDS_ANSWER_LINKING}'
+      AND q.question_type = 'single_choice' AND NOT q.has_formula AND NOT q.has_image AND NOT q.has_table
+      AND (q.provenance->>'extraction_method') <> 'pdf_text_layer'
+"""
+ANSWER_BATCHES = {"answer_linking"}
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 # the same with formulas (the formulas are the bank's version; only the figure was flagged)
 BATCHES["visual_lowres_formula"] = BATCHES["visual_lowres"].replace(
@@ -1131,6 +1142,10 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                     trimmed = []
         if not sv.ok:
             unresolved(sv.reason, conflict=True)
+            continue
+        if batch in ANSWER_BATCHES and S.dim_view(q, r, v)["status"].get("answer") != "ok":
+            stats.setdefault("answer_pending", []).append(q.external_id)
+            unresolved("answer needs to be solved independently", record=False)
             continue
         av = check_answer(q, split_answer or v.answer, content, up) if S.dim_view(q, r, v)["status"].get("answer") != "ok" else \
             Verdict(True, "đáp án đã được xác minh độc lập (claude_review)")
