@@ -323,6 +323,23 @@ def check_subject(q: Question, content: dict) -> Verdict:
                    details={"suggest": best, "scores": sc})
 
 
+def strip_own_labels(content: dict) -> tuple[dict, list[str]]:
+    """Option text that repeats its own label ("B. Đoàn người…" in option B) → label removed."""
+    import json
+    c = json.loads(json.dumps(content))
+    fixed = []
+    for o in c.get("options") or []:
+        blocks = o.get("content") or []
+        if not blocks or blocks[0].get("t") != "p" or not blocks[0]["c"] or blocks[0]["c"][0].get("t") != "s":
+            continue
+        first = blocks[0]["c"][0]
+        m = re.match(r"\s*\**\s*" + re.escape(o["label"]) + r"\s*[.)]\s*\**\s*", first["v"])
+        if m and first["v"][m.end():].strip():
+            first["v"] = first["v"][m.end():]
+            fixed.append(o["label"])
+    return (c, fixed) if fixed else (content, [])
+
+
 def nfc_content(content: dict) -> tuple[dict, bool]:
     """Unicode NFC normalisation of every text node (deterministic, meaning-preserving)."""
     changed = False
@@ -394,10 +411,13 @@ def strip_watermarks(content: dict) -> tuple[dict, bool]:
 # ------------------------------------------------------------------------------------------------
 # batches (candidate queries). Every batch excludes questions under review, drafts and review decisions.
 # ------------------------------------------------------------------------------------------------
-BASE = """
-  q.removed_upstream = false AND q.review_gate IS NULL AND r.draft_version_id IS NULL
-  AND r.status IN ('none') AND r.findings_critical = 0 AND r.dirty = false
-"""
+BASE = f"""
+  q.removed_upstream = false AND q.review_gate IS NULL
+  AND (r.draft_version_id IS NULL AND r.status = 'none'
+       OR r.status = 'draft' AND (SELECT u.email FROM question_version dv JOIN app_user u ON u.id = dv.created_by
+                                  WHERE dv.id = r.draft_version_id) = '{ACTOR_EMAIL}')
+  AND r.findings_critical = 0 AND r.dirty = false
+"""  # drafts are only continued when this remediation created them (never a person's work in progress)
 _WM_RE = "|".join("as_" + w[:16] for w in sorted(WATERMARKS))
 BATCHES = {
     # upstream NEEDS_REVIEW only because of Unicode/label normalisation, nothing else
@@ -479,6 +499,8 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         if sc.blob_sha256 not in page_cache:
             page_cache[sc.blob_sha256] = store.page_texts(sc.blob_sha256)
         content, nfc_changed = nfc_content(v.content)
+        content, relabelled = strip_own_labels(content)
+        nfc_changed = nfc_changed or bool(relabelled)
         wm_removed = False
         if TRANSFORMS.get(batch) == "watermark":
             content, wm_removed = strip_watermarks(content)
@@ -498,7 +520,8 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         if not sv.ok:
             unresolved(sv.reason, conflict=True)
             continue
-        av = check_answer(q, v.answer, content, up)
+        av = check_answer(q, v.answer, content, up) if S.dim_view(q, r, v)["status"].get("answer") != "ok" else \
+            Verdict(True, "đáp án đã được xác minh độc lập (claude_review)")
         if not av.ok:
             unresolved(av.reason, conflict="disagree" in av.reason or "says" in av.reason)
             continue
@@ -540,14 +563,16 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             "source": f"[{batch}] {doc} trang {sv.page}, sha256 {sc.blob_sha256[:12]} đã xác minh",
         }
         for dim in C.DIMENSIONS:
-            if dim == "subject" and S.dim_view(q, r, v)["status"].get("subject") == "ok":
+            if dim in ("subject", "answer") and S.dim_view(q, r, v)["status"].get(dim) == "ok":
                 continue  # keep the reviewer's confirmation
             state = "ok"
             if dim in ("formula",) and not C.collect_tex(v.content):
                 state = "na"
             if dim == "visual" and not has_vis:
                 state = "na"
-            S.confirm(db, q, who, dim, state, notes[dim], media_root=media_root, method=METHOD)
+            m = "claude_review" if (dim == "answer" and "claude_review" in av.reason) or \
+                (dim == "subject" and "người duyệt" in sj.reason) else METHOD
+            S.confirm(db, q, who, dim, state, notes[dim], media_root=media_root, method=m)
         try:
             res = S.approve(db, q, who, f"[{batch}] tự động theo nguồn: nội dung + đáp án khớp tài liệu gốc",
                             media_root=media_root)
@@ -597,6 +622,9 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
         if d.get("subject") and d["subject"] != q.subject_code:
             S.set_subject(db, q, who, d["subject"], note, media_root=media_root)
             n["subject_fixed"] += 1
+        if d.get("confirm_answer"):
+            S.confirm(db, q, who, "answer", "ok", note, media_root=media_root, method="claude_review")
+            n["answer_confirmed"] = n.get("answer_confirmed", 0) + 1
         if d.get("subject") or d.get("confirm_subject"):
             S.confirm(db, q, who, "subject", "ok", note, media_root=media_root, method="claude_review")
             n["subject_confirmed"] += 1

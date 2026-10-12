@@ -427,3 +427,11 @@ def test_check_complete_unit():
     assert not M.check_complete({"stem": plain("Quan sát hình vẽ và cho biết")}).ok
     assert M.check_complete({"stem": plain("Quan sát hình vẽ") + [{"t": "img", "src": "ab/" + "a" * 64 + ".png"}]}).ok
     assert M.check_complete({"stem": plain("Từ nào viết đúng chính tả?")}).ok
+
+
+def test_strip_own_labels_unit():
+    from app.review import remediate as M
+    c = {"options": [{"label": "A", "content": plain("Mặt trời")}, {"label": "B", "content": plain("B. Đoàn người")}]}
+    out, fixed = M.strip_own_labels(c)
+    assert fixed == ["B"] and out["options"][1]["content"][0]["c"][0]["v"] == "Đoàn người"
+    assert M.strip_own_labels({"options": [{"label": "A", "content": plain("A")}]})[1] == []
