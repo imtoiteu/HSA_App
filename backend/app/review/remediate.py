@@ -735,6 +735,11 @@ OPTION_PASSAGE_TAIL = re.compile(r"(?:Read the (?:following )?passage|Read the p
                                  r"your answer sheet to indicate the correct (?:option|word))[\s\S]*$", re.I)
 
 
+# a printed page number left at the end of a text run ("… thế giới. Trang 12"); case-sensitive on purpose so an
+# Atlat reference ("Atlat Địa lí Việt Nam trang 12") is never touched
+PAGE_FOOTER = re.compile(r"(?:^|\s)Trang \d{1,3}(?:\s+\d{1,3})?\s*$")
+
+
 def strip_furniture(content: dict) -> tuple[dict, bool]:
     import json
     c = json.loads(json.dumps(content))
@@ -777,6 +782,7 @@ def strip_furniture(content: dict) -> tuple[dict, bool]:
                         v = n["v"]
                         for rx in FURNITURE:
                             v = rx.sub(" ", v)
+                        v = PAGE_FOOTER.sub("", v)
                         if v != n["v"]:
                             changed = True
                             v = re.sub(r"[ \t]{2,}", " ", v)
@@ -1446,8 +1452,10 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
             if not changed or option_section_head(cleaned):
                 raise ValueError(f"{q.external_id}: clean_furniture changed nothing or left a section header")
             before = S.dim_view(q, r, w)["status"]
-            S.save_edit(db, q, who, {"stem": cleaned["stem"], "options": cleaned["options"]}, note=note,
-                        media_root=media_root)
+            edit = {k: cleaned.get(k) for k in ("stem", "options", "solution", "explanation")}
+            if cleaned.get("group") is not None:
+                edit["group"] = cleaned["group"]
+            S.save_edit(db, q, who, edit, note=note, media_root=media_root)
             r = S.get_review(db, q)
             after = S.dim_view(q, r, S.working_version(db, q, r))["status"]
             upstream_ready = q.review_gate is None and q.editorial_state == "READY_TO_SERVE"

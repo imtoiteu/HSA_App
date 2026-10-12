@@ -628,3 +628,15 @@ def test_pdf_text_plain_guard_and_watermark():
     out, changed = M.strip_furniture(c)
     assert changed and M.plain_text(out["stem"]).strip() == "Câu hỏi?"
     assert M.plain_text(out["options"][0]["content"]).strip() == "Một."
+
+
+def test_page_footer_stripped_case_sensitive():
+    from app.review import remediate as M
+    c = {"stem": plain("Hai nước thiết lập quan hệ hợp tác với nhiều nước trên thế giới. Trang 12"),
+         "options": [{"label": "A", "content": plain("Căn cứ vào Atlat Địa lí Việt Nam trang 12")}],
+         "solution": plain("Trang 93")}
+    out, changed = M.strip_furniture(c)
+    assert changed
+    assert M.plain_text(out["stem"]).strip() == "Hai nước thiết lập quan hệ hợp tác với nhiều nước trên thế giới."
+    assert M.plain_text(out["options"][0]["content"]).strip() == "Căn cứ vào Atlat Địa lí Việt Nam trang 12"
+    assert not M.plain_text(out.get("solution") or []).strip()
