@@ -632,7 +632,7 @@ def test_pdf_text_plain_guard_and_watermark():
 
 def test_page_footer_stripped_case_sensitive():
     from app.review import remediate as M
-    c = {"stem": plain("Hai nước thiết lập quan hệ hợp tác với nhiều nước trên thế giới. Trang 12"),
+    c = {"stem": plain("Hai nước thiết lập quan hệ hợp tác với nhiều nước trên thế giới. Trang - 12"),
          "options": [{"label": "A", "content": plain("Căn cứ vào Atlat Địa lí Việt Nam trang 12")}],
          "solution": plain("Trang 93")}
     out, changed = M.strip_furniture(c)

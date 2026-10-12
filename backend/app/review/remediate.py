@@ -737,7 +737,7 @@ OPTION_PASSAGE_TAIL = re.compile(r"(?:Read the (?:following )?passage|Read the p
 
 # a printed page number left at the end of a text run ("… thế giới. Trang 12"); case-sensitive on purpose so an
 # Atlat reference ("Atlat Địa lí Việt Nam trang 12") is never touched
-PAGE_FOOTER = re.compile(r"(?:^|\s)Trang \d{1,3}(?:\s+\d{1,3})?\s*$")
+PAGE_FOOTER = re.compile(r"(?:^|\s)Trang(?: -)? \d{1,3}(?:\s+\d{1,3})?\s*$")
 
 
 def strip_furniture(content: dict) -> tuple[dict, bool]:
@@ -1017,6 +1017,9 @@ def flattened_math(nodes) -> str | None:
             return f"stray fragment “{ln}”"
         if re.fullmatch(r"[\d\W]+", ln) and not re.fullmatch(r"\d+(?:[.,]\d+)?\s*%?\.?", ln):
             return f"symbol/number-only line “{ln}”"
+        m = re.search(r"\bTrang(?: -)? \d{1,3}\b", ln)
+        if m:
+            return f"page number “{m.group(0)}” inside the text"
         for rx, why in ((_MATH_CHARS, "math symbol"), (_MATH_WORDS, "math function name"),
                         (_LETTER_DIGIT, "letter–digit run (flattened exponent/index)"), (_DIGIT_GAP, "digit gap")):
             m = rx.search(ln)
