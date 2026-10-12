@@ -101,16 +101,52 @@ def check_source_text(content: dict, pages: list[str]) -> Verdict:
             return Verdict(False, f"stem fragment not found after its start: {piece[:40]}")
         cur = k
     window = joined[pos:pos + 6000]
-    missing = []
+    missing, at = [], 0
     for o in content.get("options") or []:
         t = norm(_text_without_math(o.get("content")))
-        if t and t not in window:
+        if not t:
+            continue
+        k = window.find(t, at)  # options must appear in order A, B, C, D after the stem
+        if k < 0:
             missing.append(o.get("label"))
+        else:
+            at = k + 1
     if missing:
-        return Verdict(False, f"options {','.join(missing)} not found after the stem in the source")
+        return Verdict(False, f"options {','.join(missing)} not found (in order) after the stem in the source")
     page = next((i + 1 for i, s in enumerate(starts) if s <= pos < s + len(full[i])), None)
     return Verdict(True, "stem and options match the source text" + (" (stem text occurs twice)" if dup else ""),
                    page, {"dup_stem_in_doc": dup})
+
+
+def trim_options(content: dict, pages: list[str]) -> tuple[dict, list[str]]:
+    """Repair options that carry stray trailing paragraphs (segmentation contamination): an option whose full text is
+    not in the source, but whose leading paragraphs are (right after the stem), is cut to those paragraphs. Options
+    whose full text is in the source are never touched. Returns (content, trimmed labels)."""
+    import json
+    c = json.loads(json.dumps(content))
+    joined = "".join(norm(p) for p in pages)
+    stem = norm(_text_without_math(c.get("stem")))
+    pos = joined.find(stem[:60]) if stem else -1
+    if pos < 0:
+        return content, []
+    window = joined[pos:pos + 6000]
+    trimmed, at = [], 0
+    for o in c.get("options") or []:
+        blocks = o.get("content") or []
+        full = norm(_text_without_math(blocks))
+        k = window.find(full, at) if full else -1
+        if k >= 0 or len(blocks) < 2:
+            at = k + 1 if k >= 0 else at
+            continue
+        for n in range(len(blocks) - 1, 0, -1):
+            head = norm(_text_without_math(blocks[:n]))
+            j = window.find(head, at) if len(head) >= 2 else -1
+            if j >= 0:
+                o["content"] = blocks[:n]
+                trimmed.append(o["label"])
+                at = j + 1
+                break
+    return (c, trimmed) if trimmed else (content, [])
 
 
 def check_answer(q: Question, answer: dict | None, content: dict, up: Upstream) -> Verdict:
@@ -289,6 +325,14 @@ BATCHES = {
       AND q.subject_source IN ('upstream_effective', 'admin', 'original')
     """,
 }
+BATCHES["contamination_only"] = BASE + """
+      AND q.editorial_states = '{NEEDS_REVIEW}' AND q.policy_reasons = ARRAY['state:NEEDS_REVIEW']::varchar[]
+      AND q.review_flags <@ ARRAY['not_nfc_normalized','option_label_normalized']::varchar[]
+      AND q.state_notes <> '{}'
+      AND NOT EXISTS (SELECT 1 FROM unnest(q.state_notes) n WHERE n NOT LIKE 'possible segmentation contamination%')
+      AND q.question_type = 'single_choice' AND NOT q.has_formula
+      AND q.subject_source IN ('upstream_effective', 'admin', 'original')
+"""
 TRANSFORMS = {"watermark_only": "watermark"}
 
 
@@ -345,6 +389,15 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 unresolved("other figures remain after removing the watermark (needs a visual check)")
                 continue
         sv = check_source_text(content, page_cache[sc.blob_sha256])
+        trimmed = []
+        if not sv.ok and "options" in sv.reason:
+            fixed, trimmed = trim_options(content, page_cache[sc.blob_sha256])
+            if trimmed:
+                sv2 = check_source_text(fixed, page_cache[sc.blob_sha256])
+                if sv2.ok:
+                    content, sv = fixed, sv2
+                else:
+                    trimmed = []
         if not sv.ok:
             unresolved(sv.reason, conflict=True)
             continue
@@ -361,19 +414,22 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         if not apply:
             stats["promoted"] += 1
             log(f"  OK   {q.external_id} [{q.subject_code}: {sj.reason}] p.{sv.page}: {sv.reason}; {av.reason}" + ("; NFC fix" if nfc_changed else "")
+                + (f"; trimmed {trimmed}" if trimmed else "")
                 + ("; watermark removed" if wm_removed else ""))
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
-        if nfc_changed or wm_removed:
+        if nfc_changed or wm_removed or trimmed:
             what = "; ".join(x for x in ("chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
                                          "bỏ ảnh quảng cáo/watermark Tailieuchuan.vn (không thuộc câu hỏi)"
-                                         if wm_removed else "") if x)
+                                         if wm_removed else "",
+                                         f"cắt dòng thừa dính vào phương án {', '.join(trimmed)} theo đúng tài liệu gốc"
+                                         if trimmed else "") if x)
             edit = {"stem": content["stem"], "options": content["options"], "solution": content.get("solution"),
                     "explanation": content.get("explanation")}
             if content.get("group") is not None:
                 edit["group"] = content["group"]
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
-            stats["structural_fixed"] += nfc_changed
+            stats["structural_fixed"] += bool(nfc_changed or trimmed)
             stats["visual_fixed"] += wm_removed
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)

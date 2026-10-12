@@ -365,3 +365,17 @@ def test_strip_watermarks_unit():
     out, changed = M.strip_watermarks(c)
     assert changed and C.images(out) == [] and out["stem"][1]["c"][0]["v"] == "Đọc đoạn trích."
     assert M.strip_watermarks(out)[1] is False
+
+
+def test_trim_contaminated_option_unit():
+    from app.review import remediate as M
+    pages = ["Câu 5. Thứ tự bán kính tăng dần của các hạt là\nA. Na+ < Mg2+\nB. Mg < Na\nC. Al < Mg\nD. O2- > Na+ > Mg2+.\nCâu 6. ..."]
+    c = {"stem": plain("Thứ tự bán kính tăng dần của các hạt là"),
+         "options": [{"label": "A", "content": plain("Na+ < Mg2+")}, {"label": "B", "content": plain("Mg < Na")},
+                     {"label": "C", "content": plain("Al < Mg")},
+                     {"label": "D", "content": plain("O2- > Na+ > Mg2+.") + plain("Một dòng thừa không có trong nguồn")}]}
+    assert not M.check_source_text(c, pages).ok
+    fixed, labels = M.trim_options(c, pages)
+    assert labels == ["D"] and len(fixed["options"][3]["content"]) == 1 and M.check_source_text(fixed, pages).ok
+    ok = dict(c, options=c["options"][:3] + [{"label": "D", "content": plain("O2- > Na+") + plain("> Mg2+.")}])
+    assert M.trim_options(ok, pages)[1] == []  # multi-line option present in the source: untouched

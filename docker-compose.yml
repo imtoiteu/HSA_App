@@ -111,7 +111,8 @@ services:
       - ${UPSTREAM_PATH:-/root/imtoiteu/HSA-question-bank}:/upstream:ro
     depends_on:
       api: { condition: service_healthy }
-    mem_limit: 1000m
+    # LibreOffice needs ~1 GB for image-heavy legacy .doc files (cgroup OOM at 1000m)
+    mem_limit: 2000m
     cpus: 1.0
     networks: [internal]
     logging: *logging
