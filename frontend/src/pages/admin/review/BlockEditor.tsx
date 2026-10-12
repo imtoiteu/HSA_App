@@ -66,9 +66,38 @@ const BlockEditor = forwardRef<EditorHandle, {
       s.addRange(r);
     }
   };
-  const insertHtml = (html: string) => {
-    restoreSel();
-    document.execCommand("insertHTML", false, html);
+  // insert at the saved caret without relying on focus/execCommand (dialogs move the focus away);
+  // block content (figures, tables, display formulas) goes after the paragraph holding the caret
+  const insertHtml = (html: string, block = false) => {
+    const el = root.current;
+    if (!el) return;
+    const t = document.createElement("template");
+    t.innerHTML = html;
+    const frag = t.content;
+    const last = frag.lastChild;
+    let r = saved.current && el.contains(saved.current.startContainer) ? saved.current.cloneRange() : null;
+    if (block) {
+      let top: Node | null = r ? r.startContainer : null;
+      while (top && top.parentNode !== el) top = top.parentNode;
+      if (top && top !== el) el.insertBefore(frag, top.nextSibling);
+      else el.appendChild(frag);
+    } else {
+      if (!r || r.startContainer === el) {
+        let p = el.lastElementChild;
+        if (!p || p.tagName !== "P") { p = document.createElement("p"); el.appendChild(p); }
+        r = document.createRange();
+        r.selectNodeContents(p);
+        r.collapse(false);
+      }
+      r.deleteContents();
+      r.insertNode(frag);
+    }
+    if (last && last.parentNode) {
+      const after = document.createRange();
+      after.setStartAfter(last);
+      after.collapse(true);
+      saved.current = after;
+    }
     emitSoon();
   };
   const cmd = (c: string, v?: string) => {
@@ -83,10 +112,8 @@ const BlockEditor = forwardRef<EditorHandle, {
   }));
 
   const insertImageResult = (r: ImageResult) => {
-    const html = r.inline
-      ? inlinesHtml([{ t: "img", src: r.src, w: r.w, h: r.h, inline: true }])
-      : blocksToHtml([{ t: "img", src: r.src, w: r.w, h: r.h, alt: r.alt, caption: r.caption }]);
-    insertHtml(html);
+    if (r.inline) insertHtml(inlinesHtml([{ t: "img", src: r.src, w: r.w, h: r.h, inline: true }]));
+    else insertHtml(blocksToHtml([{ t: "img", src: r.src, w: r.w, h: r.h, alt: r.alt, caption: r.caption }]), true);
   };
 
   const onClick = (e: React.MouseEvent) => {
@@ -178,7 +205,7 @@ const BlockEditor = forwardRef<EditorHandle, {
           <span className="tb-sep" />
           {tb("Danh sách", "• ≡", () => cmd("insertUnorderedList"))}
           {tb("Danh sách số", "1. ≡", () => cmd("insertOrderedList"))}
-          {tb("Chèn bảng 2×2", "▦", () => insertHtml(blocksToHtml([{ t: "table", rows: [[{ c: [] }, { c: [] }], [{ c: [] }, { c: [] }]] }]) + "<p><br></p>"))}
+          {tb("Chèn bảng 2×2", "▦", () => insertHtml(blocksToHtml([{ t: "table", rows: [[{ c: [] }, { c: [] }], [{ c: [] }, { c: [] }]] }]) + "<p><br></p>", true))}
           {inTable && <>
             {tb("Thêm hàng", "+hàng", () => tableOp("row"), "sm")}
             {tb("Thêm cột", "+cột", () => tableOp("col"), "sm")}
@@ -219,7 +246,8 @@ const BlockEditor = forwardRef<EditorHandle, {
                         if (p) p.dataset.display = display ? "1" : "";
                         emitSoon();
                       } else {
-                        insertHtml(display ? `<p data-display="1">${mathHtml(tex)}</p><p><br></p>` : mathHtml(tex) + "&nbsp;");
+                        if (display) insertHtml(`<p data-display="1">${mathHtml(tex)}</p>`, true);
+                        else insertHtml(mathHtml(tex) + "&nbsp;");
                       }
                       setMath(null);
                     }} />

@@ -41,8 +41,26 @@ def func_coalesce(a, b):
     return func.coalesce(a, b)
 
 
+LOCK_KEY = 72_110_005
+
+
 def refresh_all(db: Session, media_root: Path | None, upstream_root: Path | None = None, all_: bool = False,
                 limit: int | None = None, batch: int = 500, progress=None) -> dict:
+    """One run at a time (session advisory lock on a dedicated autocommit connection, as in sync)."""
+    from sqlalchemy import text
+    lock = db.get_bind().connect().execution_options(isolation_level="AUTOCOMMIT")
+    try:
+        if not lock.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
+            return {"skipped": "another review-refresh is running"}
+        try:
+            return _refresh_all(db, media_root, upstream_root, all_, limit, batch, progress)
+        finally:
+            lock.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})
+    finally:
+        lock.close()
+
+
+def _refresh_all(db, media_root, upstream_root, all_, limit, batch, progress) -> dict:
     t0 = time.time()
     cond = [QuestionReview.dirty.is_(True), QuestionReview.validator_version.is_(None),
             QuestionReview.validator_version != V.VALIDATOR_VERSION]

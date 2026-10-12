@@ -196,6 +196,7 @@ class Question(Base):
         Index("ix_question_group", "group_key"),
         Index("ix_question_state", "editorial_state"),
         Index("ix_question_document", text("(provenance->>'document_id')")),
+        Index("ix_question_review_gate", "review_gate", postgresql_where=text("review_gate IS NOT NULL")),
         CheckConstraint("admin_override is null or admin_override in ('enable','disable')", name="ck_q_override"),
         CheckConstraint("scoring_mode in ('auto','self_check','none')", name="ck_q_scoring_mode"),
         CheckConstraint("review_gate is null or review_gate in ('ready','blocked')", name="ck_q_review_gate"),
@@ -424,6 +425,8 @@ class QuestionReview(Base):
     doc_path: Mapped[str] = mapped_column(String(200), default="", server_default="")  # tail of the document path
     source_number: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     search_text: Mapped[str] = mapped_column(Text, default="", server_default="")  # stem + options, lower-case
+    state: Mapped[str] = mapped_column(String(40), default="", server_default="")  # upstream editorial state
+    gate: Mapped[str] = mapped_column(String(12), default="", server_default="")  # question.review_gate or ""
     assignee_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
     assignment_id: Mapped[int | None] = mapped_column(ForeignKey("review_assignment.id"))
     assigned_at: Mapped[dt.datetime | None] = mapped_column(TS)
@@ -442,13 +445,12 @@ class QuestionReview(Base):
         Index("ix_review_queues", "queues", postgresql_using="gin"),
         Index("ix_review_assignee", "assignee_id", "status"),
         Index("ix_review_status", "status"),
-        Index("ix_review_priority", "priority"),
         Index("ix_review_updated", "updated_at"),
         Index("ix_review_dirty", "dirty", postgresql_where=text("dirty")),
         Index("ix_review_dup_exact", "dup_exact"),
         Index("ix_review_dup_near", "dup_near"),
         Index("ix_review_ext", "external_id"),
-        Index("ix_review_prio", "priority", "question_id"),
+        Index("ix_review_prio", text("priority DESC"), "question_id"),  # matches the queue's default order
         Index("ix_review_doc", "doc_path", "source_page", "source_number", "question_id"),
         Index("ix_review_search", "search_text", postgresql_using="gin",
               postgresql_ops={"search_text": "gin_trgm_ops"}),

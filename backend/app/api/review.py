@@ -204,7 +204,10 @@ def _after(f: Filters, key: list, before: bool = False):
     for i, (e, desc) in enumerate(cols):
         later = (e < key[i]) if desc != before else (e > key[i])
         conds.append(and_(*[c == key[j] for j, (c, _) in enumerate(cols[:i])], later))
-    return or_(*conds)
+    # an inclusive bound on the leading column gives the planner an index range (the OR alone does not)
+    e0, d0 = cols[0]
+    lead = (e0 <= key[0]) if d0 != before else (e0 >= key[0])
+    return and_(lead, or_(*conds))
 
 
 def _key_of(db, f: Filters, qid: int) -> list | None:
@@ -772,16 +775,15 @@ def ai_assist(qid: int, body: AIIn, db: Session = Depends(get_db), user: User = 
 # statistics & personal dashboard
 # ------------------------------------------------------------------------------------------------
 def _bank_stats(db) -> dict:
+    """Bank-wide progress in one pass over the narrow question_review table (never the wide question table)."""
     row = db.execute(text("""
         SELECT count(*),
-               count(*) FILTER (WHERE q.editorial_state = 'READY_TO_SERVE'),
-               count(*) FILTER (WHERE q.review_gate = 'ready'
-                                OR (q.editorial_state = 'READY_TO_SERVE' AND q.review_gate IS NULL)),
-               count(*) FILTER (WHERE q.review_gate = 'ready' AND q.editorial_state <> 'READY_TO_SERVE'),
-               count(*) FILTER (WHERE q.review_gate = 'blocked'),
-               count(*) FILTER (WHERE q.is_served)
-        FROM question q JOIN question_bank b ON b.id = q.bank_id
-        WHERE b.is_active AND NOT q.removed_upstream""")).one()
+               count(*) FILTER (WHERE state = 'READY_TO_SERVE'),
+               count(*) FILTER (WHERE 'READY' = ANY(queues)),
+               count(*) FILTER (WHERE gate = 'ready' AND state <> 'READY_TO_SERVE'),
+               count(*) FILTER (WHERE gate = 'blocked'),
+               count(*) FILTER (WHERE served)
+        FROM question_review WHERE active""")).one()
     findings = dict(db.execute(select(ReviewFinding.code, func.count()).where(ReviewFinding.status == "open")
                                .group_by(ReviewFinding.code)).all())
     return {"total": row[0], "upstream_ready": row[1], "ready": row[2], "ready_gained": row[3], "blocked": row[4],

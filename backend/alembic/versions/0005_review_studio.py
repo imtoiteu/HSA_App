@@ -34,6 +34,7 @@ def upgrade():
     op.create_check_constraint('ck_q_review_gate', 'question',
                                "review_gate is null or review_gate in ('ready','blocked')")
     op.execute("CREATE INDEX ix_question_document ON question ((provenance->>'document_id'))")
+    op.execute("CREATE INDEX ix_question_review_gate ON question (review_gate) WHERE review_gate IS NOT NULL")
     # every existing version came from upstream
     op.execute("UPDATE question SET upstream_version_id = current_version_id")
 
@@ -80,6 +81,8 @@ def upgrade():
         sa.Column('doc_path', sa.String(200), server_default='', nullable=False),
         sa.Column('source_number', sa.Integer(), server_default='0', nullable=False),
         sa.Column('search_text', sa.Text(), server_default='', nullable=False),
+        sa.Column('state', sa.String(40), server_default='', nullable=False),
+        sa.Column('gate', sa.String(12), server_default='', nullable=False),
         sa.Column('assignee_id', sa.BigInteger(), sa.ForeignKey('app_user.id')),
         sa.Column('assignment_id', sa.Integer(), sa.ForeignKey('review_assignment.id')),
         sa.Column('assigned_at', TS),
@@ -98,7 +101,6 @@ def upgrade():
     op.create_index('ix_review_queues', 'question_review', ['queues'], postgresql_using='gin')
     op.create_index('ix_review_assignee', 'question_review', ['assignee_id', 'status'])
     op.create_index('ix_review_status', 'question_review', ['status'])
-    op.create_index('ix_review_priority', 'question_review', ['priority'])
     op.create_index('ix_review_updated', 'question_review', ['updated_at'])
     op.create_index('ix_review_dirty', 'question_review', ['dirty'], postgresql_where=sa.text('dirty'))
     op.create_index('ix_review_dup_exact', 'question_review', ['dup_exact'])
@@ -106,17 +108,18 @@ def upgrade():
     # one row per question with its filter columns (queues/validators are filled by `hsa-app review-refresh`)
     op.execute("""
         INSERT INTO question_review (question_id, external_id, subject_code, qtype, served, active, doc_id, doc_path,
-                                     source_number, queues)
+                                     source_number, state, queues)
         SELECT q.id, q.external_id, coalesce(q.subject_code, ''), q.question_type, q.is_served,
                b.is_active AND NOT q.removed_upstream, coalesce(q.provenance->>'document_id', ''),
                right(coalesce(q.provenance->>'document_path', ''), 200),
                coalesce(CASE WHEN q.provenance->>'source_question_number' ~ '^[0-9]{1,6}$'
                              THEN (q.provenance->>'source_question_number')::int END, 0),
+               q.editorial_state,
                CASE WHEN q.editorial_state = 'READY_TO_SERVE' THEN ARRAY['READY'] ELSE ARRAY['NOT_READY'] END
         FROM question q JOIN question_bank b ON b.id = q.bank_id""")
     op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
     op.create_index('ix_review_ext', 'question_review', ['external_id'])
-    op.create_index('ix_review_prio', 'question_review', ['priority', 'question_id'])
+    op.create_index('ix_review_prio', 'question_review', [sa.text('priority DESC'), 'question_id'])
     op.create_index('ix_review_doc', 'question_review', ['doc_path', 'source_page', 'source_number', 'question_id'])
     op.create_index('ix_review_search', 'question_review', ['search_text'], postgresql_using='gin',
                     postgresql_ops={'search_text': 'gin_trgm_ops'})
@@ -180,6 +183,7 @@ def downgrade():
     # published review versions stay in question_version (immutable, referenced by exam history); the current
     # pointer keeps them, only the review metadata columns go away
     op.execute("DROP INDEX IF EXISTS ix_question_document")
+    op.execute("DROP INDEX IF EXISTS ix_question_review_gate")
     op.drop_constraint('ck_q_review_gate', 'question', type_='check')
     op.drop_column('question', 'review_gate')
     op.drop_constraint('fk_question_upstream_version', 'question', type_='foreignkey')

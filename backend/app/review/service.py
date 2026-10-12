@@ -245,6 +245,7 @@ def refresh(db: Session, q: Question, r: QuestionReview | None = None, *, media_
     if gate != q.review_gate:
         q.review_gate = gate
         apply_policy(db, q)
+    r.gate = q.review_gate or ""
     r.dim_state = view["status"]
     r.queues = queues_for(q, r, view)
     r.priority = priority_for(q, r, view)
@@ -260,6 +261,8 @@ def sync_columns(q: Question, r: QuestionReview, v: QuestionVersion | None, acti
     r.subject_code = q.subject_code or ""
     r.qtype = q.question_type or ""
     r.served = bool(q.is_served)
+    r.state = q.editorial_state or ""
+    r.gate = q.review_gate or ""
     if active is not None:
         r.active = active and not q.removed_upstream
     elif q.removed_upstream:
