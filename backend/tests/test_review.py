@@ -526,3 +526,17 @@ def test_strip_verified_warns():
     lost = ["vấn đề đặt ra đối với lực lượng lao động, cụ thể: bảng số liệu năm 2019 gồm nhiều cột\\n"
             "Một là, lao động phân bổ không đều giữa các vùng"]
     assert M.strip_verified_warns(c, lost)[2] is not None
+
+
+def test_split_inline_options():
+    from app.review import remediate as M
+    opt = lambda l, tex: [{"m": ["b"], "t": "s", "v": l}, {"t": "m", "tex": ". " + tex}, {"t": "s", "v": "."}, {"t": "tab"}]
+    c = {"type": "short_response", "stem": plain("Chiều dài tự nhiên của lò xo là") +
+         [{"t": "p", "c": opt("A", "36 cm") + opt("B", "38 cm")}, {"t": "p", "c": opt("C", "40 cm") + opt("D", "42 cm")}]}
+    out, ans, why = M.split_inline_options(c, {"kind": "text", "text": "C", "accepted": ["C"]})
+    assert why == "" and ans == {"kind": "choice", "labels": ["C"]} and out["type"] == "single_choice"
+    assert [o["label"] for o in out["options"]] == list("ABCD") and out["options"][0]["content"][0]["c"][0]["tex"] == "36 cm"
+    assert len(out["stem"]) == 1 and M.check_structure(out).ok
+    assert M.split_inline_options(c, {"kind": "text", "text": "36 cm"})[0] is None
+    bad = dict(c, stem=c["stem"][:2])
+    assert M.split_inline_options(bad, {"kind": "text", "text": "A"})[0] is None

@@ -291,6 +291,54 @@ def strip_verified_warns(content: dict, pages: list[str]) -> tuple[dict, int, st
     return c, removed, None
 
 
+def split_inline_options(content: dict, answer: dict | None) -> tuple[dict | None, dict | None, str]:
+    """A multiple-choice question parsed as short response: its stem ends with paragraphs that hold only the
+    options ("A. … ⇥ B. … ⇥ C. … ⇥ D. …", labels as their own text runs). Rebuild it as single choice."""
+    if not answer or answer.get("kind") != "text" or not re.fullmatch(r"[A-D]", (answer.get("text") or "").strip()):
+        return None, None, "key is not a single option letter"
+    stem = content.get("stem") or []
+    opts, cur, first = {}, None, None
+    for bi, b in enumerate(stem):
+        nodes = b.get("c") or []
+        labels = [n for n in nodes if n.get("t") == "s" and re.fullmatch(r"\s*[A-D]\s*", n.get("v", ""))]
+        if not labels:
+            if cur is not None:
+                return None, None, "text after the options"
+            continue
+        if first is None:
+            first = bi
+        for n in nodes:
+            if n.get("t") == "s" and re.fullmatch(r"\s*[A-D]\s*", n.get("v", "")):
+                cur = n["v"].strip()
+                if cur in opts or cur != "ABCD"[len(opts)]:
+                    return None, None, "option labels out of order"
+                opts[cur] = []
+            elif n.get("t") in ("tab", "br"):
+                continue
+            elif cur is None:
+                return None, None, "text before the first option label in the option line"
+            else:
+                opts[cur].append(json.loads(json.dumps(n)))
+    if first is None or list(opts) != list("ABCD"):
+        return None, None, "four options A–D not found at the end of the stem"
+    out = []
+    for lab in "ABCD":
+        nodes = opts[lab]
+        if nodes and nodes[0].get("t") == "m":
+            nodes[0]["tex"] = re.sub(r"^\s*\.\s*", "", nodes[0]["tex"])
+        elif nodes and nodes[0].get("t") == "s":
+            nodes[0]["v"] = re.sub(r"^\s*\.\s*", "", nodes[0]["v"])
+        nodes = [n for n in nodes if not (n.get("t") == "m" and not n.get("tex", "").strip())]
+        if not plain_text([{"t": "p", "c": nodes}]).strip(" .") and not any(n.get("t") == "m" for n in nodes):
+            return None, None, f"option {lab} empty"
+        out.append({"label": lab, "content": [{"t": "p", "c": nodes}]})
+    c = json.loads(json.dumps(content))
+    c["stem"], c["options"], c["type"] = stem[:first], out, "single_choice"
+    if not plain_text(c["stem"]).strip():
+        return None, None, "stem empty without the options"
+    return c, {"kind": "choice", "labels": [answer["text"].strip()]}, ""
+
+
 def check_source_text(content: dict, pages: list[str]) -> Verdict:
     """Stem and every option must occur in the source text, options shortly after the stem."""
     full = [norm(p) for p in pages]
@@ -805,6 +853,12 @@ BATCHES["render_warning_artifact"] = BASE.replace(  # the placeholder finding is
       AND q.question_type = 'single_choice' AND NOT q.has_image AND NOT q.has_table
 """
 WARN_BATCHES = {"render_warning_artifact"}
+# upstream READY multiple-choice questions parsed as short response (options inside the stem)
+BATCHES["inline_options_split"] = BASE + """
+      AND q.editorial_states = '{READY_TO_SERVE}' AND q.policy_reasons = '{inline_options_in_short_response}'
+      AND q.question_type = 'short_response'
+"""
+SPLIT_BATCHES = {"inline_options_split"}
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
 TRANSFORMS = {"watermark_only": "watermark"}
@@ -847,7 +901,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 db.commit()
             log(f"  SKIP {q.external_id}: {reason}")
 
-        st = check_structure(v.content)
+        st = check_structure(v.content) if batch not in SPLIT_BATCHES else Verdict(True)  # checked after the split
         if st.ok:
             st = check_complete(v.content)
         if not st.ok:
@@ -877,6 +931,16 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             content, wm_removed = strip_watermarks(content)
             if C.images(content) or C.has_table(content):
                 unresolved("other figures remain after removing the watermark (needs a visual check)")
+                continue
+        split_answer = None
+        if batch in SPLIT_BATCHES:
+            content, split_answer, why = split_inline_options(content, v.answer)
+            if content is None:
+                unresolved(why)
+                continue
+            st = check_structure(content)
+            if not st.ok:
+                unresolved(st.reason, conflict=True)
                 continue
         warns_removed = 0
         if batch in WARN_BATCHES:
@@ -930,7 +994,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         if not sv.ok:
             unresolved(sv.reason, conflict=True)
             continue
-        av = check_answer(q, v.answer, content, up) if S.dim_view(q, r, v)["status"].get("answer") != "ok" else \
+        av = check_answer(q, split_answer or v.answer, content, up) if S.dim_view(q, r, v)["status"].get("answer") != "ok" else \
             Verdict(True, "đáp án đã được xác minh độc lập (claude_review)")
         if not av.ok:
             unresolved(av.reason, conflict="disagree" in av.reason or "says" in av.reason)
@@ -972,8 +1036,9 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 + ("; watermark removed" if wm_removed else ""))
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
-        if nfc_changed or wm_removed or trimmed or group_marked or group_detached or warns_removed:
-            what = "; ".join(x for x in (f"bỏ {warns_removed} ô “đối tượng không hiển thị được”/ảnh số trang (tài liệu gốc không có nội dung ở đó)"
+        if nfc_changed or wm_removed or trimmed or group_marked or group_detached or warns_removed or split_answer:
+            what = "; ".join(x for x in ("tách 4 phương án A–D đang nằm trong đề thành câu trắc nghiệm một đáp án "
+                                         f"(đáp án {split_answer['labels'][0]} giữ nguyên)" if split_answer else "",f"bỏ {warns_removed} ô “đối tượng không hiển thị được”/ảnh số trang (tài liệu gốc không có nội dung ở đó)"
                                          if warns_removed else "","nhóm chỉ có lời dẫn, không có đoạn dữ liệu chung (đối chiếu tài liệu gốc)"
                                          if group_marked else "",
                                          f"tách khỏi đoạn chung gắn nhầm ({gv.reason})" if group_detached else "","chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
@@ -985,8 +1050,11 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                     "explanation": content.get("explanation")}
             if content.get("group") is not None or group_detached:
                 edit["group"] = content["group"]
+            if split_answer:
+                edit["type"], edit["answer"] = "single_choice", split_answer
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
-            stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached or warns_removed)
+            stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached or warns_removed
+                                              or split_answer)
             stats["visual_fixed"] += wm_removed
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)
