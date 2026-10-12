@@ -603,7 +603,8 @@ def set_status(db: Session, q: Question, user: User, action: str, note: str | No
     else:
         raise ReviewError("Thao tác không hợp lệ.", 422, "invalid")
     r.updated_by, r.updated_at = user.id, now()
-    event(db, q, user, action, [{"field": "status", "old": old, "new": r.status}], note)
+    if action != "discard_draft":  # already recorded above with the version ids
+        event(db, q, user, action, [{"field": "status", "old": old, "new": r.status}], note)
     refresh(db, q, r, media_root=media_root)
     return {"status": r.status, "gate": q.review_gate}
 
