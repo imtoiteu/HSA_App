@@ -1,0 +1,189 @@
+[
+ {
+  "cq_id": "cq_2d3b9b041f29d33a",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra — Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_2e6c85ca340b9b3a",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_38e6c7ed22beaa68",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_39ffd19c27a7d5e9",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra — Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_46124da7c9c582f5",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_54e1cbf2506f0ffe",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_54ef22ceda1b0c99",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_61473648d0fdae03",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_6c9ef91ea38f7499",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_6fdb944e4a6b0d98",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_897fb50893243f65",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_8f02325798622639",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_90c3509e9f4b685c",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_ade11aaadb061f0b",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_e3bbd7b4b5d75dfc",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_f15af9b9553296b4",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_f57f008085dc6bcd",
+  "confirm_visual": true,
+  "note": "Hình thuộc đề, đọc được, không lộ đáp án; đáp án đã tự giải kiểm tra",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_02780b136eacaddb",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_044c65759334341a",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_0927ae80b9e7ffff",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_1fb10df75e6bfd66",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_3fd862fbe7917a07",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_45e33441a969bc6c",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_4b83c8da030f2029",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_77b15b48f4631a1d",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_93f16145a736f35c",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_9b46febfa20f9fb9",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_9bb599f4d0ed3cbc",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_b58950347081c81f",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_c3ea5d43883ba215",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_ccb4ca4f99fab7a0",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_ccb7fd126d52451d",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_da4a1e3223ae2133",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ },
+ {
+  "cq_id": "cq_fdb0c10fc12ffee3",
+  "visual_fail": true,
+  "note": "Hình nhúng là lời giải/lộ đáp án (hoặc phương án là ảnh bị mất)"
+ }
+]

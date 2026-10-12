@@ -959,7 +959,10 @@ BATCHES["group_passage_recover"] = BASE.replace(
 """
 RECOVER_BATCHES = {"group_passage_recover"}
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
-NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
+# the same with formulas (the formulas are the bank's version; only the figure was flagged)
+BATCHES["visual_lowres_formula"] = BATCHES["visual_lowres"].replace(
+    "AND q.question_type = 'single_choice' AND NOT q.has_formula", "AND q.question_type = 'single_choice' AND q.has_formula")
+NEEDS_VISUAL_CONFIRMATION = {"visual_lowres", "visual_lowres_formula"}
 TRANSFORMS = {"watermark_only": "watermark"}
 
 
