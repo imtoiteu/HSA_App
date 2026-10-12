@@ -449,3 +449,23 @@ def test_hsa_watermark_and_solution_contradiction_unit():
          "solution": plain("Nội dung chính của đoạn trích là niềm đam mê học Luật và lối học dùi kinh nấu sử")}
     assert M.solution_contradicts({"kind": "choice", "labels": ["D"]}, q)
     assert M.solution_contradicts({"kind": "choice", "labels": ["A"]}, q) is None
+
+
+def test_instruction_prefix_unit():
+    from app.review import remediate as M
+    pages = ["Choose A, B, C or D to complete each sentence.\nQuestion 1. She ___ to school.\nA. go\nB. goes\nC. going\nD. gone\n"
+             "Question 2. They ___ football every Sunday afternoon in the park.\nA. play\nB. plays\nC. playing\nD. played\n"]
+    c = {"stem": plain("Choose A, B, C or D to complete each sentence.") + plain("They ___ football every Sunday afternoon in the park."),
+         "options": [{"label": l, "content": plain(t)} for l, t in zip("ABCD", ["play", "plays", "playing", "played"])]}
+    assert M.check_source_text(c, pages).ok
+
+
+def test_strip_furniture_unit():
+    from app.review import remediate as M
+    c = {"stem": plain("The organization encourages_______ in the local community. Tài liệu được sưu tầm miễn phí, nghiêm cấm sử dụng tài liệu kiếm lợi nhuận"),
+         "options": [{"label": "A", "content": plain("volunteering")}],
+         "solution": plain("Giải thích. ---------- Hết chủ đề Lịch sử, hãy làm chủ đề tiếp theo nếu đã chọn ----------")}
+    out, changed = M.strip_furniture(c)
+    assert changed and M.plain_text(out["stem"]).strip() == "The organization encourages_______ in the local community."
+    assert M.plain_text(out["solution"]).strip() == "Giải thích."
+    assert M.strip_furniture({"stem": plain("Mệnh đề nào dưới đây đúng?"), "options": []})[1] is False

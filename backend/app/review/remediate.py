@@ -67,6 +67,9 @@ class Verdict:
     details: dict = field(default_factory=dict)
 
 
+INSTRUCTION = re.compile(r"(choose (?:a|the)|mark the letter|read the (?:following|passage)|indicate the|"
+                         r"chọn (?:đáp án|phương án|từ|câu)|đọc (?:đoạn|văn bản|ngữ liệu|thông tin)|"
+                         r"dựa vào (?:thông tin|đoạn|văn bản))", re.I)
 OPTION_LIST = re.compile(r"(?:^|\s)A[.)]\s.+?\sB[.)]\s.+?\sC[.)]\s", re.S)
 
 
@@ -113,11 +116,16 @@ def check_source_text(content: dict, pages: list[str]) -> Verdict:
     for p in full:
         starts.append(acc)
         acc += len(p)
-    stem = norm(_text_without_math(content.get("stem")))
+    stem_blocks = list(content.get("stem") or [])
+    # a generic section instruction glued in front of the stem ("Choose A, B, C or D…") occurs once in the source,
+    # before the first question of the section: locate the question by what follows it
+    while len(stem_blocks) > 1 and INSTRUCTION.match(unicodedata.normalize("NFC", plain_text(stem_blocks[:1])).strip()):
+        stem_blocks = stem_blocks[1:]
+    stem = norm(_text_without_math(stem_blocks))
     if len(stem) < 12:
         return Verdict(False, "stem text too short to locate in the source")
     # locate the stem by its longest chunks (formulas/images are not in the text layer)
-    chunks = [c for c in re.split(r"\s{2,}| ", _text_without_math(content.get("stem"))) if c]
+    chunks = [c for c in re.split(r"\s{2,}| ", _text_without_math(stem_blocks)) if c]
     probe = norm(" ".join(chunks[:12]))[:60] or stem[:60]
     pos = joined.find(probe)
     if pos < 0:
@@ -130,7 +138,7 @@ def check_source_text(content: dict, pages: list[str]) -> Verdict:
     else:
         dup = False
     # whole stem text (as one string, math removed) must be present in order
-    pieces = [norm(x) for x in re.split(r"[\n]+", _text_without_math(content.get("stem")))]
+    pieces = [norm(x) for x in re.split(r"[\n]+", _text_without_math(stem_blocks))]
     pieces = [x for x in pieces if len(x) >= 4]
     cur = pos
     for piece in pieces:
@@ -365,6 +373,62 @@ def strip_hsa_watermark(content: dict) -> tuple[dict, bool]:
     return c, changed
 
 
+# page furniture (headers/footers/adverts) the source documents' text layers mix into questions; measured on
+# 2026-10-12 as recurring across many documents. Only these exact phrases are removed.
+FURNITURE = [re.compile(p_, re.I) for p_ in (
+    r"Tài liệu được sưu tầm miễn phí,? nghiêm cấm sử dụng tài liệu kiếm lợi nhuận\.?",
+    r"Thầy Vũ Tuấn Anh\s+Tài liệu khóa Live C[^:]{0,20}:\s*Nắm trọn từng chuyên đề",
+    r"-{3,}\s*Hết chủ đề [^,]{2,20}, hãy làm chủ đề tiếp theo nếu đã chọn\s*-{3,}",
+    r"KHOA HỌC\s+Chủ đề [^\n]{2,20} có \d+ câu hỏi từ \d+ đến \d+",
+    r"Cán bộ coi thi không giải thích gì thêm\.?",
+    r"Fanpage:[^\n|]{0,120}\|\s*\d{1,3}",
+    r"(?<!\w)c o m / t u a n a n h \.?",
+    r"(?<!\w)p h y s i c s(?!\w)",
+)]
+
+
+def strip_furniture(content: dict) -> tuple[dict, bool]:
+    import json
+    c = json.loads(json.dumps(content))
+    changed = False
+
+    def clean_blocks(blocks):
+        nonlocal changed
+        out = []
+        for b in blocks or []:
+            if b.get("t") == "p":
+                inl = []
+                for n in b["c"]:
+                    if n.get("t") == "s":
+                        v = n["v"]
+                        for rx in FURNITURE:
+                            v = rx.sub(" ", v)
+                        if v != n["v"]:
+                            changed = True
+                            v = re.sub(r"[ \t]{2,}", " ", v)
+                            if not v.strip():
+                                continue
+                            n = dict(n, v=v)
+                    inl.append(n)
+                while inl and (inl[-1].get("t") in ("br", "tab") or inl[-1].get("t") == "s" and not inl[-1]["v"].strip()):
+                    inl.pop()
+                if not inl or not any(x.get("t") != "s" or x["v"].strip() for x in inl):
+                    changed = changed or bool(b["c"])
+                    continue
+                b = dict(b, c=inl)
+            out.append(b)
+        return out
+    for k in ("stem", "solution", "explanation"):
+        if c.get(k):
+            c[k] = clean_blocks(c[k])
+    for o in c.get("options") or []:
+        o["content"] = clean_blocks(o["content"])
+    if c.get("group"):
+        for k in ("header", "passage"):
+            c["group"][k] = clean_blocks(c["group"].get(k))
+    return c, changed
+
+
 def solution_contradicts(answer: dict, content: dict) -> str | None:
     """The solution text clearly paraphrases another option than the key (no letter needed)."""
     raw = plain_text(content.get("solution") or []) + " " + plain_text(content.get("explanation") or [])
@@ -519,7 +583,7 @@ BATCHES["pdf_text_nonmath"] = BASE + """
       AND q.review_flags && ARRAY['pdf_text_layer_fidelity']::varchar[]
       AND q.review_flags <@ ARRAY['pdf_text_layer_fidelity','not_nfc_normalized','option_label_normalized']::varchar[]
       AND q.question_type = 'single_choice' AND NOT q.has_formula
-      AND q.subject_code IN ('geography','english','literature','biology','history','civics','general')
+      AND q.subject_code IN ('geography','english','literature','biology','history','civics')
       AND NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND f.status = 'open'
                       AND f.code IN ('ocr_garbage', 'raw_latex_in_text'))
 """
@@ -586,7 +650,8 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         content, nfc_changed = nfc_content(v.content)
         content, relabelled = strip_own_labels(content)
         content, wm_text = strip_hsa_watermark(content)
-        nfc_changed = nfc_changed or bool(relabelled) or wm_text
+        content, furniture = strip_furniture(content)
+        nfc_changed = nfc_changed or bool(relabelled) or wm_text or furniture
         wm_removed = False
         if TRANSFORMS.get(batch) == "watermark":
             content, wm_removed = strip_watermarks(content)
@@ -611,7 +676,8 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         if not av.ok:
             unresolved(av.reason, conflict="disagree" in av.reason or "says" in av.reason)
             continue
-        if apply and (q.subject_source == "unclassified" or q.subject_code in (None, "general")):
+        if apply and (q.subject_source == "unclassified" or q.subject_code in (None, "general")) and \
+                (q.provenance or {}).get("extraction_method") != "pdf_text_layer":
             # unclassified: take the subject named by the question's own source section when the content agrees
             sec = section_subject((q.provenance or {}).get("section"))
             if sec:
