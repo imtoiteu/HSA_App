@@ -1,0 +1,30 @@
+[
+ {
+  "cq_id": "cq_038f79fd15330b41",
+  "answer": "A",
+  "subject": "physics",
+  "confirm_subject": true,
+  "note": "Ánh xạ khóa đáp án không chắc chắn; người duyệt tự giải độc lập: đáp án A; môn Vật lí"
+ },
+ {
+  "cq_id": "cq_c1b6a2e6ae03de47",
+  "answer": "C",
+  "subject": "chemistry",
+  "confirm_subject": true,
+  "note": "Ánh xạ khóa đáp án không chắc chắn; người duyệt tự giải độc lập: đáp án C; môn Hóa học"
+ },
+ {
+  "cq_id": "cq_e06acebf9aa39e2f",
+  "answer": "B",
+  "subject": "math",
+  "confirm_subject": true,
+  "note": "Ánh xạ khóa đáp án không chắc chắn; người duyệt tự giải độc lập: đáp án B; môn Toán học"
+ },
+ {
+  "cq_id": "cq_945f660c32bb9e87",
+  "answer": "B",
+  "subject": "geography",
+  "confirm_subject": true,
+  "note": "Ánh xạ khóa đáp án không chắc chắn; người duyệt tự giải độc lập: đáp án B; môn Địa lí"
+ }
+]
