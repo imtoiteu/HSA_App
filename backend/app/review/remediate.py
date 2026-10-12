@@ -711,7 +711,7 @@ FURNITURE = [re.compile(p_, re.I) for p_ in (
     r"(?<!\w)p h y s i c s(?!\w)",
     # section headers of a full exam glued to the end of the preceding question
     r"ĐỀ THI THAM KHẢO\s*KỲ THI ĐÁNH GIÁ NĂNG LỰC\s*$",
-    r"ĐỀ ÔN TẬP CHƯƠNG [^\n]{3,80}\(Thời gian: \d+ phút\)\s*$",
+    r"[—–-]*\s*-*\s*ĐỀ ÔN TẬP (?:CHƯƠNG|CHUYÊN ĐỀ) [^\n]{3,80}\(Thời gian: \d+ phút\)\s*$",
     r"\d\.\d[.:]\s*(?:TIẾNG ANH|SUY LUẬN KHOA HỌC|TOÁN HỌC|VĂN HỌC[^\n]{0,20})\s*$",
     r"TƯ DUY KHOA HỌC\s*/\s*GIẢI QUYẾT VẤN ĐỀ\s*$",
 )]
@@ -730,7 +730,8 @@ def option_section_head(content: dict) -> str | None:
 
 
 # a following reading passage glued to the last option (only ever stripped from options)
-OPTION_PASSAGE_TAIL = re.compile(r"(?:Read the (?:following )?passage|Read the passage carefully)[\s\S]*$", re.I)
+OPTION_PASSAGE_TAIL = re.compile(r"(?:Read the (?:following )?passage|Read the passage carefully|Mark the letter A, B, C,? or D on "
+                                 r"your answer sheet to indicate the correct (?:option|word))[\s\S]*$", re.I)
 
 
 def strip_furniture(content: dict) -> tuple[dict, bool]:
