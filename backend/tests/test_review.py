@@ -611,3 +611,20 @@ def test_option_section_header_paragraph():
     out, changed = M.strip_furniture(g)
     assert changed and M.option_section_head(out) is None and M.plain_text(out["options"][1]["content"]).strip() == "Bầu nhuỵ."
     assert M.option_section_head({"options": [{"label": "A", "content": plain("Địa lí")}]}) is None
+
+
+def test_pdf_text_plain_guard_and_watermark():
+    from app.review import remediate as M
+    P = lambda *xs: [{"t": "p", "c": [{"t": "s", "v": x} for x in xs]}]  # noqa: E731
+    assert M.flattened_math(P("Có bao nhiêu loại khối đa diện đều?")) is None
+    assert M.flattened_math(P("Ông V gửi 200 triệu đồng với lãi suất 7,2% một năm.")) is None
+    for bad in ("Cho số phức z thỏa mãn (3 + 2i)z = 4", "A102 .", "10 2.", "Giá trị log2 bằng", "x2"):
+        assert M.flattened_math(P(bad)), bad
+    assert M.flattened_math([{"t": "p", "c": [{"t": "s", "v": "a"}, {"t": "tab"}, {"t": "s", "v": "b"}]}])
+    assert M.content_flattened_math({"stem": P("Nghiệm của phương trình là"), "options": []})
+    wm = [{"t": "s", "v": "H"}, {"t": "tab"}, {"t": "s", "v": "S"}, {"t": "tab"}, {"t": "s", "v": "A"}]
+    c = {"stem": [{"t": "p", "c": wm + [{"t": "br"}, {"t": "s", "v": "Câu hỏi?"}]}],
+         "options": [{"label": "A", "content": [{"t": "p", "c": [{"t": "s", "v": "Một."}, {"t": "br"}] + wm}]}]}
+    out, changed = M.strip_furniture(c)
+    assert changed and M.plain_text(out["stem"]).strip() == "Câu hỏi?"
+    assert M.plain_text(out["options"][0]["content"]).strip() == "Một."

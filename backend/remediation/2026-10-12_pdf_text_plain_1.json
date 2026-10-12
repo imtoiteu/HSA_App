@@ -1,0 +1,314 @@
+[
+ {
+  "cq_id": "cq_0067230fa73798ed",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_039115ccab178d92",
+  "confirm_answer": true,
+  "subject": "biology",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_0d2ad94662b5ec71",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_1012ac551c90adc5",
+  "confirm_answer": true,
+  "subject": "physics",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Vật lí"
+ },
+ {
+  "cq_id": "cq_1079b18c3edb2f0d",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_12d0b9808c59beb8",
+  "confirm_answer": true,
+  "subject": "physics",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Vật lí"
+ },
+ {
+  "cq_id": "cq_16d68e6f8a64870f",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_1aceddee54d415a9",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_1d7d4dc63ff0c1fa",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_29a58ba552d3b3ab",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_2cea2e4bb39d4aa5",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_2f6b66ac9a8bc7e6",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_3c2502710c842f6d",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_3cb6b5674134ec7a",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_4b55385de57abd17",
+  "confirm_answer": true,
+  "subject": "biology",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_4f9c58d085289a63",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_5ab3fff28b1584e7",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_5ad0e3bcd7ee2bff",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_6262fdac81c504ed",
+  "confirm_answer": true,
+  "subject": "biology",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_6db916aea791b379",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_7062794a88997e5f",
+  "confirm_answer": true,
+  "subject": "biology",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_71f0d881282fe161",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_738582089a656491",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_77573e8eecd9c820",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_79fd7c63994a034e",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_830c08a7431b2f02",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_83cfc3be4e0ac29f",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_86359b3daa941e35",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_87a804e240fb33bb",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_a8b24d8071ff88d1",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_aab4cb267d0a3a8b",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_b4658b468cd14345",
+  "confirm_answer": true,
+  "subject": "biology",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_b564bbb10e3af190",
+  "confirm_answer": true,
+  "subject": "chemistry",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Hoá học"
+ },
+ {
+  "cq_id": "cq_bc499b4a5ffe6f73",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_be043844ef1f716e",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_cafe8f9ebede2445",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_ccc3fe058d84199e",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_d27121094f218044",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_f0130563740380f4",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_f245b00c311263a0",
+  "confirm_answer": true,
+  "subject": "biology",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_ffafdbc4cbb1f9cc",
+  "confirm_answer": true,
+  "subject": "geography",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Địa lí"
+ },
+ {
+  "cq_id": "cq_2a7b2b2cf502f70d",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_36b82095866f9e01",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_3d1a0feff3bb5892",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_4259b3f5fb774ad8",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_443d32dbb718879b",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_5131194a555fe6f6",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_63e98528ce8dc5df",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án A đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_a2213b54b6dd64cd",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án B đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_b11509de56dd610f",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_c03195b6f3e03eab",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án C đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ },
+ {
+  "cq_id": "cq_ddf2fc36658a3d0f",
+  "confirm_answer": true,
+  "subject": "math",
+  "note": "Tự giải độc lập: đáp án D đúng, khớp đáp án của tài liệu gốc; câu không chứa công thức (văn bản PDF chỉ có chữ và số thường); môn Toán"
+ }
+]

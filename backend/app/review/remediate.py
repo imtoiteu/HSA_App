@@ -756,6 +756,21 @@ def strip_furniture(content: dict) -> tuple[dict, bool]:
         out = []
         for b in blocks or []:
             if b.get("t") == "p":
+                seq, i = b["c"], 0
+                while i + 4 < len(seq) + 0:  # pdf page watermark "H S A" laid out as H <tab> S <tab> A
+                    w = seq[i:i + 5]
+                    if [x.get("t") for x in w] == ["s", "tab", "s", "tab", "s"] and \
+                            [x.get("v", "").strip() for x in w[::2]] == ["H", "S", "A"]:
+                        lo, hi = i, i + 5
+                        if lo > 0 and seq[lo - 1].get("t") == "br":
+                            lo -= 1
+                        elif hi < len(seq) and seq[hi].get("t") == "br":
+                            hi += 1
+                        seq = seq[:lo] + seq[hi:]
+                        changed = True
+                        continue
+                    i += 1
+                b = dict(b, c=seq)
                 inl = []
                 for n in b["c"]:
                     if n.get("t") == "s":
@@ -946,6 +961,88 @@ BATCHES["pdf_text_nonmath"] = BASE + """
       AND NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND f.status = 'open'
                       AND f.code IN ('ocr_garbage', 'raw_latex_in_text'))
 """
+# the same for math/physics/unlabelled items whose pdf text carries no mathematical notation at all (the text layer
+# flattens formulas: x² → "x2", fractions → stray lines); the notation guard below decides, conservatively
+BATCHES["pdf_text_plain"] = BATCHES["pdf_text_nonmath"].replace(
+    "AND q.subject_code IN ('geography','english','literature','biology','history','civics')",
+    "AND q.subject_code IN ('math','general','physics','chemistry')")
+PLAIN_BATCHES = {"pdf_text_plain"}
+_MATH_CHARS = re.compile(r"[=<>≤≥≠±×÷^√∫∑∏∞πΔ∆∈∉⊂⊃∪∩→⇒⇔|/+−\\{}\[\]_~*'′″°]")
+_MATH_WORDS = re.compile(r"\b(?:log|ln|lg|sin|cos|tan|tg|cot|cotg|lim|max|min|arcsin|arccos|arctan|vec|mod)\b", re.I)
+_LETTER_DIGIT = re.compile(r"[^\W\d_]\d|\d[^\W\d_](?<![đ])")
+_DIGIT_GAP = re.compile(r"\d\s+\d")
+
+
+def flattened_math(nodes) -> str | None:
+    """Why a pdf-text-layer fragment may hide flattened math (None = plain prose and plain numbers only)."""
+    lines, cur = [], []
+
+    def walk(n):
+        if isinstance(n, list):
+            for x in n:
+                walk(x)
+            return
+        t = n.get("t")
+        if t == "s":
+            cur.append(n["v"])
+        elif t == "tab":
+            raise ValueError("tab-separated layout")
+        elif t in ("m", "img", "table"):
+            raise ValueError(f"{t} node")
+        elif t == "br":
+            lines.append("".join(cur)); cur.clear()
+        elif t == "p":
+            walk(n.get("c") or [])
+            lines.append("".join(cur)); cur.clear()
+        else:
+            walk(n.get("c") or [])
+
+    try:
+        walk(nodes or [])
+    except ValueError as e:
+        return str(e)
+    lines.append("".join(cur))
+    for ln in (x.strip() for x in lines):
+        if not ln:
+            continue
+        if len(ln) <= 3 and not re.fullmatch(r"[A-D]?\.?|\d+[.,]?", ln):
+            return f"stray fragment “{ln}”"
+        if re.fullmatch(r"[\d\W]+", ln) and not re.fullmatch(r"\d+(?:[.,]\d+)?\s*%?\.?", ln):
+            return f"symbol/number-only line “{ln}”"
+        for rx, why in ((_MATH_CHARS, "math symbol"), (_MATH_WORDS, "math function name"),
+                        (_LETTER_DIGIT, "letter–digit run (flattened exponent/index)"), (_DIGIT_GAP, "digit gap")):
+            m = rx.search(ln)
+            if m:
+                return f"{why} “{m.group(0)}” in “{ln[:60]}”"
+    return None
+
+
+# a stem naming a formula-bearing object but showing no formula: the formula was dropped by the text layer
+_FORMULA_OBJECTS = re.compile(r"phương trình|hàm số|biểu thức|tích phân|đạo hàm|nguyên hàm|giới hạn|số phức|đồ thị|"
+                              r"đa thức|hệ thức|công thức|bất đẳng thức|dãy số|cấp số|tập nghiệm|tập xác định|"
+                              r"đường thẳng \(|mặt phẳng \(|mặt cầu \(|véc ?tơ|vectơ|ma trận|logarit|lũy thừa|"
+                              r"căn bậc|phân số|như hình|hình vẽ|bảng biến thiên|bảng sau|cho bởi", re.I)
+
+
+def content_flattened_math(content: dict) -> str | None:
+    m = _FORMULA_OBJECTS.search(plain_text(content.get("stem") or []))
+    if m:
+        return f"stem refers to “{m.group(0)}” but the text layer shows no formula/figure"
+    for k in ("stem", "solution", "explanation"):
+        why = flattened_math(content.get(k))
+        if why:
+            return f"{k}: {why}"
+    for o in content.get("options") or []:
+        why = flattened_math(o.get("content"))
+        if why:
+            return f"option {o.get('label')}: {why}"
+    if (content.get("group") or {}).get("passage"):
+        why = flattened_math(content["group"]["passage"])
+        if why:
+            return f"passage: {why}"
+    return None
+
+
 # upstream NEEDS_VISUAL_REVIEW only because a figure is small: everything else is verified automatically, the
 # figure itself needs a visual confirmation (confirm_visual decision) before promotion
 BATCHES["visual_lowres"] = BASE + f"""
@@ -1170,6 +1267,11 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             if content.get("group") is not None:
                 content = json.loads(json.dumps(content))
                 group_detached, content["group"] = content["group"], None
+        if batch in PLAIN_BATCHES:
+            why = content_flattened_math(content)
+            if why:
+                unresolved(f"pdf text may hide flattened math ({why})")
+                continue
         sv = check_source_text(content, page_cache[sc.blob_sha256])
         trimmed = []
         if not sv.ok and "options" in sv.reason:
