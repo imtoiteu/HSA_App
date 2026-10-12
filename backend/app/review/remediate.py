@@ -6,6 +6,7 @@ the source's own answer key. Fixes go through the review service (draft version 
 every change has a version, old/new diff, provenance and audit trail, and is skipped next time while its content hash
 is unchanged. Anything not provable from the source stays in its queue with the reason recorded.
 """
+import json
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -97,6 +98,9 @@ def check_complete(content: dict) -> Verdict:
     """The stem refers to a figure/scheme/table that the parsed content does not contain."""
     txt = unicodedata.normalize("NFC", plain_text(content.get("stem") or []) + " " +
                                 plain_text((content.get("group") or {}).get("passage") or []))
+    runs = [n.get("v", "") for b in content.get("stem") or [] for n in b.get("c") or [] if n.get("t") == "s"]
+    if any(re.search(r"\S {5,}\S", v) for v in runs):
+        return Verdict(False, "incomplete: a gap inside a stem line (an inline drawing such as a reaction arrow was lost)")
     m = FIGURE_HINT.search(txt)
     if not m:
         return Verdict(True)
@@ -587,6 +591,16 @@ BATCHES["pdf_text_nonmath"] = BASE + """
       AND NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND f.status = 'open'
                       AND f.code IN ('ocr_garbage', 'raw_latex_in_text'))
 """
+# upstream NEEDS_VISUAL_REVIEW only because a figure is small: everything else is verified automatically, the
+# figure itself needs a visual confirmation (confirm_visual decision) before promotion
+BATCHES["visual_lowres"] = BASE + f"""
+      AND q.editorial_states = '{{NEEDS_VISUAL_REVIEW}}'
+      AND q.policy_reasons = ARRAY['state:NEEDS_VISUAL_REVIEW']::varchar[]
+      AND NOT EXISTS (SELECT 1 FROM unnest(q.state_notes) n WHERE n !~ '^low-resolution figure ')
+      AND EXISTS (SELECT 1 FROM unnest(q.state_notes) n WHERE n !~ '({_WM_RE})')
+      AND q.question_type = 'single_choice' AND NOT q.has_formula
+"""
+NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
 TRANSFORMS = {"watermark_only": "watermark"}
 
 
@@ -692,6 +706,10 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                     stats["subject_fixed"] += 1
                     v = S.working_version(db, q, r)
         sv_dims = S.dim_view(q, r, v)["status"]
+        if batch in NEEDS_VISUAL_CONFIRMATION and sv_dims.get("visual") != "ok":
+            stats.setdefault("visual_pending", []).append(q.external_id)
+            unresolved("needs visual confirmation of the figure", record=False)
+            continue
         if sv_dims.get("answer") != "ok":
             contra = solution_contradicts(v.answer, content)
             if contra:
@@ -734,7 +752,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             "source": f"[{batch}] {doc} trang {sv.page}, sha256 {sc.blob_sha256[:12]} đã xác minh",
         }
         for dim in C.DIMENSIONS:
-            if dim in ("subject", "answer") and S.dim_view(q, r, v)["status"].get(dim) == "ok":
+            if dim in ("subject", "answer", "visual") and S.dim_view(q, r, v)["status"].get(dim) == "ok":
                 continue  # keep the reviewer's confirmation
             state = "ok"
             if dim in ("formula",) and not C.collect_tex(v.content):
@@ -781,6 +799,23 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
         if d.get("clear_subject"):
             S.set_subject(db, q, who, None, note, media_root=media_root)
             n["subject_cleared"] = n.get("subject_cleared", 0) + 1
+        if d.get("text_fix"):  # {"part": "stem", "old": ..., "new": ...}: one exact run of text, verified against the source
+            fx = d["text_fix"]
+            r = S.get_review(db, q)
+            blocks = json.loads(json.dumps(S.working_version(db, q, r).content.get(fx["part"]) or []))
+            hits = [n for b in blocks for n in b.get("c") or [] if n.get("t") == "s" and fx["old"] in n.get("v", "")]
+            if len(hits) != 1 or hits[0]["v"].count(fx["old"]) != 1:
+                raise ValueError(f"{q.external_id}: text_fix needs exactly one match, found {len(hits)}")
+            hits[0]["v"] = hits[0]["v"].replace(fx["old"], fx["new"])
+            before = S.dim_view(q, r, S.working_version(db, q, r))["status"]
+            S.save_edit(db, q, who, {fx["part"]: blocks}, note=note, media_root=media_root)
+            r = S.get_review(db, q)
+            after = S.dim_view(q, r, S.working_version(db, q, r))["status"]
+            for dim, st in before.items():  # the edit re-hashes the content; only checks that passed before
+                if st in ("ok", "na") and after.get(dim) != st:
+                    S.confirm(db, q, who, dim, st, note, media_root=media_root, method="claude_review")
+            S.approve(db, q, who, note, media_root=media_root)
+            n["text_fixed"] = n.get("text_fixed", 0) + 1
         if d.get("answer"):
             r = S.get_review(db, q)
             if q.review_gate == "ready" and not r.draft_version_id:
@@ -796,6 +831,12 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
         if d.get("subject") and d["subject"] != q.subject_code:
             S.set_subject(db, q, who, d["subject"], note, media_root=media_root)
             n["subject_fixed"] += 1
+        if d.get("confirm_visual"):
+            S.confirm(db, q, who, "visual", "ok", note, media_root=media_root, method="claude_review")
+            n["visual_confirmed"] = n.get("visual_confirmed", 0) + 1
+        if d.get("visual_fail"):  # figure is a worked solution / gives the answer away / unreadable
+            S.confirm(db, q, who, "visual", "fail", note, media_root=media_root, method="claude_review")
+            n["visual_failed"] = n.get("visual_failed", 0) + 1
         if d.get("confirm_answer"):
             S.confirm(db, q, who, "answer", "ok", note, media_root=media_root, method="claude_review")
             n["answer_confirmed"] = n.get("answer_confirmed", 0) + 1

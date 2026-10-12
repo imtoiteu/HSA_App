@@ -427,6 +427,8 @@ def test_check_complete_unit():
     assert not M.check_complete({"stem": plain("Quan sát hình vẽ và cho biết")}).ok
     assert M.check_complete({"stem": plain("Quan sát hình vẽ") + [{"t": "img", "src": "ab/" + "a" * 64 + ".png"}]}).ok
     assert M.check_complete({"stem": plain("Từ nào viết đúng chính tả?")}).ok
+    assert not M.check_complete({"stem": plain("Cho phản ứng: Fe2O3 + 3CO      2Fe + 3CO2. Khi tăng áp suất")}).ok
+    assert M.check_complete({"stem": plain("Cho phản ứng: Fe2O3 + 3CO ⇌ 2Fe + 3CO2. Khi tăng áp suất")}).ok
 
 
 def test_strip_own_labels_unit():

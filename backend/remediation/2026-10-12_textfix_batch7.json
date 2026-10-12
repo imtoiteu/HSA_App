@@ -1,0 +1,4 @@
+[
+ {"cq_id": "cq_6425657bbf9d991a", "text_fix": {"part": "stem", "old": "      2Fe", "new": " ⇌ 2Fe"},
+  "note": "Mũi tên phản ứng thuận nghịch là đối tượng vẽ trong tài liệu gốc (trang 15, câu 72) nên bị mất khi trích xuất; câu hỏi về chuyển dịch cân bằng nên là ⇌. Đáp án B (Δn khí = 0) giữ nguyên"}
+]
