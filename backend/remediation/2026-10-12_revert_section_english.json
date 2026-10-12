@@ -1,0 +1,132 @@
+[
+{
+"cq_id": "cq_0067230fa73798ed",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_0067230fa73798ed",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_0ab2fff37b29dd15",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_0ab2fff37b29dd15",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_1012ac551c90adc5",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_1012ac551c90adc5",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_16d68e6f8a64870f",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_16d68e6f8a64870f",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_4e822d75689b188b",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_4e822d75689b188b",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_4f9c58d085289a63",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_4f9c58d085289a63",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_5ab3fff28b1584e7",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_5ab3fff28b1584e7",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_6cfeee17650c146e",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_6cfeee17650c146e",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_7062794a88997e5f",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_7062794a88997e5f",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_77573e8eecd9c820",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_77573e8eecd9c820",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_9cf371e05d24e2a9",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_9cf371e05d24e2a9",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_f0130563740380f4",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_f0130563740380f4",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+},
+{
+"cq_id": "cq_f245b00c311263a0",
+"revert": true,
+"note": "Rút khỏi READY: môn bị gán nhầm Tiếng Anh từ tiêu đề mục “KHOA HỌC hoặc TIẾNG ANH” (mục lựa chọn, không chỉ một môn)."
+},
+{
+"cq_id": "cq_f245b00c311263a0",
+"clear_subject": true,
+"note": "Bỏ môn gán nhầm (Tiếng Anh); trả về phân loại của ngân hàng nguồn."
+}
+]

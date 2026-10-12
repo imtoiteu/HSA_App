@@ -435,3 +435,17 @@ def test_strip_own_labels_unit():
     out, fixed = M.strip_own_labels(c)
     assert fixed == ["B"] and out["options"][1]["content"][0]["c"][0]["v"] == "Đoàn người"
     assert M.strip_own_labels({"options": [{"label": "A", "content": plain("A")}]})[1] == []
+
+
+def test_hsa_watermark_and_solution_contradiction_unit():
+    from app.review import remediate as M
+    c = {"stem": plain("Câu hỏi"), "options": [{"label": "B", "content": [{"t": "p", "c": [
+        {"t": "s", "v": "It eliminates the need."}, {"t": "br"}, {"t": "s", "v": "H"}, {"t": "tab"}, {"t": "s", "v": "S"},
+        {"t": "tab"}, {"t": "s", "v": "A"}]}]}]}
+    out, changed = M.strip_hsa_watermark(c)
+    assert changed and out["options"][0]["content"][0]["c"] == [{"t": "s", "v": "It eliminates the need."}]
+    q = {"options": [{"label": "A", "content": plain("Niềm đam mê học Luật và lối học dùi kinh nấu sử")},
+                     {"label": "D", "content": plain("Niềm đam mê đọc các bản dịch và nguyên tác ở người viết")}],
+         "solution": plain("Nội dung chính của đoạn trích là niềm đam mê học Luật và lối học dùi kinh nấu sử")}
+    assert M.solution_contradicts({"kind": "choice", "labels": ["D"]}, q)
+    assert M.solution_contradicts({"kind": "choice", "labels": ["A"]}, q) is None

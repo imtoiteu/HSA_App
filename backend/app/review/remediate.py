@@ -215,7 +215,11 @@ def check_answer(q: Question, answer: dict | None, content: dict, up: Upstream) 
         return Verdict(False, f"source occurrences disagree on the key: {sorted(keys)}")
     ev = [e for o in occs for e in o["evidence"]]
     kinds_ = {e.get("type") for e in ev}
-    if len(kinds_) < 2:
+    # inline evidence sits next to the question (an "Đáp án: X" line, the solution's "Chọn X", a highlighted
+    # option): it cannot be shifted onto another question. Positional evidence (answer-key table, a separate
+    # solution section keyed by number) can be misaligned, so alone it needs a second signal or an independent check.
+    inline = kinds_ & {"answer_statement", "solution_conclusion", "option_highlight", "option_color"}
+    if len(kinds_) < 2 and not inline:
         # one evidence type (e.g. only the answer-key table) can be misaligned with the questions: needs a second
         # source signal or an independent solution before promotion
         return Verdict(False, f"single answer evidence ({', '.join(sorted(k for k in kinds_ if k))}): needs independent check")
@@ -275,12 +279,17 @@ SECTION_SUBJECTS = [  # heading of the source section the question sits in → s
     ("history", ["lịch sử"]), ("geography", ["địa lí", "địa lý"]),
     ("civics", ["giáo dục công dân", "gdcd", "kinh tế và pháp luật", "kinh tế pháp luật", "pháp luật"]),
     ("literature", ["ngữ văn", "văn học", "tiếng việt", "tư duy định tính"]),
+    ("logic", ["logic", "tư duy lô-gic", "suy luận logic"]),
     ("math", ["toán", "tư duy định lượng", "xử lí số liệu", "xử lý số liệu"]),
 ]
 
 
 def section_subject(section: str | None) -> str | None:
     t = unicodedata.normalize("NFC", section or "").lower()
+    # "KHOA HỌC hoặc TIẾNG ANH": a choice between parts, or a heading naming several subjects, says nothing
+    named = {subj for subj, keys in SECTION_SUBJECTS if any(k in t for k in keys)}
+    if " hoặc " in t or len(named) > 1:
+        return None
     if not t or "khoa học" in t and not any(k in t for _, ks in SECTION_SUBJECTS[:7] for k in ks):
         return None  # "Khoa học"/"Tư duy khoa học" sections mix subjects
     for subj, keys in SECTION_SUBJECTS:
@@ -321,6 +330,65 @@ def check_subject(q: Question, content: dict) -> Verdict:
         return Verdict(False, f"subject unverified: no content/section evidence for {subj}")
     return Verdict(False, f"subject conflict: assigned {subj}, content suggests {best} ({sc[best]} vs {mine})",
                    details={"suggest": best, "scores": sc})
+
+
+def strip_hsa_watermark(content: dict) -> tuple[dict, bool]:
+    """Remove the "H S A" page watermark the PDF text layer mixes into stems/options ("…equipment.⏎H⇥S⇥A")."""
+    import json
+    c = json.loads(json.dumps(content))
+    changed = False
+
+    def clean(inl: list) -> list:
+        nonlocal changed
+        out, i = [], 0
+        while i < len(inl):
+            seq = inl[i:i + 5]
+            if (len(seq) == 5 and [n.get("t") for n in seq] == ["s", "tab", "s", "tab", "s"]
+                    and [seq[0]["v"].strip(), seq[2]["v"].strip(), seq[4]["v"].strip()] == ["H", "S", "A"]):
+                while out and out[-1].get("t") in ("br", "tab") or (out and out[-1].get("t") == "s"
+                                                                    and not out[-1]["v"].strip()):
+                    out.pop()
+                i += 5
+                changed = True
+                continue
+            n = inl[i]
+            if n.get("t") == "s" and re.search(r"(^|\s)H[ \t]S[ \t]A(\s|$)", n["v"]):
+                n = dict(n, v=re.sub(r"\s*(?<!\w)H[ \t]S[ \t]A(?!\w)\s*", " ", n["v"]).rstrip())
+                changed = True
+            out.append(n)
+            i += 1
+        return out
+    for b in C.walk([c.get("stem"), [o.get("content") for o in c.get("options") or []], c.get("group"),
+                     c.get("solution"), c.get("explanation")]):
+        if b.get("t") == "p":
+            b["c"] = clean(b["c"])
+    return c, changed
+
+
+def solution_contradicts(answer: dict, content: dict) -> str | None:
+    """The solution text clearly paraphrases another option than the key (no letter needed)."""
+    raw = plain_text(content.get("solution") or []) + " " + plain_text(content.get("explanation") or [])
+    sol = norm(raw)
+    if len(sol) < 30 or not answer or answer.get("kind") != "choice" or len(answer["labels"]) != 1:
+        return None
+    stem = unicodedata.normalize("NFC", plain_text(content.get("stem") or [])).lower()
+    # negative questions ("không đúng", "KHÔNG phải", "EXCEPT") restate the true options in their solution, and a
+    # solution that walks through the options by letter is not a paraphrase of one option: neither is comparable
+    if re.search(r"\b(không|chưa|sai|trừ|except|not|false|incorrect)\b", stem) or \
+            re.search(r"(?:^|[\s(])(?:[A-D][.):]|[A-D]\s+(?:sai|đúng|là|is|are)\b|đáp án [A-D]|phương án [A-D])",
+                      raw):
+        return None
+    key = answer["labels"][0]
+    cov = {}
+    for o in content.get("options") or []:
+        ws = [w for w in words(_text_without_math(o.get("content"))) if len(w) > 1]
+        if len(ws) < 4:
+            return None  # short options (numbers, single words) are not comparable this way
+        cov[o["label"]] = sum(1 for w in ws if norm(w) in sol) / len(ws)
+    best = max(cov, key=cov.get)
+    if best != key and cov[best] >= 0.85 and cov.get(key, 0) <= cov[best] - 0.3:
+        return f"solution text matches option {best} ({cov[best]:.0%}) rather than the key {key} ({cov.get(key, 0):.0%})"
+    return None
 
 
 def strip_own_labels(content: dict) -> tuple[dict, list[str]]:
@@ -444,6 +512,17 @@ BATCHES["contamination_only"] = BASE + """
       AND q.question_type = 'single_choice' AND NOT q.has_formula
       AND q.subject_source IN ('upstream_effective', 'admin', 'original')
 """
+# questions flagged only because they come from a PDF text layer, in subjects without mathematics (the text layer
+# can flatten formulas — x², m/s² — which a text comparison cannot detect, so math/physics/chemistry wait)
+BATCHES["pdf_text_nonmath"] = BASE + """
+      AND q.editorial_states = '{NEEDS_REVIEW}' AND q.policy_reasons = ARRAY['state:NEEDS_REVIEW']::varchar[]
+      AND q.review_flags && ARRAY['pdf_text_layer_fidelity']::varchar[]
+      AND q.review_flags <@ ARRAY['pdf_text_layer_fidelity','not_nfc_normalized','option_label_normalized']::varchar[]
+      AND q.question_type = 'single_choice' AND NOT q.has_formula
+      AND q.subject_code IN ('geography','english','literature','biology','history','civics','general')
+      AND NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND f.status = 'open'
+                      AND f.code IN ('ocr_garbage', 'raw_latex_in_text'))
+"""
 TRANSFORMS = {"watermark_only": "watermark"}
 
 
@@ -497,10 +576,17 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             unresolved(f"source not available ({sc.status if sc else 'none'})", record=not transient)
             continue
         if sc.blob_sha256 not in page_cache:
+            # pdftotext of a large document can take a while: never hold a transaction open meanwhile
+            # (idle_in_transaction_session_timeout would kill the connection)
+            db.commit() if apply else db.rollback()
             page_cache[sc.blob_sha256] = store.page_texts(sc.blob_sha256)
+            q = db.scalar(select(Question).options(lazyload(Question.current_version)).where(Question.id == qid))
+            r = S.get_review(db, q)
+            v = S.working_version(db, q, r)
         content, nfc_changed = nfc_content(v.content)
         content, relabelled = strip_own_labels(content)
-        nfc_changed = nfc_changed or bool(relabelled)
+        content, wm_text = strip_hsa_watermark(content)
+        nfc_changed = nfc_changed or bool(relabelled) or wm_text
         wm_removed = False
         if TRANSFORMS.get(batch) == "watermark":
             content, wm_removed = strip_watermarks(content)
@@ -525,7 +611,26 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         if not av.ok:
             unresolved(av.reason, conflict="disagree" in av.reason or "says" in av.reason)
             continue
+        if apply and (q.subject_source == "unclassified" or q.subject_code in (None, "general")):
+            # unclassified: take the subject named by the question's own source section when the content agrees
+            sec = section_subject((q.provenance or {}).get("section"))
+            if sec:
+                txt = " ".join(plain_text(content.get(k) or []) for k in ("stem", "solution")) + " " + " ".join(
+                    plain_text(o.get("content") or []) for o in content.get("options") or [])
+                scores = subject_scores(txt)
+                if scores.get(sec, 0) >= max(scores.values()) or max(scores.values()) < 3:
+                    S.set_subject(db, q, who, sec, f"[{batch}] môn theo mục của tài liệu gốc: "
+                                                   f"“{(q.provenance or {}).get('section')}”", media_root=media_root)
+                    S.confirm(db, q, who, "subject", "ok", f"[{batch}] mục tài liệu gốc: "
+                              f"“{(q.provenance or {}).get('section')}”", media_root=media_root, method=METHOD)
+                    stats["subject_fixed"] += 1
+                    v = S.working_version(db, q, r)
         sv_dims = S.dim_view(q, r, v)["status"]
+        if sv_dims.get("answer") != "ok":
+            contra = solution_contradicts(v.answer, content)
+            if contra:
+                unresolved(contra, conflict=True)
+                continue
         sj = check_subject(q, content) if sv_dims.get("subject") != "ok" else Verdict(
             True, "môn đã được người duyệt xác nhận")
         if not sj.ok:
@@ -607,6 +712,9 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
             db.commit()
             log(f"  {q.external_id}: reverted, served={q.is_served}")
             continue
+        if d.get("clear_subject"):
+            S.set_subject(db, q, who, None, note, media_root=media_root)
+            n["subject_cleared"] = n.get("subject_cleared", 0) + 1
         if d.get("answer"):
             r = S.get_review(db, q)
             if q.review_gate == "ready" and not r.draft_version_id:
