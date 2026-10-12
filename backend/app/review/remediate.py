@@ -718,7 +718,8 @@ FURNITURE = [re.compile(p_, re.I) for p_ in (
 # an exam-section header / divider that the parser glued as extra paragraph(s) to the last option of a section
 SECTION_HEAD = re.compile(r"^\s*(?:\d\.\d\.?\s*(?:TIẾNG ANH|SUY LUẬN KHOA HỌC|TOÁN HỌC|VĂN HỌC|KHOA HỌC|TƯ DUY)|"
                           r"-{3,}\s*Hết chủ đề|ĐỀ ÔN TẬP CHƯƠNG|ĐỀ THI THAM KHẢO|TƯ DUY KHOA HỌC|"
-                          r"PHẦN \d|Read the (?:following )?passage)")
+                          r"PHẦN \d|Read the (?:following )?passage|"
+                          r"\d\.\d[.:]?\s*(?i:Địa l[íý]|Lịch sử|Vật l[íý]|Ho[áà] học|Sinh học|Ngữ văn|Tiếng Anh|Toán học)\s*$)")
 
 
 def option_section_head(content: dict) -> str | None:

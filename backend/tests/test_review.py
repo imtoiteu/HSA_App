@@ -604,3 +604,10 @@ def test_option_section_header_paragraph():
     assert M.option_section_head(c) == "D"
     out, changed = M.strip_furniture(c)
     assert changed and M.option_section_head(out) is None and len(out["options"][1]["content"]) == 1
+    g = {"stem": plain("Hạt được hình thành từ bộ phận nào?"), "options": [
+        {"label": "A", "content": plain("Noãn đã thụ tinh.")},
+        {"label": "D", "content": plain("Bầu nhuỵ.") + plain("3.4: Địa lí")}]}
+    assert M.option_section_head(g) == "D"
+    out, changed = M.strip_furniture(g)
+    assert changed and M.option_section_head(out) is None and M.plain_text(out["options"][1]["content"]).strip() == "Bầu nhuỵ."
+    assert M.option_section_head({"options": [{"label": "A", "content": plain("Địa lí")}]}) is None
