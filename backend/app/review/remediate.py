@@ -192,6 +192,27 @@ def check_group_source(content: dict, member_stems: list, pages: list[str]) -> V
     return Verdict(True, "trong tài liệu gốc, lời dẫn nhóm đứng ngay trước câu đầu của nhóm (không có đoạn dữ liệu chung)")
 
 
+def check_wrong_passage(content: dict) -> Verdict:
+    """A question attached to a passage of another subject (upstream: its number is outside the passage's range):
+    detach it when the question stands on its own."""
+    g = content.get("group") or {}
+    ptxt = plain_text(g.get("passage") or [])
+    stem = unicodedata.normalize("NFC", plain_text(content.get("stem") or [])).strip()
+    if not ptxt.strip():
+        return Verdict(False, "no passage to detach from")
+    m = CONTEXT_REF.search(stem)
+    if m:
+        return Verdict(False, f"stem refers to shared context (“{m.group(1)}”)")
+    if len(re.sub(r"[\W\d_]+", "", stem)) < 25:
+        return Verdict(False, "stem too short to stand alone")
+    q_txt = stem + " " + " ".join(plain_text(o.get("content") or []) for o in content.get("options") or [])
+    ps, qs = subject_scores(ptxt), subject_scores(q_txt)
+    pb, qb = max(ps, key=ps.get), max(qs, key=qs.get)
+    if ps[pb] < 1 or qs[qb] < 1 or pb == qb or qs.get(pb, 0) > 0 or ps.get(qb, 0) > 0:
+        return Verdict(False, f"passage ({pb} {ps[pb]}) and question ({qb} {qs[qb]}) not clearly different subjects")
+    return Verdict(True, f"đoạn chung thuộc môn {pb}, câu hỏi thuộc môn {qb} và tự đủ nghĩa: gắn nhầm đoạn")
+
+
 def check_source_text(content: dict, pages: list[str]) -> Verdict:
     """Stem and every option must occur in the source text, options shortly after the stem."""
     full = [norm(p) for p in pages]
@@ -692,6 +713,12 @@ BATCHES["group_instruction_only"] = BASE.replace(  # the missing-passage finding
 # the same with formulas: the formulas are the bank's READY version (unchanged here), KaTeX-checked by the policy
 BATCHES["group_instruction_only_math"] = BATCHES["group_instruction_only"].replace(
     "AND NOT q.has_formula ", "AND q.has_formula ")
+# upstream READY, attached to a passage whose range does not include it (group_membership_suspect)
+BATCHES["group_detach_wrong_passage"] = BASE + """
+      AND q.editorial_states = '{READY_TO_SERVE}' AND q.policy_reasons = '{group_membership_suspect}'
+      AND q.question_type = 'single_choice' AND NOT q.has_image AND NOT q.has_table
+"""
+DETACH_BATCHES = {"group_detach_wrong_passage"}
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
 TRANSFORMS = {"watermark_only": "watermark"}
@@ -787,6 +814,17 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 S.confirm(db, q, who, "subject", "ok", why, media_root=media_root, method=METHOD)
                 stats["subject_fixed"] += 1
                 r = S.get_review(db, q)
+        group_detached = None
+        if batch in DETACH_BATCHES:
+            # detached already by a reviewer decision (detach_group): the draft stands alone
+            gv = Verdict(True, "tách khỏi đoạn gắn nhầm theo quyết định người duyệt") if content.get("group") is None \
+                else check_wrong_passage(content)
+            if not gv.ok:
+                unresolved(gv.reason)
+                continue
+            if content.get("group") is not None:
+                content = json.loads(json.dumps(content))
+                group_detached, content["group"] = content["group"], None
         sv = check_source_text(content, page_cache[sc.blob_sha256])
         trimmed = []
         if not sv.ok and "options" in sv.reason:
@@ -842,19 +880,20 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 + ("; watermark removed" if wm_removed else ""))
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
-        if nfc_changed or wm_removed or trimmed or group_marked:
+        if nfc_changed or wm_removed or trimmed or group_marked or group_detached:
             what = "; ".join(x for x in ("nhóm chỉ có lời dẫn, không có đoạn dữ liệu chung (đối chiếu tài liệu gốc)"
-                                         if group_marked else "","chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
+                                         if group_marked else "",
+                                         f"tách khỏi đoạn chung gắn nhầm ({gv.reason})" if group_detached else "","chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
                                          "bỏ ảnh quảng cáo/watermark Tailieuchuan.vn (không thuộc câu hỏi)"
                                          if wm_removed else "",
                                          f"cắt dòng thừa dính vào phương án {', '.join(trimmed)} theo đúng tài liệu gốc"
                                          if trimmed else "") if x)
             edit = {"stem": content["stem"], "options": content["options"], "solution": content.get("solution"),
                     "explanation": content.get("explanation")}
-            if content.get("group") is not None:
+            if content.get("group") is not None or group_detached:
                 edit["group"] = content["group"]
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
-            stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked)
+            stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached)
             stats["visual_fixed"] += wm_removed
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)
@@ -916,6 +955,9 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
         if d.get("clear_subject"):
             S.set_subject(db, q, who, None, note, media_root=media_root)
             n["subject_cleared"] = n.get("subject_cleared", 0) + 1
+        if d.get("detach_group"):  # read: the passage belongs to other questions, this one stands on its own
+            S.save_edit(db, q, who, {"group": None}, note=note, media_root=media_root)
+            n["group_detached"] = n.get("group_detached", 0) + 1
         if d.get("text_fix"):  # {"part": "stem", "old": ..., "new": ...}: one exact run of text, verified against the source
             fx = d["text_fix"]
             r = S.get_review(db, q)

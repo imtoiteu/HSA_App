@@ -1,0 +1,590 @@
+[
+ {
+  "cq_id": "cq_04a6e88bf9f6a7a9",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_0be76deaee4f1cc2",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_0fd40d252ab3b336",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_10963d72884ae3bb",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_128d91619db606e9",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_14f9f19d527a9bfc",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_1a0d2ce2b45ea811",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_1a345a4e6f53e127",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_2160e5c15fb65898",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_2280d447edbafae7",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_234743a03e444f52",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_23de25af999e5f48",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_296f79986830ab63",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_2d18336e31049055",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_2f04f2fad9c95c47",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_2f3708efea522e83",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_313ffc28359baf0a",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_343fc8dc239eb3bf",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_3ad408b0a243e913",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_3d1e8032296b61bd",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_434dc7ec644cc7ce",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_45dbf29c4cb3fa1e",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_484a955443e715da",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_49e6e09f41198aba",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_4f231fa09d4e724f",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_4f9c06aa0d095893",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_52f80ccb4f873fbf",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_54d54765b469e2da",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_589984957a62a0f0",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_59e7f0252ed30cea",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_5cb44b20ecbe894c",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_5e113d26d9e32914",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_6024d54198674d88",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_6221d408f9ddd960",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_62c2e678f440f5f8",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_64c512a6fd45db00",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_698b2929158b647c",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_6cb9a89bccf01942",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_6e000652d2819196",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_70683572f2626855",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_7474564d3893b23f",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_76a830e8d5cbe3ed",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_7d3f37789914a652",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_7dc44f3e62d628f5",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_7f5db316fb492b7d",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_81c40f7ffe4cada3",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_82e9684876d7d24f",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_83076ae536b853c5",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_8389b471c63386fc",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_8c18c930db4c60b5",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_8fb132aa643aba16",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_90310a6e12098ad6",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_90d21f479630e69a",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_9100f15c5256b010",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_9b724abfcfd70d24",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_9c60f681986e405d",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_a360b642e78d101a",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_a3a54c2b19c571a3",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_a738486dab251821",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_a7e22230f1e48d5e",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_a84bb0cb3bdb8676",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_a98dc789037d4894",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_ab87a9193af422f6",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_acb12ef8b0ffda42",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_ae784fab15163fed",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_afed682cd30b397f",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_b316925de9817037",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_b4d5d641cfe3074d",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_b4f5c547d3a27b0e",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_b7c7a0ee5e5582d4",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_b9a9d4cc2d0b61c3",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_c80fc7d0bb89a3ff",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_c9cf3b3b62b58718",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_cadc59475c8b0176",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_d3257605750e5fe4",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_d35867719a4e5738",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_d449e0008c2be697",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_dacf06be030a58de",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_dd3e205ea33a13a8",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_dd66ab4e991a6061",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_e0253cc6c37bab42",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_e305a7b5b6e2ebdf",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_e357952422cd229a",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_e3f945d13bb0de72",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_e63181ffebfd33af",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_ea6382df94886781",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_ebef0e7bd83ab779",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_ef737b76ec1014ff",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_f0ca993a8bd3cc0a",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_f2c23af7c02f87ff",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_f44246b447f137b0",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_f5006a6234ce6b64",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_f581d8acf1272d65",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_f61588ecacc38814",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Tiếng Anh",
+  "subject": "english"
+ },
+ {
+  "cq_id": "cq_f6e90d34d74f2739",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_f741cbb44d0af656",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_fac2df924d8c2b85",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_fb206a4acf902350",
+  "detach_group": true,
+  "note": "Đoạn chung gắn nhầm (số câu nằm ngoài phạm vi của đoạn; nội dung đoạn không liên quan); câu hỏi tự đủ nghĩa — môn Địa lí",
+  "subject": "geography"
+ }
+]

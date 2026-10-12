@@ -188,8 +188,13 @@ def derive_fields(db: Session, q: Question, v: QuestionVersion, failing: set | N
     q.scoring_mode = mode
     if failing is None:
         failing = set(db.scalars(select(FormulaCheck.tex_sha).where(FormulaCheck.ok.is_(False))))
+    if c.get("group") is None and q.group_key:
+        # the reviewed version stands alone (detached from a passage it was wrongly attached to): it is no longer
+        # served together with that group, and the upstream membership warning no longer applies
+        q.group_key = None
     keep = [f for f in q.content_flags or [] if f not in C.CONTENT_FLAGS
-            and f not in ("formula_render_error", "solution_formula_render_error")]
+            and f not in ("formula_render_error", "solution_formula_render_error")
+            and not (f == "group_membership_suspect" and c.get("group") is None)]
     q.content_flags = sorted(set(keep) | C.derived_flags(c, a) | set(formula_flags(c, failing)))
 
 

@@ -1,0 +1,968 @@
+[
+ {
+  "cq_id": "cq_03397b824676b063",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_0395135e81274aee",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Ngữ văn",
+  "confirm_subject": true
+ },
+ {
+  "cq_id": "cq_2df8a2dd77c96313",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_39ac15a5784751d8",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_482bf0bbc4170080",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_4badaeb6f192b462",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_4ef6ccf871b82829",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_52640c59835bffdc",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_5a0fdc592b6947be",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_6660195c224f513b",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_78b527668837e04e",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_90114d2526ae3824",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_a608dbfae87d625e",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_ad884c561cfa0c93",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_af6893a367525b4c",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_bb08ec0eda01846a",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_bbc81609c86106d8",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_bf27fe947077fa41",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_c6653f024c8c9362",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_d27e49e21758269b",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_d75df99f5df75d75",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_0028e25e4cbf4c66",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_069b1221d16710e5",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_06aa4f0c1778aef0",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_09329e43fcc22dad",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_0f248b81fcfffd9d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_18de06d97b2c9036",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_1b95fb70c8176868",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_1cb43606668eb70a",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_1f2e647ccbd35168",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_209077d96359450d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_2603f6ea654438de",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_2a7607bf220717b1",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_2b466ab33f3d7a6d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_2ed2f7dbe5eac617",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_304e2a7774cb5915",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_33821ee2febcabb2",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_341b3720c222cef9",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_34f6bb16898a5499",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_37b8e6b1088a80fa",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_3b3a7eaa256bbace",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_3bfaf50ed1c93d32",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_3d3b20fdcda4d500",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_3ffc68485baf2a78",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_407985bf8a91086d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_40dec368b20ca2e7",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_436e93e7b0e0766d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_439c0c3de23b3a8e",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_477828b22dbcde54",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_481866015b0ce5dd",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_4845789966fe0749",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_49fbeb1b4d2d4e03",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_4c903980d746a144",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_4f4a8fdb71f42ea5",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_50de4f7ad314804d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_50e756b7a2480150",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_514d494bdcdc50f5",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_51b6150bd0fbb8ed",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_52a553012bae483e",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_54e229fa2b7cda25",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_58b7aaaa160b4471",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_59876ff8c3855eb1",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_5b31846a51df040d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_5d969e3c59a7a532",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_5e10e3dcb7883844",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_5f03fdcb5a641863",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_5f805c759d8af5e5",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_627e58f3d8d5dcdd",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_629e63e481acc483",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_69584a59afdf1e39",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_6a54173e8c10974b",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_6a9e0cff7e8db5de",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_6b801fe34b122884",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_6dc255e45be84fd8",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_6f11e978111794b5",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_6fb75738269099e0",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_732dd6e8fcd8850d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_7459ef1cfb921935",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_75101fb97cdbcecb",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_775f1d5ee57860f8",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_780ac39b4f76ac1d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_781647d3694dc300",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_78eec51705091990",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_7991886ba7a6abaf",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_7d42e750715e7328",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_7fdffa67f4047dad",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_870a983ed1b49bd0",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_8c458b8674debe67",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_8c5acd8a09906e65",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_8fe4990818aa6858",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_91ec6ce1f9f731b9",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_92202bdb272cd263",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_969f37ac59c2b825",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_98210b92beea8a20",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_9bcac4a914b58810",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_9d17704a74a11aa8",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_9d3004f5cf2c52ce",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_9dc9f586f5176a9c",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_9e7d4a12d8080737",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_a18c0b6eaebac778",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_a911041de5407527",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_ab6987194ccf36bc",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_ab9f39441aa93a66",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_acf6c4d9573e3c6e",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_ae79c3d177cc725b",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_b0d61e5e24aaf049",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_b218180b5adb4c48",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_b21ee1c2f647623d",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_b31519cec78478b8",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_b85d15e41ee1e057",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_bbd75d09155ad8dc",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_bccfe195590a9878",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_bd4f2731954a16cf",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_be5b798f42fc1271",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_bf52398ab9491760",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_c36713cf1b4404cd",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_c3ec6fb14eb268b8",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_c46a22a1023cd3af",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_c4f9b2984fc93a53",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_c58ebf7b9db12265",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_c5e7a70dbb314a62",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_c61d88877666e2d5",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_c72f28161ab9fa49",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_c762d266a65844dc",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_cb8cb768c23c031a",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_cda10c8179ac83f2",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_d0748ba4c12bd44a",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_d1a8acf27b7a0b94",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_d3496a4287782ec4",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_d3c03d67c69ced60",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_d3d8f3d959827ac4",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_d3e0b501b538f111",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_d6d1b8d800c5469a",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_d6e4932a28f8eec4",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_d88626e420b2618b",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_d9ad4bbec3ba6705",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_da4a125ab2a48b87",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_dc8c33ca7eff4ba4",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_dfd8443c26892fbb",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_e05a8219f3241535",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_e21e3269bacf3531",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_e2457c54ee247b54",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_e59daaefc98ca2c6",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_e6338d99b4186fd3",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_e6fa27c74912dd42",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_ea2b8c919e511fda",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_ea7c4465a86692bd",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_eaa3f942bbcffb94",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_ec9680b981bf458b",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_ed2e6fc810ff09a5",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_ed3dfd600420dd67",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_ed990cd2f2a5179a",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_ee16ecd21fc8be71",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_f2fd549a4857509c",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_f83fa51f518f8870",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_f8613f3b286973e4",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án B đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_f8f7549cb9ddfb10",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_fae19c7d40b715f9",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_fb8c03b0800ec1f1",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án C đúng, khớp bảng đáp án của tài liệu gốc; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_fbe25beb04ddbe49",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án A đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_ffa0bb8a556cbc7f",
+  "confirm_answer": true,
+  "note": "Tự giải độc lập: đáp án D đúng, khớp bảng đáp án của tài liệu gốc; môn Vật lí",
+  "subject": "physics"
+ }
+]

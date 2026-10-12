@@ -501,3 +501,15 @@ def test_group_instruction_only():
     lost = [pages[0].replace("blank.\n", "blank.\nThe history of the bicycle began in the early nineteenth century when "
                                          "inventors in Europe tried many designs for a human powered machine.\n")]
     assert not M.check_group_source(c, stems, lost).ok
+
+
+def test_check_wrong_passage():
+    from app.review import remediate as M
+    hist = [{"t": "p", "c": [{"t": "s", "v": "Hiệp định Giơnevơ năm 1954 về Đông Dương được kí kết đã chấm dứt cuộc "
+                                             "chiến tranh xâm lược của thực dân Pháp; cách mạng, kháng chiến, thực dân."}]}]
+    c = {"stem": plain("Một con lắc lò xo dao động điều hòa với biên độ 5 cm và tần số 2 Hz. Vận tốc cực đại là"),
+         "options": [{"label": l, "content": plain(t)} for l, t in zip("ABCD", ["20π cm/s", "10π cm/s", "5π cm/s", "2π cm/s"])],
+         "group": {"key": "g", "header": plain("Dựa vào thông tin được cung cấp sau đây để trả lời"), "passage": hist}}
+    assert M.check_wrong_passage(c).ok
+    assert not M.check_wrong_passage(dict(c, stem=plain("Theo đoạn trích, hiệp định được kí năm nào?"))).ok
+    assert not M.check_wrong_passage(dict(c, group={"key": "g", "header": [], "passage": []})).ok
