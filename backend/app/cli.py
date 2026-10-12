@@ -152,6 +152,14 @@ def cmd_remediate(a):
     print(json.dumps(r, ensure_ascii=False))
 
 
+def cmd_review_decide(a):
+    """Apply reviewer decisions from a JSON file (see review/remediate.apply_decisions)."""
+    from .review.remediate import apply_decisions
+    db = SessionLocal()
+    print(json.dumps(apply_decisions(db, json.load(open(a.file, encoding="utf-8")),
+                                     media_root=get_settings().media_root), ensure_ascii=False))
+
+
 def cmd_worker(a):
     """Scheduler loop: source documents for the Review Studio (every few seconds), maintenance and the
     incremental review refresh (every HSA_MAINTENANCE_INTERVAL seconds) in niced subprocesses."""
@@ -161,6 +169,11 @@ def cmd_worker(a):
     interval = int(os.environ.get("HSA_MAINTENANCE_INTERVAL", "300"))
     last = 0.0
     db = SessionLocal()
+    if not a.no_sources:  # a document left "preparing" by a killed worker (deploy, restart) is queued again
+        from sqlalchemy import update as _upd
+        from .models import SourceCache
+        db.execute(_upd(SourceCache).where(SourceCache.status == "preparing").values(status="queued"))
+        db.commit()
     while True:
         if not a.no_sources:
             try:
@@ -275,6 +288,9 @@ def main(argv=None):
     s.add_argument("--apply", action="store_true", help="write the fixes/approvals (default: dry run)")
     s.add_argument("--quiet", action="store_true")
     s.set_defaults(fn=cmd_remediate)
+    s = sub.add_parser("review-decide", help="apply reviewer decisions (JSON) through the review workflow")
+    s.add_argument("file")
+    s.set_defaults(fn=cmd_review_decide)
     s = sub.add_parser("worker", help="scheduler loop (source documents, maintenance, review refresh)")
     s.add_argument("--sources-only", action="store_true", help="only prepare source documents (sources service)")
     s.add_argument("--no-sources", action="store_true", help="everything except source documents")

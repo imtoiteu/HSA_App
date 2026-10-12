@@ -352,3 +352,16 @@ def test_remediation_matching_unit():
     fixed, changed = M.nfc_content(nfd)
     assert changed and fixed["stem"][0]["c"][0]["v"] == "Tiếng Việt"
     assert M.LABEL_RE.search("Vậy chọn đáp án C.").group(1) == "C"
+
+
+def test_strip_watermarks_unit():
+    from app.review import remediate as M
+    wm = sorted(M.WATERMARKS)[0]
+    c = {"stem": [{"t": "p", "c": [{"t": "s", "v": "Câu hỏi "}, {"t": "s", "v": "("},
+                                   {"t": "img", "src": f"{wm[:2]}/{wm}.png", "inline": True}, {"t": "s", "v": ")"}]},
+                  {"t": "p", "c": [{"t": "s", "v": "Đọc đoạn trích."}]},
+                  {"t": "img", "src": f"{wm[:2]}/{wm}.png"}],
+         "options": [{"label": "A", "content": plain("x")}], "solution": None, "explanation": None, "group": None}
+    out, changed = M.strip_watermarks(c)
+    assert changed and C.images(out) == [] and out["stem"][1]["c"][0]["v"] == "Đọc đoạn trích."
+    assert M.strip_watermarks(out)[1] is False

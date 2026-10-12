@@ -136,6 +136,66 @@ def check_answer(q: Question, answer: dict | None, content: dict, up: Upstream) 
                    + ("; solution agrees" if said else ""), details={"evidence": kinds})
 
 
+# Content-based subject signal (cross-check only: it never assigns a subject by itself)
+SUBJECT_TERMS = {
+    "physics": ["dao động", "con lắc", "lò xo", "bước sóng", "tần số", "điện áp", "cường độ dòng điện", "điện trở",
+                "tụ điện", "cuộn cảm", "hạt nhân", "phân hạch", "phóng xạ", "photon", "quang điện", "gia tốc",
+                "vận tốc", "động năng", "thế năng", "công suất", "mev", "từ trường", "khúc xạ", "thấu kính",
+                "giao thoa", "sóng cơ", "sóng điện từ", "chu kì", "biên độ", "suất điện động", "trọng lực", "lực ma sát"],
+    "chemistry": ["phản ứng", "dung dịch", "mol", "nguyên tử", "phân tử", "oxi hóa", "oxi hoá", "axit", "bazơ",
+                  "kim loại", "este", "ancol", "polime", "hợp chất", "nguyên tố", "cation", "anion", "kết tủa",
+                  "điện phân", "hiđrocacbon", "amin", "glucozơ", "chất béo", "liên kết ion", "liên kết cộng hóa trị",
+                  "số oxi hóa", "đồng vị", "hóa trị", "hoá trị", "nồng độ"],
+    "biology": ["gen", "adn", "arn", "nhiễm sắc thể", "tế bào", "quần thể", "quần xã", "đột biến", "di truyền",
+                "alen", "kiểu gen", "kiểu hình", "sinh vật", "enzim", "hệ sinh thái", "quang hợp", "hô hấp",
+                "tiến hóa", "tiến hoá", "loài", "nuclêôtit", "prôtêin", "thụ tinh"],
+    "math": ["hàm số", "phương trình", "bất phương trình", "đồ thị hàm", "đạo hàm", "tích phân", "nguyên hàm",
+             "logarit", "số phức", "hình chóp", "lăng trụ", "thể tích", "xác suất", "cấp số", "giới hạn", "vectơ",
+             "tọa độ", "toạ độ", "đường tròn", "mặt phẳng", "giá trị lớn nhất", "giá trị nhỏ nhất", "tổ hợp",
+             "chỉnh hợp", "dãy số", "tam giác", "hình vuông", "cực trị", "tiệm cận", "nghiệm"],
+    "history": ["chiến tranh", "cách mạng", "kháng chiến", "thực dân", "đế quốc", "hiệp định", "phong trào",
+                "khởi nghĩa", "việt minh", "liên xô", "chiến dịch", "triều đại", "đảng cộng sản", "chiến thắng"],
+    "geography": ["khí hậu", "địa hình", "dân số", "đồng bằng", "lượng mưa", "nông nghiệp", "công nghiệp",
+                  "tây nguyên", "duyên hải", "trung du", "miền núi", "lãnh thổ", "gió mùa", "sản lượng", "vùng kinh tế"],
+    "literature": ["đoạn trích", "tác giả", "bài thơ", "văn bản", "nhân vật", "tác phẩm", "biện pháp tu từ",
+                   "thể thơ", "phong cách ngôn ngữ", "từ láy", "chính tả", "câu văn", "tiểu thuyết", "truyện ngắn",
+                   "từ hán việt", "thành ngữ", "phương thức biểu đạt", "nghĩa của từ", "lỗi dùng từ"],
+}
+EN_STOP = {"the", "of", "and", "to", "is", "in", "that", "for", "which", "with", "was", "are", "be", "this"}
+
+
+def subject_scores(text_: str) -> dict:
+    t = " " + unicodedata.normalize("NFC", text_ or "").lower() + " "
+    out = {k: sum(len(re.findall(r"(?<!\w)" + re.escape(w) + r"(?!\w)", t)) for w in ws) for k, ws in SUBJECT_TERMS.items()}
+    toks = re.findall(r"[a-z]+", t)
+    out["english"] = sum(1 for w in toks if w in EN_STOP) // 2 if len(toks) > 15 else 0
+    return out
+
+
+def check_subject(q: Question, content: dict) -> Verdict:
+    """SUBJECT_OK when the content agrees with the label, or a high-confidence upstream label is not contradicted."""
+    subj = q.subject_code
+    if not subj or q.subject_source == "unclassified" or subj == "general":
+        return Verdict(False, "subject unclassified")
+    txt = " ".join(plain_text(content.get(k) or []) for k in ("stem", "solution", "explanation"))
+    txt += " " + " ".join(plain_text(o.get("content") or []) for o in content.get("options") or [])
+    if content.get("group"):
+        txt += " " + plain_text(content["group"].get("passage") or [])
+    sc = subject_scores(txt)
+    best = max(sc, key=sc.get)
+    mine = sc.get(subj, 0)
+    if mine >= 2 and mine >= sc[best] - 1:
+        return Verdict(True, f"nội dung khớp môn {subj} (từ khoá {mine})")
+    high = q.classification_confidence == "high" or q.classification_source in ("semantic_correction",
+                                                                                  "semantic_assignment")
+    contradict = sc[best] >= 3 and best != subj and sc[best] >= mine + 3
+    if high and not contradict:
+        return Verdict(True, f"phân loại cuối của ngân hàng ({q.classification_source}/{q.classification_confidence}),"
+                             f" nội dung không mâu thuẫn")
+    return Verdict(False, f"subject conflict: assigned {subj}, content suggests {best} ({sc[best]} vs {mine})",
+                   details={"suggest": best, "scores": sc})
+
+
 def nfc_content(content: dict) -> tuple[dict, bool]:
     """Unicode NFC normalisation of every text node (deterministic, meaning-preserving)."""
     changed = False
@@ -154,6 +214,56 @@ def nfc_content(content: dict) -> tuple[dict, bool]:
     return c, changed
 
 
+# "Tailieuchuan.vn" banners embedded by a source website (visually confirmed, 2026-10-12): not part of any question
+WATERMARKS = {
+    "a4b022077981d5dbcc0feeb990de5671098fbea25bdade599db0292c95b7a18b",
+    "c4796d86d42277958300f20c4208d88183fe6130e4d7b198d76001dafe26a716",
+    "4655edcbfe27beb8ece86c67ab0b0b7b31df4239b7adb2ee1e5a3264d9a4d149",
+    "93e78c19553cd1796d016c74a411686271fae5ec044ff199ae3f45fa36bb4c23",
+    "f13fc4235b889530d1b3165535d270f3a4f128855b3a1d284243c7aed705b204",
+    "4b2618f1262e8fcf86ddbd4303b25e5c635c0259aca2fe1f7f410c136471553e",
+}
+
+
+def strip_watermarks(content: dict) -> tuple[dict, bool]:
+    import json
+    c = json.loads(json.dumps(content))
+    changed = False
+
+    def is_wm(n):
+        return n.get("t") == "img" and (n.get("src") or "").split("/")[-1].split(".")[0] in WATERMARKS
+
+    def clean_blocks(blocks):
+        nonlocal changed
+        out = []
+        for b in blocks or []:
+            if is_wm(b):
+                changed = True
+                continue
+            if b.get("t") == "p":
+                inl = [n for n in b["c"] if not is_wm(n)]
+                if len(inl) != len(b["c"]):
+                    changed = True
+                    # drop leftover brackets/whitespace around the banner, e.g. "(" "Tailieuchuan.vn" ")"
+                    if not plain_text([{"t": "p", "c": inl}]).strip(" ()[]\t\n") and not any(
+                            n.get("t") in ("m", "img") for n in inl):
+                        continue
+                    b = dict(b, c=inl)
+            elif b.get("t") == "table":
+                b = dict(b, rows=[[dict(cell, c=clean_blocks(cell["c"])) for cell in row] for row in b["rows"]])
+            out.append(b)
+        return out
+    for k in ("stem", "solution", "explanation"):
+        if c.get(k):
+            c[k] = clean_blocks(c[k])
+    for o in c.get("options") or []:
+        o["content"] = clean_blocks(o["content"])
+    if c.get("group"):
+        for k in ("header", "passage"):
+            c["group"][k] = clean_blocks(c["group"].get(k))
+    return c, changed
+
+
 # ------------------------------------------------------------------------------------------------
 # batches (candidate queries). Every batch excludes questions under review, drafts and review decisions.
 # ------------------------------------------------------------------------------------------------
@@ -161,15 +271,25 @@ BASE = """
   q.removed_upstream = false AND q.review_gate IS NULL AND r.draft_version_id IS NULL
   AND r.status IN ('none') AND r.findings_critical = 0 AND r.dirty = false
 """
+_WM_RE = "|".join("as_" + w[:16] for w in sorted(WATERMARKS))
 BATCHES = {
     # upstream NEEDS_REVIEW only because of Unicode/label normalisation, nothing else
     "normalization_only": BASE + """
       AND q.editorial_states = '{NEEDS_REVIEW}' AND q.policy_reasons = ARRAY['state:NEEDS_REVIEW']::varchar[]
       AND q.review_flags <@ ARRAY['not_nfc_normalized','option_label_normalized']::varchar[]
       AND q.state_notes = '{}' AND q.question_type = 'single_choice' AND NOT q.has_formula
-      AND q.subject_source = 'upstream_effective' AND q.classification_review IS NULL
+      AND q.subject_source IN ('upstream_effective', 'admin', 'original')
+    """,
+    # upstream NEEDS_VISUAL_REVIEW only because of a website watermark banner (removed by the batch)
+    "watermark_only": BASE + f"""
+      AND q.editorial_states = '{{NEEDS_VISUAL_REVIEW}}'
+      AND q.policy_reasons = ARRAY['state:NEEDS_VISUAL_REVIEW']::varchar[]
+      AND NOT EXISTS (SELECT 1 FROM unnest(q.state_notes) n WHERE n !~ '({_WM_RE})')
+      AND q.question_type = 'single_choice' AND NOT q.has_formula
+      AND q.subject_source IN ('upstream_effective', 'admin', 'original')
     """,
 }
+TRANSFORMS = {"watermark_only": "watermark"}
 
 
 def candidates(db: Session, batch: str, limit: int | None) -> list[int]:
@@ -193,7 +313,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         v = S.working_version(db, q, r)
         stats["examined"] += 1
 
-        def unresolved(reason, conflict=False):
+        def unresolved(reason, conflict=False, record=True):
             stats["unresolved"] += 1
             key = reason.split(":")[0][:60]
             stats["reasons"][key] = stats["reasons"].get(key, 0) + 1
@@ -203,7 +323,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             last = db.scalar(select(ReviewEvent.note).where(ReviewEvent.question_id == q.id,
                                                             ReviewEvent.action == "remediation_skip")
                              .order_by(ReviewEvent.id.desc()).limit(1))
-            if apply and last != note:  # the reason is recorded once, not on every run
+            if apply and record and last != note:  # the reason is recorded once, not on every run
                 db.add(ReviewEvent(question_id=q.id, external_id=q.external_id, actor_id=who.id,
                                    action="remediation_skip", changes=[], note=note))
                 db.commit()
@@ -212,11 +332,18 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         doc = (q.provenance or {}).get("document_id")
         sc = db.get(SourceCache, doc) if doc else None
         if not sc or sc.status != "ready" or not sc.blob_sha256:
-            unresolved(f"source not available ({sc.status if sc else 'none'})")
+            transient = sc is not None and sc.status in ("queued", "preparing")
+            unresolved(f"source not available ({sc.status if sc else 'none'})", record=not transient)
             continue
         if sc.blob_sha256 not in page_cache:
             page_cache[sc.blob_sha256] = store.page_texts(sc.blob_sha256)
         content, nfc_changed = nfc_content(v.content)
+        wm_removed = False
+        if TRANSFORMS.get(batch) == "watermark":
+            content, wm_removed = strip_watermarks(content)
+            if C.images(content) or C.has_table(content):
+                unresolved("other figures remain after removing the watermark (needs a visual check)")
+                continue
         sv = check_source_text(content, page_cache[sc.blob_sha256])
         if not sv.ok:
             unresolved(sv.reason, conflict=True)
@@ -225,27 +352,43 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         if not av.ok:
             unresolved(av.reason, conflict="disagree" in av.reason or "says" in av.reason)
             continue
+        sv_dims = S.dim_view(q, r, v)["status"]
+        sj = check_subject(q, content) if sv_dims.get("subject") != "ok" else Verdict(
+            True, "môn đã được người duyệt xác nhận")
+        if not sj.ok:
+            unresolved(sj.reason)
+            continue
         if not apply:
             stats["promoted"] += 1
-            log(f"  OK   {q.external_id} p.{sv.page}: {sv.reason}; {av.reason}" + ("; NFC fix" if nfc_changed else ""))
+            log(f"  OK   {q.external_id} [{q.subject_code}: {sj.reason}] p.{sv.page}: {sv.reason}; {av.reason}" + ("; NFC fix" if nfc_changed else "")
+                + ("; watermark removed" if wm_removed else ""))
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
-        if nfc_changed:
-            S.save_edit(db, q, who, {"stem": content["stem"], "options": content["options"],
-                                     "solution": content.get("solution"), "explanation": content.get("explanation")},
-                        note=f"[{batch}] chuẩn hoá Unicode NFC (không đổi nội dung)", source_ref=ref, media_root=media_root)
-            stats["structural_fixed"] += 1
+        if nfc_changed or wm_removed:
+            what = "; ".join(x for x in ("chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
+                                         "bỏ ảnh quảng cáo/watermark Tailieuchuan.vn (không thuộc câu hỏi)"
+                                         if wm_removed else "") if x)
+            edit = {"stem": content["stem"], "options": content["options"], "solution": content.get("solution"),
+                    "explanation": content.get("explanation")}
+            if content.get("group") is not None:
+                edit["group"] = content["group"]
+            S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
+            stats["structural_fixed"] += nfc_changed
+            stats["visual_fixed"] += wm_removed
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)
         notes = {
             "content": f"[{batch}] {sv.reason} (trang {sv.page})",
             "answer": f"[{batch}] {av.reason}",
             "formula": f"[{batch}] không có công thức",
-            "visual": f"[{batch}] hình/bảng nhúng trong tài liệu gốc, tệp tồn tại" if has_vis else f"[{batch}] không có hình",
-            "subject": f"[{batch}] phân loại cuối của ngân hàng: {q.upstream_effective_subject}",
+            "visual": f"[{batch}] hình/bảng nhúng trong tài liệu gốc, tệp tồn tại" if has_vis else (
+                f"[{batch}] chỉ có ảnh watermark (đã bỏ); câu không cần hình" if wm_removed else f"[{batch}] không có hình"),
+            "subject": f"[{batch}] {q.subject_code}: {sj.reason}",
             "source": f"[{batch}] {doc} trang {sv.page}, sha256 {sc.blob_sha256[:12]} đã xác minh",
         }
         for dim in C.DIMENSIONS:
+            if dim == "subject" and S.dim_view(q, r, v)["status"].get("subject") == "ok":
+                continue  # keep the reviewer's confirmation
             state = "ok"
             if dim in ("formula",) and not C.collect_tex(v.content):
                 state = "na"
@@ -267,3 +410,25 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
     if apply:
         db.commit()
     return stats
+
+
+def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=print) -> dict:
+    """Reviewer decisions made by reading the question (and its source): [{"cq_id", "subject"?, "note",
+    "confirm_subject"?: bool}]. A subject change is an app override (never written upstream)."""
+    who = actor(db)
+    n = {"subject_fixed": 0, "subject_confirmed": 0, "missing": 0}
+    for d in decisions:
+        q = db.scalar(select(Question).where(Question.external_id == d["cq_id"]))
+        if q is None:
+            n["missing"] += 1
+            continue
+        note = f"[claude_review] {d['note']}"
+        if d.get("subject") and d["subject"] != q.subject_code:
+            S.set_subject(db, q, who, d["subject"], note, media_root=media_root)
+            n["subject_fixed"] += 1
+        if d.get("subject") or d.get("confirm_subject"):
+            S.confirm(db, q, who, "subject", "ok", note, media_root=media_root, method="claude_review")
+            n["subject_confirmed"] += 1
+        db.commit()
+        log(f"  {q.external_id}: subject={q.subject_code}")
+    return n
