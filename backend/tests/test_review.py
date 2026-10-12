@@ -643,3 +643,10 @@ def test_page_footer_stripped_case_sensitive():
     assert M.plain_text(out["stem"]).strip() == "Hai nước thiết lập quan hệ hợp tác với nhiều nước trên thế giới."
     assert M.plain_text(out["options"][0]["content"]).strip() == "Căn cứ vào Atlat Địa lí Việt Nam trang 12"
     assert not M.plain_text(out.get("solution") or []).strip()
+
+
+def test_answer_linking_formula_batch():
+    from app.review import remediate as M
+    q = M.BATCHES["answer_linking_formula"]
+    assert "AND q.has_formula AND NOT q.has_image" in q and "<> 'pdf_text_layer'" in q
+    assert "answer_linking_formula" in M.ANSWER_BATCHES
