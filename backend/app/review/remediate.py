@@ -1112,7 +1112,18 @@ BATCHES["answer_linking_pdf"] = BATCHES["answer_linking"].replace(
     "AND q.review_flags <@ ARRAY['pdf_text_layer_fidelity','not_nfc_normalized','option_label_normalized',"
     "'missing_answer']::varchar[] AND NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id "
     "AND f.status = 'open' AND f.code IN ('ocr_garbage', 'raw_latex_in_text'))")
-ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf"}
+# upstream has a key, but its mapping to the question is not trustworthy (ambiguous key table, highlight only,
+# solution ordinal mismatch): the answer is re-solved independently (answer decision) before promotion
+BATCHES["answer_ambiguous"] = BASE + """
+      AND q.editorial_states = '{NEEDS_REVIEW}' AND q.policy_reasons = ARRAY['state:NEEDS_REVIEW']::varchar[]
+      AND q.review_flags && ARRAY['answer_mapping_ambiguous','answer_from_highlight_only',
+                                  'solution_link_ordinal_mismatch']::varchar[]
+      AND q.review_flags <@ ARRAY['answer_mapping_ambiguous','answer_from_highlight_only','solution_link_ordinal_mismatch',
+                                  'not_nfc_normalized','option_label_normalized']::varchar[]
+      AND q.question_type = 'single_choice' AND NOT q.has_formula AND NOT q.has_image AND NOT q.has_table
+      AND (q.provenance->>'extraction_method') <> 'pdf_text_layer'
+"""
+ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf", "answer_ambiguous"}
 PLAIN_BATCHES.add("answer_linking_pdf")
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 # the same with formulas (the formulas are the bank's version; only the figure was flagged)
