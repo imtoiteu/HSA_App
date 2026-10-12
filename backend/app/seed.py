@@ -17,6 +17,7 @@ SUBJECTS = [
     ("biology", "Sinh học", "Sinh", "#65a30d", 70, ["biology"]),
     ("history", "Lịch sử", "Sử", "#b45309", 80, ["history"]),
     ("geography", "Địa lý", "Địa", "#0d9488", 90, ["geography"]),
+    ("civics", "Giáo dục công dân – Pháp luật", "GDCD", "#9333ea", 95, ["civics", "civic_education"]),
     ("logic", "Tư duy logic", "Logic", "#4f46e5", 100, ["logic_reasoning"]),
     ("general", "Tổng hợp (chưa phân loại)", "Tổng hợp", "#64748b", 200, [""]),
 ]

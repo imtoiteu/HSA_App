@@ -247,6 +247,10 @@ SUBJECT_TERMS = {
                 "khởi nghĩa", "việt minh", "liên xô", "chiến dịch", "triều đại", "đảng cộng sản", "chiến thắng"],
     "geography": ["khí hậu", "địa hình", "dân số", "đồng bằng", "lượng mưa", "nông nghiệp", "công nghiệp",
                   "tây nguyên", "duyên hải", "trung du", "miền núi", "lãnh thổ", "gió mùa", "sản lượng", "vùng kinh tế"],
+    "civics": ["pháp luật", "công dân", "vi phạm", "quyền và nghĩa vụ", "nghĩa vụ", "khiếu nại", "tố cáo", "bầu cử",
+               "ứng cử", "hợp đồng", "khởi kiện", "tòa án", "toà án", "trách nhiệm pháp lí", "trách nhiệm pháp lý",
+               "bất khả xâm phạm", "tín ngưỡng", "tôn giáo", "quy phạm pháp luật", "hiến pháp", "luật",
+               "quyền tự do", "bình đẳng trước pháp luật", "xử phạt", "vi phạm hành chính", "vi phạm hình sự"],
     "literature": ["đoạn trích", "tác giả", "bài thơ", "văn bản", "nhân vật", "tác phẩm", "biện pháp tu từ",
                    "thể thơ", "phong cách ngôn ngữ", "từ láy", "chính tả", "câu văn", "tiểu thuyết", "truyện ngắn",
                    "từ hán việt", "thành ngữ", "phương thức biểu đạt", "nghĩa của từ", "lỗi dùng từ"],
@@ -266,6 +270,7 @@ SECTION_SUBJECTS = [  # heading of the source section the question sits in → s
     ("english", ["tiếng anh", "english"]),
     ("physics", ["vật lí", "vật lý"]), ("chemistry", ["hoá học", "hóa học"]), ("biology", ["sinh học"]),
     ("history", ["lịch sử"]), ("geography", ["địa lí", "địa lý"]),
+    ("civics", ["giáo dục công dân", "gdcd", "kinh tế và pháp luật", "kinh tế pháp luật", "pháp luật"]),
     ("literature", ["ngữ văn", "văn học", "tiếng việt", "tư duy định tính"]),
     ("math", ["toán", "tư duy định lượng", "xử lí số liệu", "xử lý số liệu"]),
 ]
@@ -273,7 +278,7 @@ SECTION_SUBJECTS = [  # heading of the source section the question sits in → s
 
 def section_subject(section: str | None) -> str | None:
     t = unicodedata.normalize("NFC", section or "").lower()
-    if not t or "khoa học" in t and not any(k in t for _, ks in SECTION_SUBJECTS[:6] for k in ks):
+    if not t or "khoa học" in t and not any(k in t for _, ks in SECTION_SUBJECTS[:7] for k in ks):
         return None  # "Khoa học"/"Tư duy khoa học" sections mix subjects
     for subj, keys in SECTION_SUBJECTS:
         if any(k in t for k in keys):
