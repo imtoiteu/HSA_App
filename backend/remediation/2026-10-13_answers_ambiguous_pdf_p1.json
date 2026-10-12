@@ -1,0 +1,23 @@
+[
+ {
+  "cq_id": "cq_4fe11f4a3708d84d",
+  "answer": "C",
+  "subject": "biology",
+  "confirm_subject": true,
+  "note": "Ánh xạ khóa đáp án không chắc chắn; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Sinh học"
+ },
+ {
+  "cq_id": "cq_b6da4585cba0e0d1",
+  "answer": "C",
+  "subject": "chemistry",
+  "confirm_subject": true,
+  "note": "Ánh xạ khóa đáp án không chắc chắn; người duyệt tự giải độc lập: đáp án C (câu văn bản PDF không chứa công thức); môn Hóa học"
+ },
+ {
+  "cq_id": "cq_63ce1750492a9250",
+  "answer": "D",
+  "subject": "math",
+  "confirm_subject": true,
+  "note": "Ánh xạ khóa đáp án không chắc chắn; người duyệt tự giải độc lập: đáp án D (câu văn bản PDF không chứa công thức); môn Toán học"
+ }
+]

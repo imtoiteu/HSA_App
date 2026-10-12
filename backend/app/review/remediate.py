@@ -1140,6 +1140,15 @@ BATCHES["answer_ambiguous_formula"] = BATCHES["answer_ambiguous"].replace(
 ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf", "answer_ambiguous", "answer_linking_formula",
                   "answer_ambiguous_formula"}
 PLAIN_BATCHES.add("answer_linking_pdf")
+# pdf-text items whose upstream key mapping is not trustworthy: behind the flattened-math guard, re-solved independently
+BATCHES["answer_ambiguous_pdf"] = BATCHES["answer_ambiguous"].replace(
+    "AND (q.provenance->>'extraction_method') <> 'pdf_text_layer'",
+    "AND (q.provenance->>'extraction_method') = 'pdf_text_layer' AND NOT EXISTS (SELECT 1 FROM review_finding f "
+    "WHERE f.question_id = q.id AND f.status = 'open' AND f.code IN ('ocr_garbage', 'raw_latex_in_text'))").replace(
+    "'not_nfc_normalized','option_label_normalized']::varchar[]\n      AND q.question_type",
+    "'not_nfc_normalized','option_label_normalized','pdf_text_layer_fidelity']::varchar[]\n      AND q.question_type")
+PLAIN_BATCHES.add("answer_ambiguous_pdf")
+ANSWER_BATCHES.add("answer_ambiguous_pdf")
 PDF_TEXT_BATCHES = PLAIN_BATCHES | {"pdf_text_nonmath"}
 # a stem citing a table/figure/result layout the text layer cannot carry (dropped when no image/table survived)
 _EXHIBIT = re.compile(r"kết quả (?:như )?(?:sau|dưới đây)|bảng (?:số liệu|sau|dưới|bên)|(?:biểu đồ|sơ đồ|lược đồ|đồ thị) "
