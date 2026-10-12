@@ -707,13 +707,45 @@ FURNITURE = [re.compile(p_, re.I) for p_ in (
     r"Fanpage:[^\n|]{0,120}\|\s*\d{1,3}",
     r"(?<!\w)c o m / t u a n a n h \.?",
     r"(?<!\w)p h y s i c s(?!\w)",
+    # section headers of a full exam glued to the end of the preceding question
+    r"ĐỀ THI THAM KHẢO\s*KỲ THI ĐÁNH GIÁ NĂNG LỰC\s*$",
+    r"ĐỀ ÔN TẬP CHƯƠNG [^\n]{3,80}\(Thời gian: \d+ phút\)\s*$",
+    r"\d\.\d[.:]\s*(?:TIẾNG ANH|SUY LUẬN KHOA HỌC|TOÁN HỌC|VĂN HỌC[^\n]{0,20})\s*$",
+    r"TƯ DUY KHOA HỌC\s*/\s*GIẢI QUYẾT VẤN ĐỀ\s*$",
 )]
+# an exam-section header / divider that the parser glued as extra paragraph(s) to the last option of a section
+SECTION_HEAD = re.compile(r"^\s*(?:\d\.\d\.?\s*(?:TIẾNG ANH|SUY LUẬN KHOA HỌC|TOÁN HỌC|VĂN HỌC|KHOA HỌC|TƯ DUY)|"
+                          r"-{3,}\s*Hết chủ đề|ĐỀ ÔN TẬP CHƯƠNG|ĐỀ THI THAM KHẢO|TƯ DUY KHOA HỌC|"
+                          r"PHẦN \d|Read the (?:following )?passage)")
+
+
+def option_section_head(content: dict) -> str | None:
+    for o in content.get("options") or []:
+        for b in o.get("content") or []:
+            if SECTION_HEAD.match(plain_text([b])):
+                return o.get("label")
+    return None
+
+
+# a following reading passage glued to the last option (only ever stripped from options)
+OPTION_PASSAGE_TAIL = re.compile(r"(?:Read the (?:following )?passage|Read the passage carefully)[\s\S]*$", re.I)
 
 
 def strip_furniture(content: dict) -> tuple[dict, bool]:
     import json
     c = json.loads(json.dumps(content))
     changed = False
+    for o in c.get("options") or []:
+        blocks = o.get("content") or []
+        cut = next((i for i, b in enumerate(blocks) if i > 0 and SECTION_HEAD.match(plain_text([b]))), None)
+        if cut is not None:  # the header paragraph and whatever follows it belong to the next section
+            o["content"] = blocks[:cut]
+            changed = True
+        for b in o.get("content") or []:
+            for n in b.get("c") or []:
+                if n.get("t") == "s" and OPTION_PASSAGE_TAIL.search(n.get("v", "")):
+                    n["v"] = OPTION_PASSAGE_TAIL.sub("", n["v"]).rstrip()
+                    changed = True
 
     def clean_blocks(blocks):
         nonlocal changed
@@ -1055,6 +1087,10 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         content, wm_text = strip_hsa_watermark(content)
         content, furniture = strip_furniture(content)
         nfc_changed = nfc_changed or bool(relabelled) or wm_text or furniture
+        head = option_section_head(content)
+        if head:
+            unresolved(f"option {head} carries an exam-section header / next section text", conflict=True)
+            continue
         wm_removed = False
         if TRANSFORMS.get(batch) == "watermark":
             content, wm_removed = strip_watermarks(content)
@@ -1274,6 +1310,31 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
         if d.get("detach_group"):  # read: the passage belongs to other questions, this one stands on its own
             S.save_edit(db, q, who, {"group": None}, note=note, media_root=media_root)
             n["group_detached"] = n.get("group_detached", 0) + 1
+        if d.get("clean_furniture"):  # served question: drop section headers/dividers glued to its options
+            r = S.get_review(db, q)
+            w = S.working_version(db, q, r)
+            cleaned, changed = strip_furniture(w.content)
+            if not changed or option_section_head(cleaned):
+                raise ValueError(f"{q.external_id}: clean_furniture changed nothing or left a section header")
+            before = S.dim_view(q, r, w)["status"]
+            S.save_edit(db, q, who, {"stem": cleaned["stem"], "options": cleaned["options"]}, note=note,
+                        media_root=media_root)
+            r = S.get_review(db, q)
+            after = S.dim_view(q, r, S.working_version(db, q, r))["status"]
+            upstream_ready = q.review_gate is None and q.editorial_state == "READY_TO_SERVE"
+            for dim in C.DIMENSIONS:
+                st = before.get(dim) if before.get(dim) in ("ok", "na") else ("ok" if upstream_ready else None)
+                if st and after.get(dim) != st:
+                    why = note if before.get(dim) in ("ok", "na") else \
+                        f"{note} — nội dung khác giữ nguyên bản READY_TO_SERVE của ngân hàng (đang được phục vụ)"
+                    if dim in ("formula",) and not C.collect_tex(cleaned):
+                        st = "na"
+                    if dim == "visual" and not (C.images(cleaned) or C.has_table(cleaned)):
+                        st = "na"
+                    S.confirm(db, q, who, dim, st, why, media_root=media_root,
+                              method="claude_review" if before.get(dim) in ("ok", "na") else "upstream_ready")
+            S.approve(db, q, who, note, media_root=media_root)
+            n["furniture_cleaned"] = n.get("furniture_cleaned", 0) + 1
         if d.get("text_fix"):  # {"part": "stem", "old": ..., "new": ...}: one exact run of text, verified against the source
             fx = d["text_fix"]
             r = S.get_review(db, q)

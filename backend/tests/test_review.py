@@ -580,3 +580,27 @@ def test_docx_passage_needs_marks():
              P("Từ “lúc này” (gạch chân, in đậm) trong đoạn trích được dùng chỉ khoảng thời gian nào?")]
     out = M.docx_passage(paras, "Trả lời các câu hỏi: 1 - 5", plain("Từ “lúc này” (gạch chân, in đậm) trong đoạn trích được dùng chỉ khoảng thời gian nào?"))
     assert out[0] is None and "marks" in out[1]
+
+
+def test_strip_section_tails():
+    from app.review import remediate as M
+    c = {"stem": plain("Cách nào sau đây?"),
+         "options": [{"label": "A", "content": plain("Một.")},
+                     {"label": "D", "content": plain("Bốn.ĐỀ THI THAM KHẢOKỲ THI ĐÁNH GIÁ NĂNG LỰC")}]}
+    out, changed = M.strip_furniture(c)
+    assert changed and M.plain_text(out["options"][1]["content"]).strip() == "Bốn."
+    e = {"stem": plain("Which best restates?"), "options": [
+        {"label": "D", "content": plain("John was eager.Read the passage carefully1. Like many emergency responders, he...")}]}
+    out, changed = M.strip_furniture(e)
+    assert changed and M.plain_text(out["options"][0]["content"]).strip() == "John was eager."
+
+
+def test_option_section_header_paragraph():
+    from app.review import remediate as M
+    c = {"stem": plain("Câu hỏi?"), "options": [
+        {"label": "A", "content": plain("Một")},
+        {"label": "D", "content": plain("Tất cả các đáp án trên") + plain("1.2. TIẾNG ANH") +
+         plain("Choose a suitable word or phrase (marked A, B, C or D) to fill in each blank.")}]}
+    assert M.option_section_head(c) == "D"
+    out, changed = M.strip_furniture(c)
+    assert changed and M.option_section_head(out) is None and len(out["options"][1]["content"]) == 1
