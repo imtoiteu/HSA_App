@@ -560,3 +560,23 @@ def test_docx_passage():
                           plain("What is the main idea of the passage?"))[0]
     bad = paras[:2] + [P("A. achieving B. attempting")] + paras[2:]
     assert M.docx_passage(bad, hdr, stem)[0] is None
+
+
+def test_docx_passage_vi_marker():
+    from app.review import remediate as M
+    P = lambda t, kind="p": {"kind": kind, "text": t, "runs": [(t, [])]}
+    long = "“Giữa các dân tộc, chúng ta không thể tự hào là nền văn hóa của ta đồ sộ, có những cống hiến lớn lao. " * 4
+    paras = [P("Đọc đoạn trích sau đây và trả lời các câu hỏi bên dưới:"), P(long), P("(Trần Đình Hượu, Nhìn về vốn văn hóa dân tộc)"),
+             P("Trả lời các câu hỏi: 56 - 60"), P("", "table"), P("Theo tác giả đoạn trích, người Việt Nam có sở trường nhất ở ngành nào?")]
+    blocks, why = M.docx_passage(paras, "Trả lời các câu hỏi: 56 - 60", plain("Theo tác giả đoạn trích, người Việt Nam có sở trường nhất ở ngành nào?"))
+    assert why == "" and len(blocks) == 2
+
+
+def test_docx_passage_needs_marks():
+    from app.review import remediate as M
+    P = lambda t: {"kind": "p", "text": t, "runs": [(t, [])]}
+    long = "Khi bị tấn công, cá nóc hớp không khí vào bụng, lúc này mình chúng phồng to như một trái bóng. " * 4
+    paras = [P("Đọc đoạn trích sau đây và trả lời các câu hỏi:"), P(long), P("Trả lời các câu hỏi: 1 - 5"),
+             P("Từ “lúc này” (gạch chân, in đậm) trong đoạn trích được dùng chỉ khoảng thời gian nào?")]
+    out = M.docx_passage(paras, "Trả lời các câu hỏi: 1 - 5", plain("Từ “lúc này” (gạch chân, in đậm) trong đoạn trích được dùng chỉ khoảng thời gian nào?"))
+    assert out[0] is None and "marks" in out[1]

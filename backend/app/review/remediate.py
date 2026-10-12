@@ -341,7 +341,8 @@ def split_inline_options(content: dict, answer: dict | None) -> tuple[dict | Non
 
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 _M = "{http://schemas.openxmlformats.org/officeDocument/2006/math}"
-PASSAGE_MARKER = re.compile(r"^\W*read the (?:following )?(?:passage|text)", re.I)
+PASSAGE_MARKER = re.compile(r"^\W*(?:read the (?:following )?(?:passage|text)|đọc (?:kĩ |kỹ )?(?:đoạn trích|đoạn văn|văn bản|"
+                            r"bài thơ|đoạn thơ|ngữ liệu|bài đọc))", re.I)
 NOT_PASSAGE = re.compile(r"^\s*(?:[A-D][.)]\s|câu\s*\d+|question\s*\d+|đáp án|lời giải|phương pháp giải|hướng dẫn)", re.I)
 
 
@@ -410,6 +411,10 @@ def docx_passage(paras: list[dict], header: str, stem_blocks: list) -> tuple[lis
         return None, "the passage range contains question/option/solution lines"
     if sum(len(p["text"]) for p in body) < 300:
         return None, "passage too short"
+    stem_txt = unicodedata.normalize("NFC", plain_text(stem_blocks)).lower()
+    if re.search(r"gạch chân|in đậm|in nghiêng|underlined|in bold|in italics?|highlighted", stem_txt) and \
+            not any(m for p in body for _, m in p["runs"]):
+        return None, "the question points to marked (underlined/bold) words but the recovered passage has no marks"
     blocks = []
     for p in body:
         nodes = []
