@@ -11,9 +11,21 @@ import { QaQueues, SubjectReconciliation } from "./Reconcile";
 import { UserDetail, Users } from "./Users";
 import Settings from "./Settings";
 import Audit from "./Audit";
+import { lazy, Suspense } from "react";
+import { Navigate } from "react-router-dom";
+import { Spinner } from "../../components/ui";
+import { useAuth } from "../../lib/auth";
+import ReviewDashboard from "./review/ReviewDashboard";
+import ReviewQueue from "./review/ReviewQueue";
+
+// the studio (editor, MathLive loader) is its own chunk
+const ReviewStudio = lazy(() => import("./review/ReviewStudio"));
 
 const NAV: ([string, string] | string)[] = [
   ["/admin", "Tổng quan"],
+  "Review Studio",
+  ["/admin/review", "Tổng quan duyệt"],
+  ["/admin/review/queue", "Hàng đợi duyệt"],
   "Ngân hàng câu hỏi",
   ["/admin/cau-hoi", "Câu hỏi"],
   ["/admin/hang-doi-qa", "Hàng đợi QA"],
@@ -36,16 +48,34 @@ const NAV: ([string, string] | string)[] = [
   ["/admin/nhat-ky", "Nhật ký"],
 ];
 
+const REVIEW_NAV = NAV.slice(1, 4);
+
 export default function AdminApp() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const review = (
+    <>
+      <Route path="review" element={<ReviewDashboard />} />
+      <Route path="review/queue" element={<ReviewQueue />} />
+      <Route path="review/q/:id" element={<Suspense fallback={<Spinner />}><ReviewStudio /></Suspense>} />
+    </>
+  );
   return (
     <div className="admin">
       <nav className="admin-nav" aria-label="Quản trị">
-        {NAV.map((n, i) => typeof n === "string"
+        {(isAdmin ? NAV : REVIEW_NAV).map((n, i) => typeof n === "string"
           ? <div key={i} className="grp">{n}</div>
-          : <NavLink key={i} to={n[0]} end={n[0] === "/admin"}>{n[1]}</NavLink>)}
+          : <NavLink key={i} to={n[0]} end={n[0] === "/admin" || n[0] === "/admin/review"}>{n[1]}</NavLink>)}
       </nav>
       <div className="admin-main">
+        {!isAdmin ? (
+          <Routes>
+            {review}
+            <Route path="*" element={<Navigate to="/admin/review" replace />} />
+          </Routes>
+        ) : (
         <Routes>
+          {review}
           <Route index element={<Overview />} />
           <Route path="cau-hoi" element={<Questions />} />
           <Route path="cau-hoi/:id" element={<QuestionDetail />} />
@@ -69,6 +99,7 @@ export default function AdminApp() {
           <Route path="nhat-ky" element={<Audit />} />
           <Route path="*" element={<div className="empty">Không tìm thấy trang quản trị.</div>} />
         </Routes>
+        )}
       </div>
     </div>
   );

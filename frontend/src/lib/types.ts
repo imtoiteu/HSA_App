@@ -11,8 +11,9 @@ export type Inline =
 export type Cell = { c: Block[]; colspan?: number; rowspan?: number };
 export type Block =
   | { t: "p"; c: Inline[]; display?: boolean }
-  | { t: "img"; src: string; w?: number; h?: number }
+  | { t: "img"; src: string; w?: number; h?: number; alt?: string; caption?: string }
   | { t: "table"; rows: Cell[][] }
+  | { t: "list"; ordered?: boolean; items: Block[][] }
   | { t: "warn"; v: string };
 
 export type InputSpec =
@@ -129,7 +130,7 @@ export interface SessionSummary {
   blueprint_id: number | null;
 }
 
-export interface User { id: number; email: string; display_name: string; role: "student" | "admin"; csrf_token?: string | null }
+export interface User { id: number; email: string; display_name: string; role: "student" | "admin" | "editor" | "reviewer" | "approver"; csrf_token?: string | null }
 
 export interface Blueprint {
   id: number;

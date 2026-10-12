@@ -97,10 +97,15 @@ function BlockView({ b, ctx }: { b: Block; ctx: RenderCtx }) {
       const style = b.w ? { width: Math.min(b.w, 640) } : undefined;
       return (
         <figure>
-          <img src={MEDIA + b.src} alt="Hình minh hoạ" loading="lazy" style={style} width={b.w} height={b.h}
+          <img src={MEDIA + b.src} alt={b.alt || "Hình minh hoạ"} loading="lazy" style={style} width={b.w} height={b.h}
                onClick={() => ctx.onZoom?.(b.src)} />
+          {b.caption && <figcaption>{b.caption}</figcaption>}
         </figure>
       );
+    }
+    case "list": {
+      const items = b.items.map((it, i) => <li key={i}>{it.map((cb, k) => <BlockView key={k} b={cb} ctx={ctx} />)}</li>);
+      return b.ordered ? <ol>{items}</ol> : <ul>{items}</ul>;
     }
     case "table":
       return (

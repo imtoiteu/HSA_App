@@ -18,12 +18,15 @@ import NotFound from "./pages/NotFound";
 
 const Admin = lazy(() => import("./pages/admin/AdminApp"));
 
+const STAFF = new Set(["admin", "editor", "reviewer", "approver"]);
+
 function RequireAuth({ children, admin }: { children: ReactNode; admin?: boolean }) {
   const { user, ready } = useAuth();
   const loc = useLocation();
   if (!ready) return <Spinner />;
   if (!user) return <Navigate to={`/dang-nhap?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
-  if (admin && user.role !== "admin") return <Navigate to="/tong-quan" replace />;
+  // staff roles (editor/reviewer/approver) reach the Review Studio part of the admin area only
+  if (admin && !STAFF.has(user.role)) return <Navigate to="/tong-quan" replace />;
   return <>{children}</>;
 }
 
@@ -48,6 +51,7 @@ function TopBar() {
             <NavLink to="/cau-hoi-da-luu">Câu đã lưu</NavLink>
             {user.role !== "admin" && <NavLink to="/nang-cap" className="nav-pro">Gói Pro</NavLink>}
             {user.role === "admin" && <NavLink to="/admin">Quản trị</NavLink>}
+            {STAFF.has(user.role) && user.role !== "admin" && <NavLink to="/admin/review">Review Studio</NavLink>}
             <NavLink to="/tai-khoan" className="nav-account">Tài khoản</NavLink>
           </nav>
         )}

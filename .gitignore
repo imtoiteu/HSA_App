@@ -46,3 +46,4 @@ rendered/
 # offline wheelhouse for docker builds
 backend/wheels/*.whl
 .admin-credentials
+frontend/public/mathlive/

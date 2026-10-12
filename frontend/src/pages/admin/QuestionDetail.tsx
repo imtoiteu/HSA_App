@@ -136,6 +136,7 @@ export default function QuestionDetail() {
         <StateBadge state={q.editorial_state} />
         <ServedBadge served={q.served} />
         {q.removed_upstream && <span className="badge bad">Đã gỡ khỏi nguồn</span>}
+        <Link className="btn sm" to={`/admin/review/q/${q.id}`}>Sửa & duyệt trong Review Studio</Link>
       </PageHead>
       <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}>
         <div className="stack">

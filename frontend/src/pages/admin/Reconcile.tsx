@@ -81,9 +81,10 @@ export function QaQueues() {
   if (r.error || !r.data) return <ErrorBox error={r.error} />;
   return (
     <div>
-      <PageHead title="Hàng đợi QA" />
-      <p className="muted">Mỗi hàng đợi mở danh sách câu hỏi đã lọc sẵn; trong trang chi tiết có bản xem trước đúng như học sinh thấy, lý do loại trừ và nút bật/tắt phục vụ, ghi đè môn.
-        Trạng thái biên tập đến từ ngân hàng nguồn (chỉ đọc); sửa nội dung bằng đề xuất sửa gửi về nhóm biên tập.</p>
+      <PageHead title="Hàng đợi QA"><Link className="btn sm" to="/admin/review/queue">Duyệt trong Review Studio ›</Link></PageHead>
+      <p className="muted">Mỗi hàng đợi mở danh sách câu hỏi đã lọc sẵn. Trạng thái biên tập đến từ ngân hàng nguồn (chỉ đọc).
+        Sửa nội dung, xác nhận từng tiêu chí QA và phê duyệt READY trong <Link to="/admin/review/queue">Review Studio</Link>
+        (bản sửa là phiên bản riêng của ứng dụng, không ghi vào ngân hàng nguồn).</p>
       <div className="kpi-grid">
         {r.data.items.map((q) => (
           <Link key={q.key} to={"/admin/cau-hoi" + qs(q.filter)} className={"kpi " + (q.count ? "warn" : "ok")}>
