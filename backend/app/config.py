@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     # upstream question bank (read-only) and app media store
     upstream_root: Path = Path("/upstream")
     media_root: Path = Path("/data/media")
+    # private cache of source documents for the Review Studio viewer (never publicly served)
+    source_root: Path = Path("/data/sources")
+
+    # optional AI assistant of the Review Studio (on demand only; nothing is configured by default)
+    ai_provider: str = ""  # "" (disabled) | anthropic
+    ai_api_key: str = ""
+    ai_model: str = "claude-sonnet-5-5"
+    ai_base_url: str = "https://api.anthropic.com"
+    ai_max_per_user_hour: int = 30
 
     # payment webhooks: shared secrets per provider (never stored in the DB or in git)
     sepay_api_key: str = ""

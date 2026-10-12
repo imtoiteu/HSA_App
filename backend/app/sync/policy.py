@@ -27,6 +27,7 @@ APP_REASONS = {
     "unsupported_for_serving": "Dạng câu hỏi chưa xác định được cách làm/chấm (open_or_unknown)",
     "group_membership_suspect": "Đoạn dữ liệu chung ghi phạm vi câu khác với số câu này (gắn nhầm đoạn)",
     "formula_render_error": "Công thức trong đề/phương án không hiển thị được trên web (KaTeX)",
+    "review:blocked": "Người duyệt đánh dấu có lỗi (Review Studio)",
     "solution_formula_render_error": "Công thức trong lời giải không hiển thị được trên web (KaTeX)",
 }
 # reasons recorded for admins but not blocking by default
@@ -64,12 +65,18 @@ class PolicyInput:
     scoring_mode: str
     app_reasons: list
     removed_upstream: bool = False
+    review_gate: str | None = None  # Review Studio decision: ready (approved, all QA confirmed) | blocked
 
 
 def evaluate(pi: PolicyInput, policy: dict) -> tuple[bool, list[str]]:
     reasons = []
-    if pi.editorial_state not in policy["allowed_states"]:
+    # an approval in the Review Studio stands in for the upstream editorial READY state; content checks,
+    # types and scoring below still apply, so an approved question with a blocking flag is never served
+    state = "READY_TO_SERVE" if pi.review_gate == "ready" else pi.editorial_state
+    if state not in policy["allowed_states"]:
         reasons.append(f"state:{pi.editorial_state}")
+    if pi.review_gate == "blocked":
+        reasons.append("review:blocked")
     if pi.question_type not in policy["allowed_types"]:
         reasons.append(f"type:{pi.question_type}")
     blocking = set(policy["blocking_reasons"])

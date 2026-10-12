@@ -1,6 +1,6 @@
 #!/bin/sh
 # api        : migrate, seed reference data, serve
-# scheduler  : periodic maintenance (expire orders, purge sessions)
+# scheduler  : worker loop (Review Studio sources, maintenance, review refresh)
 # anything else is executed as-is (e.g. `hsa-app sync`)
 set -e
 case "$1" in
@@ -19,9 +19,18 @@ case "$1" in
          --proxy-headers --forwarded-allow-ips='*' --no-server-header --timeout-keep-alive 15
     ;;
   scheduler)
+    # source documents for the Review Studio, maintenance and the incremental review refresh
     while true; do
-      hsa-app maintenance || echo "maintenance failed"
-      sleep "${HSA_MAINTENANCE_INTERVAL:-300}"
+      hsa-app worker --no-sources || echo "worker exited"
+      sleep 10
+    done
+    ;;
+  sources)
+    # Review Studio source documents (runs as root with reduced capabilities: the upstream archives are
+    # readable by root only; the mount is read-only)
+    while true; do
+      hsa-app worker --sources-only || echo "sources worker exited"
+      sleep 10
     done
     ;;
   *)

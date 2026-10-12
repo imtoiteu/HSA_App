@@ -26,11 +26,12 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(254), unique=True)  # stored lower-cased
     password_hash: Mapped[str] = mapped_column(Text)
     display_name: Mapped[str] = mapped_column(String(120))
-    role: Mapped[str] = mapped_column(String(16), default="student")  # student | admin
+    role: Mapped[str] = mapped_column(String(16), default="student")  # student | admin | editor | reviewer | approver
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     last_login_at: Mapped[dt.datetime | None] = mapped_column(TS)
-    __table_args__ = (CheckConstraint("role in ('student','admin')", name="ck_user_role"),)
+    __table_args__ = (CheckConstraint("role in ('student','admin','editor','reviewer','approver')",
+                                      name="ck_user_role"),)
 
 
 class AuthSession(Base):
@@ -178,6 +179,13 @@ class Question(Base):
     first_synced_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     last_synced_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     content_changed_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    # Review Studio: latest version built from upstream (current_version_id may point at a published review
+    # version instead) and the review decision applied by the serving policy: null = follow the upstream
+    # editorial state | ready = approved in review with every QA dimension confirmed | blocked = a reviewer
+    # found a problem (see review/service.py)
+    upstream_version_id: Mapped[int | None] = mapped_column(ForeignKey("question_version.id", use_alter=True,
+                                                                       name="fk_question_upstream_version"))
+    review_gate: Mapped[str | None] = mapped_column(String(12))
 
     current_version: Mapped["QuestionVersion"] = relationship(foreign_keys=[current_version_id], lazy="joined")
 
@@ -187,8 +195,10 @@ class Question(Base):
         Index("ix_question_inferred_subject", "inferred_subject"),
         Index("ix_question_group", "group_key"),
         Index("ix_question_state", "editorial_state"),
+        Index("ix_question_document", text("(provenance->>'document_id')")),
         CheckConstraint("admin_override is null or admin_override in ('enable','disable')", name="ck_q_override"),
         CheckConstraint("scoring_mode in ('auto','self_check','none')", name="ck_q_scoring_mode"),
+        CheckConstraint("review_gate is null or review_gate in ('ready','blocked')", name="ck_q_review_gate"),
     )
 
 
@@ -203,6 +213,9 @@ class QuestionVersion(Base):
     answer: Mapped[dict | None] = mapped_column(JSONB)  # normalised answer or null (never inferred)
     source_revision: Mapped[str | None] = mapped_column(String(120))  # upstream snapshot fingerprint
     sync_run_id: Mapped[int | None] = mapped_column(ForeignKey("sync_run.id"))
+    origin: Mapped[str] = mapped_column(String(12), default="upstream", server_default="upstream")  # upstream | review
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     __table_args__ = (UniqueConstraint("question_id", "content_hash", name="uq_version_hash"),
                       UniqueConstraint("question_id", "version_no", name="uq_version_no"))
@@ -355,6 +368,146 @@ class QuestionCorrection(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     exported_at: Mapped[dt.datetime | None] = mapped_column(TS)
+
+
+# ------------------------------------------------------------------------------------------------
+# Review Studio (docs/REVIEW_STUDIO.md)
+# ------------------------------------------------------------------------------------------------
+class ReviewAssignment(Base):
+    """A batch of questions given to one reviewer ("Toán · công thức · 500 câu")."""
+    __tablename__ = "review_assignment"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    label: Mapped[str] = mapped_column(String(200))
+    reviewer_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), index=True)
+    queue: Mapped[str | None] = mapped_column(String(24))
+    subject_code: Mapped[str | None] = mapped_column(String(40))
+    filter: Mapped[dict] = mapped_column(JSONB, default=dict)
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(12), default="active")  # active | closed
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+
+
+class QuestionReview(Base):
+    """Review state of one question: workflow status, queues, per-dimension QA confirmations bound to
+    content-part hashes (a confirmation stays valid while the parts it covers are unchanged), the
+    validator fingerprint and the pending draft version."""
+    __tablename__ = "question_review"
+    question_id: Mapped[int] = mapped_column(ForeignKey("question.id", ondelete="CASCADE"), primary_key=True)
+    status: Mapped[str] = mapped_column(String(12), default="none", server_default="none")
+    queues: Mapped[list[str]] = mapped_column(ARRAY(String(24)), default=list, server_default="{}")
+    priority: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    draft_version_id: Mapped[int | None] = mapped_column(ForeignKey("question_version.id"))
+    dims: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    hashes: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    content_hash: Mapped[str | None] = mapped_column(String(64))  # semantic hash of the working version
+    validator_version: Mapped[int | None] = mapped_column(Integer)
+    validated_hash: Mapped[str | None] = mapped_column(String(64))
+    validated_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    findings_open: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    findings_critical: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    upstream_changed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # effective state per dimension (ok | na | fail | pending | stale), materialised for filtering
+    dim_state: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    dirty: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")  # needs review-refresh
+    dup_exact: Mapped[str | None] = mapped_column(String(64))  # hashed duplicate keys (validators.duplicate_keys)
+    dup_near: Mapped[str | None] = mapped_column(String(64))
+    source_page: Mapped[int | None] = mapped_column(Integer)  # first page of the representative occurrence
+    # filter/sort columns copied from the question (the queue never scans the wide question table);
+    # kept current by review refresh, apply_policy and the migration
+    external_id: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    subject_code: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    qtype: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    served: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")  # bank active, not removed
+    doc_id: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    doc_path: Mapped[str] = mapped_column(String(200), default="", server_default="")  # tail of the document path
+    source_number: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    search_text: Mapped[str] = mapped_column(Text, default="", server_default="")  # stem + options, lower-case
+    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    assignment_id: Mapped[int | None] = mapped_column(ForeignKey("review_assignment.id"))
+    assigned_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    reviewed_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    approved_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    verified_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    verified_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    verification_method: Mapped[str | None] = mapped_column(String(24))  # human_review | upstream_ready
+    note: Mapped[str | None] = mapped_column(Text)
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    updated_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    __table_args__ = (
+        CheckConstraint("status in ('none','draft','reviewed','approved','returned')", name="ck_review_status"),
+        Index("ix_review_queues", "queues", postgresql_using="gin"),
+        Index("ix_review_assignee", "assignee_id", "status"),
+        Index("ix_review_status", "status"),
+        Index("ix_review_priority", "priority"),
+        Index("ix_review_updated", "updated_at"),
+        Index("ix_review_dirty", "dirty", postgresql_where=text("dirty")),
+        Index("ix_review_dup_exact", "dup_exact"),
+        Index("ix_review_dup_near", "dup_near"),
+        Index("ix_review_ext", "external_id"),
+        Index("ix_review_prio", "priority", "question_id"),
+        Index("ix_review_doc", "doc_path", "source_page", "source_number", "question_id"),
+        Index("ix_review_search", "search_text", postgresql_using="gin",
+              postgresql_ops={"search_text": "gin_trgm_ops"}),
+    )
+
+
+class ReviewEvent(Base):
+    """Append-only history of every review action (edit, QA confirmation, status, assignment, restore,
+    finding decision, AI suggestion). Field changes carry old and new values."""
+    __tablename__ = "review_event"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("question.id"), index=True)
+    external_id: Mapped[str] = mapped_column(String(80))
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"), index=True)
+    action: Mapped[str] = mapped_column(String(32))
+    changes: Mapped[list] = mapped_column(JSONB, default=list)  # [{"field","old","new"}]
+    note: Mapped[str | None] = mapped_column(Text)
+    source_ref: Mapped[dict | None] = mapped_column(JSONB)
+    from_version_id: Mapped[int | None] = mapped_column(ForeignKey("question_version.id"))
+    to_version_id: Mapped[int | None] = mapped_column(ForeignKey("question_version.id"))
+    created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now(), index=True)
+
+
+class ReviewFinding(Base):
+    """A deterministic validator finding (one row per question and code); reviewers accept, fix or dismiss."""
+    __tablename__ = "review_finding"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("question.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(40))
+    severity: Mapped[str] = mapped_column(String(10))  # critical | warning | info
+    dimension: Mapped[str] = mapped_column(String(12))
+    detail: Mapped[str | None] = mapped_column(Text)
+    part_hash: Mapped[str | None] = mapped_column(String(64))  # hash of the parts the finding is about
+    validator_version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(12), default="open")  # open | accepted | fixed | dismissed
+    reason: Mapped[str | None] = mapped_column(Text)
+    resolved_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    resolved_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+    updated_at: Mapped[dt.datetime | None] = mapped_column(TS)
+    __table_args__ = (UniqueConstraint("question_id", "code", name="uq_finding_code"),
+                      CheckConstraint("status in ('open','accepted','fixed','dismissed')", name="ck_finding_status"),
+                      Index("ix_finding_code_status", "code", "status"))
+
+
+class SourceCache(Base):
+    """Materialised source documents for the review viewer (files live under HSA_SOURCE_ROOT, never under the
+    public media store). Prepared by the worker: extracted from the read-only upstream archives, DOC/DOCX
+    converted to PDF."""
+    __tablename__ = "source_cache"
+    document_id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    status: Mapped[str] = mapped_column(String(16))  # queued | preparing | ready | unavailable | failed
+    file_kind: Mapped[str | None] = mapped_column(String(8))
+    pages: Mapped[int | None] = mapped_column(Integer)
+    blob_sha256: Mapped[str | None] = mapped_column(String(64))
+    detail: Mapped[str | None] = mapped_column(Text)
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    requested_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
+    ready_at: Mapped[dt.datetime | None] = mapped_column(TS)
 
 
 # ------------------------------------------------------------------------------------------------

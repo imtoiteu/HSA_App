@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from .api import admin, admin_business, auth_routes, payments, student
+from .api import admin, admin_business, auth_routes, payments, review, student
 from .config import get_settings
 from .db import SessionLocal
 from .logging_setup import setup_logging
@@ -73,6 +73,7 @@ app.include_router(student.router)
 app.include_router(payments.router)
 app.include_router(admin.router)
 app.include_router(admin_business.router)
+app.include_router(review.router)
 
 if not settings.is_production:
     # in production nginx serves /media straight from the volume

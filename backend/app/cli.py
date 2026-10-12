@@ -129,6 +129,46 @@ def run_queued_sync(db):
         print(f"sync postponed: {ex}")
 
 
+def cmd_review_refresh(a):
+    """Validators + queues for questions whose content/metadata changed (incremental; --all re-derives all)."""
+    from .review.bulk import refresh_all
+    s = get_settings()
+    db = SessionLocal()
+    try:
+        os.nice(10)
+    except OSError:
+        pass
+    r = refresh_all(db, s.media_root, s.upstream_root, all_=a.all, limit=a.limit,
+                    progress=lambda d, t: print(f"  {d}/{t}", flush=True) if d % 5000 < 500 else None)
+    print(json.dumps(r, ensure_ascii=False))
+
+
+def cmd_worker(a):
+    """Scheduler loop: source documents for the Review Studio (every few seconds), maintenance and the
+    incremental review refresh (every HSA_MAINTENANCE_INTERVAL seconds) in niced subprocesses."""
+    import subprocess
+    import time as _t
+    from .review.sources import default_store, process_queue
+    interval = int(os.environ.get("HSA_MAINTENANCE_INTERVAL", "300"))
+    last = 0.0
+    db = SessionLocal()
+    while True:
+        if not a.no_sources:
+            try:
+                process_queue(db, default_store())
+            except Exception as ex:  # noqa: BLE001
+                print(f"source queue failed: {ex}", flush=True)
+                db.rollback()
+        if not a.sources_only and _t.time() - last >= interval:
+            last = _t.time()
+            for cmd in (["hsa-app", "maintenance"], ["nice", "-n", "10", "hsa-app", "review-refresh", "--limit", "20000"]):
+                r = subprocess.run(cmd)
+                if r.returncode:
+                    print(f"{' '.join(cmd)} failed ({r.returncode})", flush=True)
+        db.rollback()  # never keep a transaction open between polls
+        _t.sleep(3)
+
+
 def cmd_export_corrections(a):
     from .admin_ops import export_corrections
     db = SessionLocal()
@@ -216,6 +256,14 @@ def main(argv=None):
     s.add_argument("--name")
     s.set_defaults(fn=cmd_create_admin)
     sub.add_parser("maintenance", help="expire orders, purge stale sessions").set_defaults(fn=cmd_maintenance)
+    s = sub.add_parser("review-refresh", help="run the review validators and queues (incremental)")
+    s.add_argument("--all", action="store_true", help="re-validate every question")
+    s.add_argument("--limit", type=int)
+    s.set_defaults(fn=cmd_review_refresh)
+    s = sub.add_parser("worker", help="scheduler loop (source documents, maintenance, review refresh)")
+    s.add_argument("--sources-only", action="store_true", help="only prepare source documents (sources service)")
+    s.add_argument("--no-sources", action="store_true", help="everything except source documents")
+    s.set_defaults(fn=cmd_worker)
     s = sub.add_parser("export-corrections", help="write proposed corrections in the upstream proposal format")
     s.add_argument("out")
     s.add_argument("--dry-run", action="store_true")

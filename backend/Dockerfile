@@ -7,8 +7,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_
 # WITH_IMAGEMAGICK=0 to build without apt access. Missing ImageMagick never produces broken
 # content: an unconvertible figure marks its question NEEDS_VISUAL_REVIEW.
 ARG WITH_IMAGEMAGICK=1
+# Review Studio source viewer: poppler (page images/text), libarchive (read members of the source archives),
+# LibreOffice writer (DOC/DOCX → PDF, used by the scheduler only) and fonts with Vietnamese coverage.
+ARG WITH_SOURCE_TOOLS=1
 RUN if [ "$WITH_IMAGEMAGICK" = "1" ]; then \
       apt-get update && apt-get install -y --no-install-recommends imagemagick libmagickcore-6.q16-6-extra \
+      && rm -rf /var/lib/apt/lists/*; fi \
+ && if [ "$WITH_SOURCE_TOOLS" = "1" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends poppler-utils libarchive-tools p7zip-full \
+        libreoffice-writer-nogui fonts-dejavu-core fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
       && rm -rf /var/lib/apt/lists/*; fi \
  && useradd --create-home --uid 10001 hsa
 
@@ -23,7 +30,7 @@ RUN if ls /wheels/*.whl >/dev/null 2>&1; then pip install --no-index --find-link
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /data/media /run/hsa && chown -R hsa:hsa /data /run/hsa
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /data/media /data/sources /run/hsa && chown -R hsa:hsa /data /run/hsa
 
 USER hsa
 EXPOSE 8000

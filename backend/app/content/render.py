@@ -1,6 +1,7 @@
 """hsa-md → render-ready block model (safe JSON; no raw HTML reaches clients).
 
-Block  = {"t":"p","c":[Inline]} | {"t":"img","src","w","h"} | {"t":"table","rows":[[Cell]]} | {"t":"warn","v"}
+Block  = {"t":"p","c":[Inline]} | {"t":"img","src","w","h","alt"?,"caption"?} | {"t":"table","rows":[[Cell]]}
+       | {"t":"list","ordered":bool,"items":[[Block]]} (Review Studio edits only) | {"t":"warn","v"}
 Cell   = {"c":[Block], "colspan"?, "rowspan"?}
 Inline = {"t":"s","v":text,"m":[marks]} | {"t":"m","tex"} | {"t":"br"} | {"t":"tab"} | {"t":"range"} | {"t":"warn","v"}
 marks  ⊂ b (bold) i (italic) u (underline) x (strike) sup sub
@@ -242,6 +243,10 @@ def plain_text(nodes) -> str:
                 parts.append("\n")
         elif t == "range":
             parts.append("…")
+        elif t == "list":
+            for item in n.get("items") or []:
+                walk(item)
+                parts.append("\n")
 
     walk(nodes)
     return re.sub(r"[ \t]+", " ", "".join(parts)).strip()

@@ -9,7 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy import Date, Text, cast, func, or_, select
+from sqlalchemy import Date, Text, cast, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from .. import auth
@@ -21,7 +21,7 @@ from ..db import SessionLocal, get_db
 from ..exam.blueprint import parse_config
 from ..exam.selection import count_available
 from ..models import (AuditLog, Entitlement, ExamBlueprint, ExamItem, ExamSession, PaymentOrder, PaymentTransaction,
-                      Product, Question, QuestionBank, QuestionCorrection, QuestionReport, QuestionVersion,
+                      Product, Question, QuestionBank, QuestionCorrection, QuestionReport, QuestionReview, QuestionVersion,
                       SourceDocument, Subject, SubjectAlias, SyncRun, User)
 from ..settings_store import get_setting, set_setting
 from ..sync.importer import recompute_policy
@@ -291,6 +291,7 @@ def override(qid: int, body: OverrideIn, db: Session = Depends(get_db), admin: U
     q.admin_override_note = body.note
     q.admin_override_by, q.admin_override_at = admin.id, dt.datetime.now(dt.timezone.utc)
     q.is_served = effective_served(q.policy_eligible, q.admin_override)
+    db.execute(update(QuestionReview).where(QuestionReview.question_id == q.id).values(served=q.is_served))
     audit(db, admin, f"question_{body.action}", "question", q.external_id, {"note": body.note})
     db.commit()
     return {"served": q.is_served, "override": q.admin_override}
@@ -890,7 +891,7 @@ def revoke_pro(sid: int, body: ReasonIn, db: Session = Depends(get_db), admin: U
 
 
 class UserUpdate(BaseModel):
-    role: Literal["student", "admin"] | None = None
+    role: Literal["student", "admin", "editor", "reviewer", "approver"] | None = None
     is_active: bool | None = None
     display_name: str | None = Field(default=None, max_length=120)
 
@@ -900,7 +901,7 @@ def update_user(uid: int, body: UserUpdate, db: Session = Depends(get_db), admin
     u = db.get(User, uid)
     if u is None:
         raise err(404, "not_found", "Không tìm thấy người dùng.")
-    if u.id == admin.id and (body.role == "student" or body.is_active is False):
+    if u.id == admin.id and ((body.role and body.role != "admin") or body.is_active is False):
         raise err(409, "self_lockout", "Không thể tự hạ quyền hoặc khoá chính mình.")
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(u, k, v)

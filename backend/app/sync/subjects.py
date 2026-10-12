@@ -65,7 +65,8 @@ def collect_tex(nodes, out: set | None = None) -> set:
             out.add(nodes["tex"])
         # node children ("c", table "rows", group "header"/"passage", option "content") and the
         # top-level keys of a question's content document
-        for k in ("c", "rows", "header", "passage", "content", "stem", "options", "group", "solution", "explanation"):
+        for k in ("c", "rows", "items", "header", "passage", "content", "stem", "options", "group", "solution",
+                  "explanation"):
             if k in nodes:
                 collect_tex(nodes[k], out)
     return out

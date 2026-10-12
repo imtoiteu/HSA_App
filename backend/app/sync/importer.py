@@ -133,13 +133,18 @@ def apply_built(db: Session, bank_id: int, b: BuiltQuestion, shash: str, alias: 
     q.removed_upstream = False
     q.source_hash = shash
     q.last_synced_at = now()
-    ok, reasons = evaluate(PolicyInput(q.editorial_state, q.question_type, q.scoring_mode, q.content_flags), policy)
+    ok, reasons = evaluate(PolicyInput(q.editorial_state, q.question_type, q.scoring_mode, q.content_flags,
+                                       review_gate=q.review_gate), policy)
     q.policy_eligible, q.policy_reasons = ok, reasons
     q.is_served = effective_served(ok, q.admin_override)
     db.flush()
     chash = b.content_hash
     cur = db.get(QuestionVersion, q.current_version_id) if q.current_version_id else None
-    if cur is None or cur.content_hash != chash:
+    # a version published from the Review Studio stays current: a later upstream change is stored as a new
+    # upstream version and flagged for the reviewers instead of silently replacing the reviewed content
+    reviewed = cur is not None and cur.origin == "review"
+    upv = db.get(QuestionVersion, q.upstream_version_id) if q.upstream_version_id else (None if reviewed else cur)
+    if upv is None or upv.content_hash != chash:
         existing = db.scalar(select(QuestionVersion).where(QuestionVersion.question_id == q.id,
                                                            QuestionVersion.content_hash == chash))
         if existing is None:
@@ -153,7 +158,27 @@ def apply_built(db: Session, bank_id: int, b: BuiltQuestion, shash: str, alias: 
             if not created:
                 stats["content_changed"] += 1
                 q.content_changed_at = now()
-        q.current_version_id = existing.id
+        q.upstream_version_id = existing.id
+        if not reviewed:
+            q.current_version_id = existing.id
+        if not created:
+            from ..review.service import mark_upstream_changed
+            if mark_upstream_changed(db, q, reviewed):
+                stats["review_kept"] = stats.get("review_kept", 0) + 1
+    if reviewed:
+        # fields derived from content follow the published review version, not the upstream build
+        from ..review.service import derive_fields
+        derive_fields(db, q, cur, failing or set())
+        ok, reasons = evaluate(PolicyInput(q.editorial_state, q.question_type, q.scoring_mode, q.content_flags,
+                                           review_gate=q.review_gate), policy)
+        q.policy_eligible, q.policy_reasons = ok, reasons
+        q.is_served = effective_served(ok, q.admin_override)
+    if created:
+        from ..models import QuestionReview
+        db.add(QuestionReview(question_id=q.id))
+    else:
+        from ..models import QuestionReview
+        db.execute(update(QuestionReview).where(QuestionReview.question_id == q.id).values(dirty=True))
     stats["created" if created else "updated"] += 1
 
 
@@ -178,6 +203,7 @@ def recompute_policy(db: Session, bank_id: int | None = None) -> dict:
     if bank_id:
         stmt = stmt.where(Question.bank_id == bank_id)
     n = changed = 0
+    changed_ids: list[int] = []
     for q in db.scalars(stmt.execution_options(yield_per=2000)):
         if q.bank_id not in aliases:
             aliases[q.bank_id] = bank_alias(db, q.bank_id)
@@ -187,7 +213,7 @@ def recompute_policy(db: Session, bank_id: int | None = None) -> dict:
         if q.answer_kind == "text":
             mode = "auto" if policy.get("text_answers_auto_scored") else "self_check"
         ok, reasons = evaluate(PolicyInput(q.editorial_state, q.question_type, mode, q.content_flags,
-                                           q.removed_upstream), policy)
+                                           q.removed_upstream, q.review_gate), policy)
         if q.bank_id in inactive:
             ok, reasons = False, reasons + ["bank_inactive"]
         served = effective_served(ok, q.admin_override) and q.bank_id not in inactive
@@ -196,8 +222,10 @@ def recompute_policy(db: Session, bank_id: int | None = None) -> dict:
             (q.policy_eligible, q.policy_reasons, q.is_served, q.scoring_mode, q.subject_code,
              q.subject_source) = new
             changed += 1
+            changed_ids.append(q.id)
         n += 1
     db.flush()
+    _mark_dirty(db, changed_ids)
     return {"evaluated": n, "changed": changed}
 
 
@@ -372,6 +400,7 @@ def sync_question_metadata(db: Session, bank_id: int, src, alias: dict, policy: 
     applied to every question without rebuilding it; only rows that change are written."""
     from sqlalchemy.orm import lazyload
     changed = 0
+    changed_ids: list[int] = []
     stmt = select(Question).options(lazyload(Question.current_version)).where(Question.bank_id == bank_id)
     for q in db.scalars(stmt.execution_options(yield_per=2000)):
         inf = src.inference.get(q.external_id) or {}
@@ -394,11 +423,20 @@ def sync_question_metadata(db: Session, bank_id: int, src, alias: dict, policy: 
             q.inferred_subject, q.inference_confidence, q.inference_evidence = new_inf
             q.content_flags, q.subject_code, q.subject_source = flags, subj, source
             ok, reasons = evaluate(PolicyInput(q.editorial_state, q.question_type, q.scoring_mode, q.content_flags,
-                                               q.removed_upstream), policy)
+                                               q.removed_upstream, q.review_gate), policy)
+            changed_ids.append(q.id)
             q.policy_eligible, q.policy_reasons = ok, reasons
             q.is_served = effective_served(ok, q.admin_override)
             changed += 1
         if changed and changed % 2000 == 0:
             db.flush()
     db.flush()
+    _mark_dirty(db, changed_ids)
     return changed
+
+
+def _mark_dirty(db: Session, ids: list[int]):
+    """Questions whose metadata changed are re-validated and re-queued by `hsa-app review-refresh`."""
+    from ..models import QuestionReview
+    for i in range(0, len(ids), 5000):
+        db.execute(update(QuestionReview).where(QuestionReview.question_id.in_(ids[i:i + 5000])).values(dirty=True))

@@ -452,7 +452,7 @@ def _has_warn(nodes) -> bool:
         return False
     if nodes.get("t") == "warn" or nodes.get("review"):
         return True
-    for k in ("c", "rows", "content", "header", "passage"):  # paragraphs, table cells, options, passages
+    for k in ("c", "rows", "items", "content", "header", "passage"):  # paragraphs, cells, lists, options, passages
         if k in nodes and _has_warn(nodes[k]):
             return True
     return False

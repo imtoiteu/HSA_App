@@ -51,6 +51,7 @@ services:
       db: { condition: service_healthy }
     volumes:
       - media:/data/media
+      - sources:/data/sources
       - apisock:/run/hsa
       - ${UPSTREAM_PATH:-/root/imtoiteu/HSA-question-bank}:/upstream:ro
     healthcheck:
@@ -77,11 +78,40 @@ services:
       HSA_MEDIA_ROOT: /data/media
     volumes:
       - media:/data/media
+      - sources:/data/sources
       - ${UPSTREAM_PATH:-/root/imtoiteu/HSA-question-bank}:/upstream:ro
     depends_on:
       api: { condition: service_healthy }
-    # runs maintenance and admin-requested synchronisations (niced) outside the API workers
+    # runs maintenance, admin-requested synchronisations and the review refresh niced, outside the API
     mem_limit: 900m
+    cpus: 1.0
+    networks: [internal]
+    logging: *logging
+
+  sources:
+    # prepares source documents for the Review Studio viewer: reads the upstream archives (root-only files,
+    # read-only mount), converts DOC/DOCX to PDF. Root with only the file-access capabilities it needs.
+    image: hsaapp-api:${APP_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env
+    command: ["sources"]
+    init: true
+    user: "0:0"
+    cap_drop: [ALL]
+    cap_add: [DAC_READ_SEARCH, DAC_OVERRIDE, CHOWN, FOWNER]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      HSA_ENV: production
+      HSA_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hsa}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hsa}
+      HSA_UPSTREAM_ROOT: /upstream
+      HSA_SOURCE_ROOT: /data/sources
+      HOME: /tmp
+    volumes:
+      - sources:/data/sources
+      - ${UPSTREAM_PATH:-/root/imtoiteu/HSA-question-bank}:/upstream:ro
+    depends_on:
+      api: { condition: service_healthy }
+    mem_limit: 1000m
     cpus: 1.0
     networks: [internal]
     logging: *logging
@@ -135,6 +165,7 @@ services:
 volumes:
   pgdata:
   media:
+  sources:  # Review Studio source cache (private; extracted/converted source documents and page images)
   apisock:
 
 networks:
