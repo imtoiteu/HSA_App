@@ -1135,7 +1135,10 @@ BATCHES["answer_ambiguous"] = BASE + """
 # the same for docx items with native (OMML → LaTeX) formulas: KaTeX-checked by the policy, answers solved as above
 BATCHES["answer_linking_formula"] = BATCHES["answer_linking"].replace(
     "AND NOT q.has_formula AND NOT q.has_image", "AND q.has_formula AND NOT q.has_image")
-ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf", "answer_ambiguous", "answer_linking_formula"}
+BATCHES["answer_ambiguous_formula"] = BATCHES["answer_ambiguous"].replace(
+    "AND NOT q.has_formula AND NOT q.has_image", "AND q.has_formula AND NOT q.has_image")
+ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf", "answer_ambiguous", "answer_linking_formula",
+                  "answer_ambiguous_formula"}
 PLAIN_BATCHES.add("answer_linking_pdf")
 PDF_TEXT_BATCHES = PLAIN_BATCHES | {"pdf_text_nonmath"}
 # a stem citing a table/figure/result layout the text layer cannot carry (dropped when no image/table survived)

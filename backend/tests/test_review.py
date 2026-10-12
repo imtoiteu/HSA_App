@@ -650,3 +650,5 @@ def test_answer_linking_formula_batch():
     q = M.BATCHES["answer_linking_formula"]
     assert "AND q.has_formula AND NOT q.has_image" in q and "<> 'pdf_text_layer'" in q
     assert "answer_linking_formula" in M.ANSWER_BATCHES
+    assert "AND q.has_formula AND NOT q.has_image" in M.BATCHES["answer_ambiguous_formula"]
+    assert "answer_ambiguous_formula" in M.ANSWER_BATCHES
