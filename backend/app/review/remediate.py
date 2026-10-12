@@ -213,6 +213,84 @@ def check_wrong_passage(content: dict) -> Verdict:
     return Verdict(True, f"đoạn chung thuộc môn {pb}, câu hỏi thuộc môn {qb} và tự đủ nghĩa: gắn nhầm đoạn")
 
 
+# page-number graphics ("12", "17", …) of the source pages, glued into passages as inline raster fragments; each one
+# checked visually (contact sheet, 2026-10-12) — page furniture, not content
+PAGE_NUMBER_FRAGMENTS = {
+    "007bd0c3b6462f6fdc26c72d1a5ab571f641350c5e4ba38b1899d0d7897a45f6",
+    "0cd241c1d2aff2911b1730ff5308ea372b754dfccc96cc8df5f4e637f2e15fa2",
+    "23e92c6f6fc54c001dc9c3c024ba39feb075b66420a7bc8b280e44e7512b06a6",
+    "2582c42e84b99dce1ccb4afe7f3ed0c691e92725d4c4700e28a760db05e68cd0",
+    "26def98527e930d50908a62e097092fa91948df766346b3e2ea7d2c98083ba9b",
+    "2a060f5a916764af7e53d9a0de126fc1d06c6cc0e7868c41f614f3a53f0c1bdc",
+    "2a50fc7d8875a042113aed72d3f0f57cccfe13b1c18051ed43651e1ffaf6d0a7",
+    "2f3b949885ca4455d5412cc372ea064bffd6b73705cb6b93b7dfb4170ca77306",
+    "3a99e41fff49d7d143543fa7002fd5c89bbf822047347d87617212ad693332ff",
+    "5b3a58731dcd6dfe241ddc055af1e6108af2a9e6d3681c0d2acd20db830bf4c6",
+    "600e7261dcf77a2609d52c3e519f23bc19e73ce30fad059b83df50fbfc7335cc",
+    "743431eeb6fffd6bf4e5ca611cd9e99e0f3cb15641b4dc6b650ef0daadac5d8c",
+    "832e3d879fa409a499d27eac6ab9838ba11a9e596362ec1316f37aab32c4d9a6",
+    "8aa067b9facb541b1a8eb1de2133a7f1cdf376df152a85644f59cde1d9ee69e0",
+    "91e468b59df3fbddb871ce47df9ae877fc4a67214b8b3d226ca6153d66136b0f",
+    "9230bdd2ca9e4717456708cb4c3036b3e73cf69c7ffc7a8817d6336c3ab478a6",
+    "9740b81a5b3cc0b13c61d4d9a6beec9b43288b826c29c321e76ecacee359076d",
+    "9e9872da2f1ef88d40e167bcc0d0fbbc48cbafb2c8f3e047584452a872ac2560",
+    "a525e90d5f4ed38c4072aac9ad329729c57a6b04acdba748dbb0d5e66c1bf8c7",
+    "c6f6a3a9a8c673540fae49ced07bdaa0e43cd9a163ae34b9f0d4fcc9d77fcba2",
+    "ee047a29864c11a65896240f417d7cc3db1c7de2750de5b756317466211da51d",
+    "ee8ff8ca319145207e93409b79ea9c7060728581c7496b283521bba09b91197c",
+    "f81ffa7e560d91d255c15028436cc1fcc2eea63bca8692e7a713ace07d340a07",
+}
+
+
+def strip_verified_warns(content: dict, pages: list[str]) -> tuple[dict, int, str | None]:
+    """Remove "đối tượng không hiển thị được" placeholders that stand for nothing: in the source text the words
+    before and after the placeholder are adjacent (at most a bullet/dash between them)."""
+    joined = "".join(norm(p) for p in pages)
+    c = json.loads(json.dumps(content))
+    parts = [("stem", c.get("stem"))] + [(f"option {o.get('label')}", o.get("content")) for o in c.get("options") or []]
+    g = c.get("group") or {}
+    parts += [("passage", g.get("passage")), ("header", g.get("header"))]
+    removed = 0
+    for name, blocks in parts:
+        if not blocks:
+            continue
+        for b in blocks:  # page numbers first: the text around a placeholder is then contiguous
+            if b.get("c"):
+                keep = [n for n in b["c"] if not (n.get("t") == "img" and n.get("review") and
+                        (n.get("src") or "").split("/")[-1].split(".")[0] in PAGE_NUMBER_FRAGMENTS)]
+                removed += len(b["c"]) - len(keep)
+                b["c"] = keep
+        flat = [(b, n) for b in blocks for n in (b.get("c") or [])]
+        for i, (b, n) in enumerate(flat):
+            if n.get("t") != "warn":
+                continue
+            bef = norm("".join(x.get("v", "") for _, x in flat[:i] if x.get("t") == "s"))[-30:]
+            aft = norm("".join(x.get("v", "") for _, x in flat[i + 1:] if x.get("t") == "s"))[:30]
+            if len(bef) < 12 or len(aft) < 12:
+                return content, 0, f"unrenderable object in the {name} without enough text around it to verify"
+            k = joined.find(bef)
+            while k >= 0 and not any(joined.startswith(aft, k + len(bef) + gap) for gap in range(4)):
+                k = joined.find(bef, k + 1)
+            if k < 0:
+                return content, 0, f"unrenderable object in the {name}: the source has content there (not verified empty)"
+        for b in blocks:
+            if b.get("c"):
+                before = len(b["c"])
+                b["c"] = [n for n in b["c"] if n.get("t") != "warn"]
+                removed += before - len(b["c"])
+
+    def nested_warns(x) -> int:
+        if isinstance(x, dict):
+            return (x.get("t") == "warn" or bool(x.get("review"))) + sum(nested_warns(v) for v in x.values())
+        if isinstance(x, list):
+            return sum(nested_warns(v) for v in x)
+        return 0
+    left = nested_warns([c.get("stem"), [o.get("content") for o in c.get("options") or []], c.get("group")])
+    if left:
+        return content, 0, f"{left} placeholder(s)/raster fragment(s) left that cannot be verified as empty"
+    return c, removed, None
+
+
 def check_source_text(content: dict, pages: list[str]) -> Verdict:
     """Stem and every option must occur in the source text, options shortly after the stem."""
     full = [norm(p) for p in pages]
@@ -719,6 +797,14 @@ BATCHES["group_detach_wrong_passage"] = BASE + """
       AND q.question_type = 'single_choice' AND NOT q.has_image AND NOT q.has_table
 """
 DETACH_BATCHES = {"group_detach_wrong_passage"}
+# upstream READY, blocked only by a placeholder for an object that could not be converted
+BATCHES["render_warning_artifact"] = BASE.replace(  # the placeholder finding is what this batch resolves
+    "r.findings_critical = 0", "NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND "
+    "f.status = 'open' AND f.severity = 'critical' AND f.code <> 'unresolved_placeholder')") + """
+      AND q.editorial_states = '{READY_TO_SERVE}' AND q.policy_reasons = '{render_warning}'
+      AND q.question_type = 'single_choice' AND NOT q.has_image AND NOT q.has_table
+"""
+WARN_BATCHES = {"render_warning_artifact"}
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
 TRANSFORMS = {"watermark_only": "watermark"}
@@ -791,6 +877,12 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             content, wm_removed = strip_watermarks(content)
             if C.images(content) or C.has_table(content):
                 unresolved("other figures remain after removing the watermark (needs a visual check)")
+                continue
+        warns_removed = 0
+        if batch in WARN_BATCHES:
+            content, warns_removed, problem = strip_verified_warns(content, page_cache[sc.blob_sha256])
+            if problem or not warns_removed:
+                unresolved(problem or "no placeholder found")
                 continue
         group_marked = False
         if batch in GROUP_BATCHES:
@@ -880,8 +972,9 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 + ("; watermark removed" if wm_removed else ""))
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
-        if nfc_changed or wm_removed or trimmed or group_marked or group_detached:
-            what = "; ".join(x for x in ("nhóm chỉ có lời dẫn, không có đoạn dữ liệu chung (đối chiếu tài liệu gốc)"
+        if nfc_changed or wm_removed or trimmed or group_marked or group_detached or warns_removed:
+            what = "; ".join(x for x in (f"bỏ {warns_removed} ô “đối tượng không hiển thị được”/ảnh số trang (tài liệu gốc không có nội dung ở đó)"
+                                         if warns_removed else "","nhóm chỉ có lời dẫn, không có đoạn dữ liệu chung (đối chiếu tài liệu gốc)"
                                          if group_marked else "",
                                          f"tách khỏi đoạn chung gắn nhầm ({gv.reason})" if group_detached else "","chuẩn hoá Unicode NFC (không đổi nội dung)" if nfc_changed else "",
                                          "bỏ ảnh quảng cáo/watermark Tailieuchuan.vn (không thuộc câu hỏi)"
@@ -893,7 +986,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             if content.get("group") is not None or group_detached:
                 edit["group"] = content["group"]
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
-            stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached)
+            stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached or warns_removed)
             stats["visual_fixed"] += wm_removed
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)

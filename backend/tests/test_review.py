@@ -513,3 +513,16 @@ def test_check_wrong_passage():
     assert M.check_wrong_passage(c).ok
     assert not M.check_wrong_passage(dict(c, stem=plain("Theo đoạn trích, hiệp định được kí năm nào?"))).ok
     assert not M.check_wrong_passage(dict(c, group={"key": "g", "header": [], "passage": []})).ok
+
+
+def test_strip_verified_warns():
+    from app.review import remediate as M
+    warn = {"t": "warn", "v": "đối tượng không hiển thị được"}
+    c = {"stem": [{"t": "p", "c": [{"t": "s", "v": "vấn đề đặt ra đối với lực lượng lao động, cụ thể:"}]},
+                  {"t": "p", "c": [warn, {"t": "s", "v": "Một là, lao động phân bổ không đều giữa các vùng"}]}]}
+    pages = ["vấn đề đặt ra đối với lực lượng lao động, cụ thể:\\nMột là, lao động phân bổ không đều giữa các vùng"]
+    out, n, problem = M.strip_verified_warns(c, pages)
+    assert n == 1 and problem is None and all(x.get("t") != "warn" for b in out["stem"] for x in b["c"])
+    lost = ["vấn đề đặt ra đối với lực lượng lao động, cụ thể: bảng số liệu năm 2019 gồm nhiều cột\\n"
+            "Một là, lao động phân bổ không đều giữa các vùng"]
+    assert M.strip_verified_warns(c, lost)[2] is not None
