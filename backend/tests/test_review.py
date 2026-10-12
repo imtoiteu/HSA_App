@@ -496,8 +496,8 @@ def test_group_instruction_only():
     assert not M.check_group_instruction(dict(c, group=err, stem=plain("He go to school every days by bus."))).ok
     pages = ["Question 1-2: Choose a suitable word or phrase (marked A, B, C or D) to fill in each blank.\n"
              "1. The lecture was so _______ that half the students fell asleep.\nA. Interesting B. Dull C. Lively D. Engaging"]
-    texts = ["The lecture was so _______ that half the students fell asleep.", "Interesting", "Dull", "Lively", "Engaging"]
-    assert M.check_group_source(c, texts, pages, 1).ok
+    stems = [plain("The lecture was so _______ that half the students fell asleep.")]
+    assert M.check_group_source(c, stems, pages).ok
     lost = [pages[0].replace("blank.\n", "blank.\nThe history of the bicycle began in the early nineteenth century when "
                                          "inventors in Europe tried many designs for a human powered machine.\n")]
-    assert not M.check_group_source(c, texts, lost, 1).ok
+    assert not M.check_group_source(c, stems, lost).ok

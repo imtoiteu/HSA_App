@@ -152,31 +152,44 @@ def group_english_instruction(content: dict) -> bool:
     return bool(re.search(r"restates each of the given sentences|has one error|fill in each blank", hdr))
 
 
-def check_group_source(content: dict, member_texts: list[str], pages: list[str], n_members: int = 1) -> Verdict:
-    """In the source, between the group's instruction and this question there is nothing but the group's own
-    questions (no shared passage that the parse lost)."""
+def _lead_text(blocks) -> str:
+    """Normalized text of a stem up to its first formula/image (what the source text layer surely contains)."""
+    out = []
+    for b in blocks or []:
+        for n in b.get("c") or []:
+            if n.get("t") != "s":
+                return norm("".join(out))
+            out.append(n.get("v", ""))
+        out.append(" ")
+    return norm("".join(out))
+
+
+def check_group_source(content: dict, member_stems: list, pages: list[str]) -> Verdict:
+    """In the source, the group's instruction is followed directly by its first question: no shared passage that the
+    parse lost (a passage always sits between the instruction and the first question)."""
     joined = "".join(norm(p) for p in pages)
     hdr = norm(re.sub(r"^\W*questions?\b", "", plain_text((content.get("group") or {}).get("header") or []),
                       flags=re.I))
     hdr = re.sub(r"\d+", "", hdr)
-    stem = norm(_text_without_math(content.get("stem") or []))[:40]
+    stem = _lead_text(content.get("stem"))[:40]
     pos = joined.find(stem) if len(stem) >= 12 else -1
-    if pos < 0 or not hdr:
+    if pos < 0 or len(hdr) < 12:
         return Verdict(False, "stem/group header not located in the source")
     h = joined.rfind(hdr, 0, pos)
-    if h < 0:
+    if h < 0 or pos - h > 60000:
         return Verdict(False, "group instruction not found before the question in the source")
-    gap = joined[h + len(hdr):pos]
-    if len(gap) > 20000:
-        return Verdict(False, "group instruction too far before the question")
-    for t in sorted((norm(x) for x in member_texts), key=len, reverse=True):
-        if len(t) >= 6:
-            gap = gap.replace(t, "")
-    rest = re.sub(r"(questions?|cau|dapan|loigiai|chon|huongdan|giai)", "", re.sub(r"\d+", "", gap))
-    if len(rest) > 30 + 15 * n_members:  # option letters, numbering left per question
-        return Verdict(False, f"unaccounted source text between the group instruction and the question "
-                              f"({len(rest)} chars: {rest[:40]}…) — possible lost passage")
-    return Verdict(True, "trong tài liệu gốc, lời dẫn nhóm đứng ngay trước các câu của nhóm (không có đoạn dữ liệu chung)")
+    first = pos
+    for st in member_stems:
+        t = _lead_text(st)[:40]
+        if len(t) >= 12:
+            k = joined.find(t, h + len(hdr), first)
+            if k >= 0:
+                first = k
+    gap = re.sub(r"(questions?|cau|tu|den|to|from)", "", re.sub(r"\d+", "", joined[h + len(hdr):first]))
+    if len(gap) > 30:
+        return Verdict(False, f"unaccounted source text between the group instruction and its first question "
+                              f"({len(gap)} chars: {gap[:40]}…) — possible lost passage")
+    return Verdict(True, "trong tài liệu gốc, lời dẫn nhóm đứng ngay trước câu đầu của nhóm (không có đoạn dữ liệu chung)")
 
 
 def check_source_text(content: dict, pages: list[str]) -> Verdict:
@@ -402,7 +415,8 @@ def check_subject(q: Question, content: dict) -> Verdict:
                        details={"suggest": sec, "scores": sc})
     if best == subj and mine >= 1 and not contradict:
         return Verdict(True, f"nội dung nghiêng về môn {subj} (từ khoá {mine}, không môn nào khác hơn)")
-    if high and not contradict and (mine >= 1 or sc[best] == 0):  # no evidence for the label but some for another
+    bare_math = subj == "math" and mine == 0 and not C.collect_tex(content) and not re.search(r"\d", txt)
+    if high and not contradict and (mine >= 1 or sc[best] == 0) and not bare_math:  # no evidence for the label but some for another
         # subject: the upstream label is not enough (e.g. geography questions of a mixed exam labelled math)
         return Verdict(True, f"phân loại cuối của ngân hàng ({q.classification_source}/{q.classification_confidence}),"
                              f" nội dung không mâu thuẫn")
@@ -675,7 +689,10 @@ BATCHES["group_instruction_only"] = BASE.replace(  # the missing-passage finding
       AND q.editorial_states = '{READY_TO_SERVE}' AND q.policy_reasons = '{group_context_missing}'
       AND q.question_type = 'single_choice' AND NOT q.has_formula AND NOT q.has_image AND NOT q.has_table
 """
-GROUP_BATCHES = {"group_instruction_only"}
+# the same with formulas: the formulas are the bank's READY version (unchanged here), KaTeX-checked by the policy
+BATCHES["group_instruction_only_math"] = BATCHES["group_instruction_only"].replace(
+    "AND NOT q.has_formula ", "AND q.has_formula ")
+GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
 TRANSFORMS = {"watermark_only": "watermark"}
 
@@ -754,12 +771,8 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             if gv.ok:
                 members = db.scalars(select(Question).options(lazyload(Question.current_version))
                                      .where(Question.group_key == q.group_key)).all()
-                texts = []
-                for m in members:
-                    mc = m.current_version.content if m.current_version else {}
-                    texts += [_text_without_math(mc.get(k) or []) for k in ("stem", "solution", "explanation")]
-                    texts += [_text_without_math(o.get("content") or []) for o in mc.get("options") or []]
-                gv = check_group_source(content, [t for t in texts if t], page_cache[sc.blob_sha256], len(members))
+                stems = [m.current_version.content.get("stem") for m in members if m.current_version]
+                gv = check_group_source(content, stems, page_cache[sc.blob_sha256])
             if not gv.ok:
                 unresolved(gv.reason)
                 continue
@@ -848,7 +861,8 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
         notes = {
             "content": f"[{batch}] {sv.reason} (trang {sv.page})",
             "answer": f"[{batch}] {av.reason}",
-            "formula": f"[{batch}] không có công thức",
+            "formula": f"[{batch}] công thức giữ nguyên bản READY_TO_SERVE của ngân hàng; KaTeX hiển thị không lỗi"
+            if C.collect_tex(v.content) else f"[{batch}] không có công thức",
             "visual": f"[{batch}] hình/bảng nhúng trong tài liệu gốc, tệp tồn tại" if has_vis else (
                 f"[{batch}] chỉ có ảnh watermark (đã bỏ); câu không cần hình" if wm_removed else f"[{batch}] không có hình"),
             "subject": f"[{batch}] {q.subject_code}: {sj.reason}",
