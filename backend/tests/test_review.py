@@ -622,6 +622,9 @@ def test_pdf_text_plain_guard_and_watermark():
         assert M.flattened_math(P(bad)), bad
     assert M.flattened_math([{"t": "p", "c": [{"t": "s", "v": "a"}, {"t": "tab"}, {"t": "s", "v": "b"}]}])
     assert M.content_flattened_math({"stem": P("Nghiệm của phương trình là"), "options": []})
+    assert M.missing_exhibit({"stem": P("Ở một nghiên cứu sự ra hoa, nhận được kết quả như sau: Nhận định nào sai?"),
+                              "options": []})
+    assert M.missing_exhibit({"stem": P("Biểu đồ thích hợp nhất để thể hiện cơ cấu là"), "options": []}) is None
     wm = [{"t": "s", "v": "H"}, {"t": "tab"}, {"t": "s", "v": "S"}, {"t": "tab"}, {"t": "s", "v": "A"}]
     c = {"stem": [{"t": "p", "c": wm + [{"t": "br"}, {"t": "s", "v": "Câu hỏi?"}]}],
          "options": [{"label": "A", "content": [{"t": "p", "c": [{"t": "s", "v": "Một."}, {"t": "br"}] + wm}]}]}

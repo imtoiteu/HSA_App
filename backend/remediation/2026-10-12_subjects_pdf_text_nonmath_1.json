@@ -1,0 +1,416 @@
+[
+ {
+  "cq_id": "cq_2279e9468453c37d",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_39e24d722ca2c003",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_4a0438fd65e8ade5",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_526f92b3a5d36852",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_850960d05cd44f35",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_8ad5302bd6a2257a",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_9a1e5a23e0250804",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_9ff7e8b162eac22b",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_b315ce0f698e94cc",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_c120c9f2223fb85a",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_eecb089f5dba1d1b",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_f02553248551b11e",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_f2df9e76d8efc90c",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_d1fc4b1462459d21",
+  "action": "confirm_subject",
+  "subject": "literature",
+  "note": "Người duyệt xác định môn Ngữ văn: câu đọc hiểu thuộc phần Ngữ văn (đoạn trích/ngôn ngữ), giữ môn Ngữ văn"
+ },
+ {
+  "cq_id": "cq_06cf6bc88475f945",
+  "action": "subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_63d01aabb86aaea5",
+  "action": "subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_9e84c9c4c3bd7fc1",
+  "action": "subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_b6a947e68e2df048",
+  "action": "subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_d1e060a111b7c28e",
+  "action": "subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_e1cdb44154f4f50f",
+  "action": "subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_840e7ce8343948a1",
+  "action": "subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_2c0dd68c329a2861",
+  "action": "confirm_subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_491edf30fa50e838",
+  "action": "confirm_subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_9308293abf7b8134",
+  "action": "confirm_subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_c621a6d44d6d3177",
+  "action": "confirm_subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_f9ae29bce84daae4",
+  "action": "confirm_subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_fdc155386764ceea",
+  "action": "confirm_subject",
+  "subject": "biology",
+  "note": "Người duyệt xác định môn Sinh học: nội dung là kiến thức Sinh học"
+ },
+ {
+  "cq_id": "cq_2db73dca798cd3d2",
+  "action": "subject",
+  "subject": "chemistry",
+  "note": "Người duyệt xác định môn Hóa học: nội dung là kiến thức Hóa học"
+ },
+ {
+  "cq_id": "cq_f5ba9160c5d9240c",
+  "action": "subject",
+  "subject": "chemistry",
+  "note": "Người duyệt xác định môn Hóa học: nội dung là kiến thức Hóa học"
+ },
+ {
+  "cq_id": "cq_43be01e9e43a1314",
+  "action": "subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ },
+ {
+  "cq_id": "cq_07e8c49c29b2de0b",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_09ef9ab9f6ceb6a9",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_0c107ecd8690795f",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_2234a927a68b6a68",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_32a8833aedfad815",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_331568b3bee8cc6e",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_4db816d7003a716b",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_590bad463d55d0c1",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_6136e9d0cae41614",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_722dc5c7d5a6289b",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_7e0f742c27bffe78",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_82bfde520ba5b933",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_86e585e32cd79fd1",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_870b7a6279bc58f2",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_8e20e118164778b6",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_8e799a982ab9a225",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_92f7ee1155c2ddbd",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_a0cb05bf2e82659b",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_a4793124cd794f11",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_a9aa28e56d014d94",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_b405dcace6a624ac",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_b8a439b9d430aa05",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_b92c11e8e1d75d6b",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_c0975175ef21b925",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_cac8793099b2c1f1",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_cda69ccee3f6681e",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_cdbbce88b7c16df1",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_d197e7951e3f839c",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_d3fcf13682206dff",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_d632b3e4ed55db17",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_db8b8ac5c3ce0aa7",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_f63e4fbcb9cdae27",
+  "action": "confirm_subject",
+  "subject": "geography",
+  "note": "Người duyệt xác định môn Địa lí: nội dung là kiến thức Địa lí (không phụ thuộc Atlat)"
+ },
+ {
+  "cq_id": "cq_33e9a6936d3abaf1",
+  "action": "confirm_subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ },
+ {
+  "cq_id": "cq_8649fa896d7e5af3",
+  "action": "confirm_subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ },
+ {
+  "cq_id": "cq_8acb0f7e902701bd",
+  "action": "confirm_subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ },
+ {
+  "cq_id": "cq_9e8897437f637976",
+  "action": "confirm_subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ },
+ {
+  "cq_id": "cq_cc87e77551c5e5b1",
+  "action": "confirm_subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ },
+ {
+  "cq_id": "cq_f65fdc5b3a921678",
+  "action": "confirm_subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ },
+ {
+  "cq_id": "cq_fec8e8a9d2d3886b",
+  "action": "confirm_subject",
+  "subject": "history",
+  "note": "Người duyệt xác định môn Lịch sử: nội dung là kiến thức Lịch sử"
+ }
+]

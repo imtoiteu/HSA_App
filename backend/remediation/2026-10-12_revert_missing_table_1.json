@@ -1,0 +1,4 @@
+[
+ {"cq_id": "cq_840e7ce8343948a1", "revert": true, "note": "Đề viện dẫn bảng kết quả (\"nhận được kết quả như sau\") nhưng bảng bị mất khi trích văn bản PDF; không thể làm được — gỡ khỏi phục vụ"},
+ {"cq_id": "cq_840e7ce8343948a1", "visual_fail": true, "note": "Thiếu bảng kết quả nghiên cứu ra hoa mà đề viện dẫn; cần khôi phục bảng từ nguồn trước khi phục vụ"}
+]

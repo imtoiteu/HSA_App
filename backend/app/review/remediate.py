@@ -1134,6 +1134,17 @@ BATCHES["answer_ambiguous"] = BASE + """
 """
 ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf", "answer_ambiguous"}
 PLAIN_BATCHES.add("answer_linking_pdf")
+PDF_TEXT_BATCHES = PLAIN_BATCHES | {"pdf_text_nonmath"}
+# a stem citing a table/figure/result layout the text layer cannot carry (dropped when no image/table survived)
+_EXHIBIT = re.compile(r"kết quả (?:như )?(?:sau|dưới đây)|bảng (?:số liệu|sau|dưới|bên)|(?:biểu đồ|sơ đồ|lược đồ|đồ thị) "
+                      r"(?:sau|dưới|bên)|hình (?:vẽ|bên|dưới|sau)|như hình", re.I)
+
+
+def missing_exhibit(content: dict) -> str | None:
+    m = _EXHIBIT.search(plain_text(content.get("stem") or []))
+    if m and not (C.images(content) or C.has_table(content)):
+        return f"stem cites “{m.group(0)}” but no table/figure survived the text layer"
+    return None
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 # the same with formulas (the formulas are the bank's version; only the figure was flagged)
 BATCHES["visual_lowres_formula"] = BATCHES["visual_lowres"].replace(
@@ -1299,6 +1310,11 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             if content.get("group") is not None:
                 content = json.loads(json.dumps(content))
                 group_detached, content["group"] = content["group"], None
+        if batch in PDF_TEXT_BATCHES:
+            why = missing_exhibit(content)
+            if why:
+                unresolved(why)
+                continue
         if batch in PLAIN_BATCHES:
             why = content_flattened_math(content)
             if why:
