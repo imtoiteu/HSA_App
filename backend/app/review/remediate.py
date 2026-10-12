@@ -77,8 +77,11 @@ def check_structure(content: dict) -> Verdict:
     if len(opts) != 4:
         return Verdict(False, f"option structure suspect: {len(opts)} options")
     for o in opts:
-        if OPTION_LIST.search(plain_text(o.get("content") or [])):
+        t = plain_text(o.get("content") or [])
+        if OPTION_LIST.search(t):
             return Verdict(False, f"option structure suspect: option {o.get('label')} contains an A./B./C. list")
+        if re.search(r"\n\s*\**[A-H][.)]\s", t):
+            return Verdict(False, f"option structure suspect: option {o.get('label')} has a line starting with an option label")
     return Verdict(True)
 
 
