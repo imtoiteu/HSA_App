@@ -339,6 +339,90 @@ def split_inline_options(content: dict, answer: dict | None) -> tuple[dict | Non
     return c, {"kind": "choice", "labels": [answer["text"].strip()]}, ""
 
 
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+_M = "{http://schemas.openxmlformats.org/officeDocument/2006/math}"
+PASSAGE_MARKER = re.compile(r"^\W*read the (?:following )?(?:passage|text)", re.I)
+NOT_PASSAGE = re.compile(r"^\s*(?:[A-D][.)]\s|câu\s*\d+|question\s*\d+|đáp án|lời giải|phương pháp giải|hướng dẫn)", re.I)
+
+
+def docx_paragraphs(path) -> list[dict]:
+    """Body paragraphs of a .docx in order: {"kind": p|table|drawing|math, "text", "runs": [(text, marks)]}."""
+    import xml.etree.ElementTree as ET
+    import zipfile
+    root = ET.fromstring(zipfile.ZipFile(path).read("word/document.xml"))
+    out = []
+    for el in root.find(_W + "body"):
+        if el.tag == _W + "tbl":
+            out.append({"kind": "table", "text": "", "runs": []})
+            continue
+        if el.tag != _W + "p":
+            continue
+        runs = []
+        for r in el.iter(_W + "r"):
+            t = "".join(x.text or "" for x in r.iter(_W + "t"))
+            if not t:
+                continue
+            pr = r.find(_W + "rPr")
+            marks = []
+            if pr is not None:
+                for tag, m in (("b", "b"), ("i", "i"), ("u", "u")):
+                    e = pr.find(_W + tag)
+                    if e is not None and e.get(_W + "val") not in ("0", "false", "none"):
+                        marks.append(m)
+            runs.append((t, marks))
+        kind = "p"
+        if list(el.iter(_W + "drawing")) or list(el.iter("{urn:schemas-microsoft-com:vml}shape")):
+            kind = "drawing"
+        elif list(el.iter(_M + "oMath")):
+            kind = "math"
+        out.append({"kind": kind, "text": "".join(t for t, _ in runs), "runs": runs})
+    return out
+
+
+def docx_passage(paras: list[dict], header: str, stem_blocks: list) -> tuple[list | None, str]:
+    """The shared passage of a reading group, from the source .docx: the paragraphs between "Read the passage…"
+    and the group's instruction (or after a "Read the following passage…" instruction up to the first question)."""
+    sk = norm(_text_without_math(stem_blocks))[:30]
+    hk = norm(header)
+    idx = [i for i, p in enumerate(paras) if len(sk) >= 15 and sk in norm(p["text"])]
+    if len(idx) != 1:
+        return None, f"question found {len(idx)} times in the source .docx"
+    i = idx[0]
+    hs = [j for j in range(max(0, i - 600), i) if hk and hk[:40] in norm(paras[j]["text"])]
+    if not hs:
+        return None, "group instruction not found before the question in the source .docx"
+    h = hs[-1]
+    if any(PASSAGE_MARKER.match(paras[j]["text"]) for j in range(h + 1, i)):
+        return None, "another passage starts between the group instruction and the question"
+    if PASSAGE_MARKER.match(paras[h]["text"]):          # instruction first, passage after it
+        start, end = h + 1, h + 1
+        while end < i and not NOT_PASSAGE.match(paras[end]["text"]):
+            end += 1
+    else:                                                # passage first, then the instruction
+        m = [j for j in range(max(0, h - 25), h) if PASSAGE_MARKER.match(paras[j]["text"])]
+        if not m:
+            return None, "no \"Read the passage\" marker before the group instruction"
+        start, end = m[-1] + 1, h
+    body = [p for p in paras[start:end] if p["text"].strip()]
+    if any(p["kind"] != "p" for p in paras[start:end]):
+        return None, "the passage contains a table/figure/formula (needs a visual check)"
+    if any(NOT_PASSAGE.match(p["text"]) for p in body):
+        return None, "the passage range contains question/option/solution lines"
+    if sum(len(p["text"]) for p in body) < 300:
+        return None, "passage too short"
+    blocks = []
+    for p in body:
+        nodes = []
+        for t, marks in p["runs"]:
+            t = t.replace("\xa0", " ")
+            if nodes and nodes[-1].get("m", []) == marks:
+                nodes[-1]["v"] += t
+            else:
+                nodes.append({"t": "s", "v": t, **({"m": marks} if marks else {})})
+        blocks.append({"t": "p", "c": nodes})
+    return blocks, ""
+
+
 def check_source_text(content: dict, pages: list[str]) -> Verdict:
     """Stem and every option must occur in the source text, options shortly after the stem."""
     full = [norm(p) for p in pages]
@@ -859,9 +943,34 @@ BATCHES["inline_options_split"] = BASE + """
       AND q.question_type = 'short_response'
 """
 SPLIT_BATCHES = {"inline_options_split"}
+# upstream READY reading questions whose shared passage was lost by the parser: recovered from the source .docx
+# (runs only where the original archives are readable: the sources service)
+BATCHES["group_passage_recover"] = BASE.replace(
+    "r.findings_critical = 0", "NOT EXISTS (SELECT 1 FROM review_finding f WHERE f.question_id = q.id AND "
+    "f.status = 'open' AND f.severity = 'critical' AND f.code <> 'group_passage_missing')") + """
+      AND q.editorial_states = '{READY_TO_SERVE}' AND q.policy_reasons = '{group_context_missing}'
+      AND q.question_type = 'single_choice' AND NOT q.has_image AND NOT q.has_table AND NOT q.has_formula
+      AND (q.provenance->>'document_id') IS NOT NULL
+"""
+RECOVER_BATCHES = {"group_passage_recover"}
 GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
 NEEDS_VISUAL_CONFIRMATION = {"visual_lowres"}
 TRANSFORMS = {"watermark_only": "watermark"}
+
+
+def load_docx(store, document_id: str) -> list | None:
+    """Paragraphs of a source .docx (None when it is not a .docx or the original archive is not readable)."""
+    import tempfile
+    from pathlib import Path
+    doc = store.up.document(document_id)
+    if not doc or (doc.get("file_kind") or "").lower() != "docx":
+        return None
+    try:
+        with tempfile.TemporaryDirectory(prefix="hsa_docx_", dir=store._tmp()) as tmp:
+            src = store._materialize(doc, Path(tmp))
+            return docx_paragraphs(src) if src else None
+    except (OSError, KeyError, ValueError):
+        return None
 
 
 def candidates(db: Session, batch: str, limit: int | None) -> list[int]:
@@ -879,6 +988,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
     stats = {"examined": 0, "promoted": 0, "unresolved": 0, "structural_fixed": 0, "answer_fixed": 0,
              "formula_fixed": 0, "visual_fixed": 0, "subject_fixed": 0, "source_conflicts": 0, "reasons": {}}
     page_cache: dict[str, list[str]] = {}
+    docx_cache: dict[str, list | None] = {}
     for qid in candidates(db, batch, limit):
         q = db.scalar(select(Question).options(lazyload(Question.current_version)).where(Question.id == qid))
         r = S.get_review(db, q)
@@ -932,6 +1042,26 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             if C.images(content) or C.has_table(content):
                 unresolved("other figures remain after removing the watermark (needs a visual check)")
                 continue
+        passage_recovered = False
+        if batch in RECOVER_BATCHES:
+            if doc not in docx_cache:
+                db.commit() if apply else db.rollback()
+                docx_cache[doc] = load_docx(store, doc)
+                q = db.scalar(select(Question).options(lazyload(Question.current_version)).where(Question.id == qid))
+                r = S.get_review(db, q)
+                v = S.working_version(db, q, r)
+            paras = docx_cache[doc]
+            if paras is None:
+                unresolved("source .docx not readable here", record=False)
+                continue
+            blocks, why = docx_passage(paras, plain_text((content.get("group") or {}).get("header") or []),
+                                       content.get("stem") or [])
+            if blocks is None:
+                unresolved(why)
+                continue
+            content = json.loads(json.dumps(content))
+            content["group"]["passage"] = blocks
+            passage_recovered = True
         split_answer = None
         if batch in SPLIT_BATCHES:
             content, split_answer, why = split_inline_options(content, v.answer)
@@ -1036,8 +1166,10 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 + ("; watermark removed" if wm_removed else ""))
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
-        if nfc_changed or wm_removed or trimmed or group_marked or group_detached or warns_removed or split_answer:
-            what = "; ".join(x for x in ("tách 4 phương án A–D đang nằm trong đề thành câu trắc nghiệm một đáp án "
+        if nfc_changed or wm_removed or trimmed or group_marked or group_detached or warns_removed or split_answer \
+                or passage_recovered:
+            what = "; ".join(x for x in ("khôi phục đoạn văn chung bị mất từ tệp .docx gốc (khớp văn bản PDF)"
+                                         if passage_recovered else "","tách 4 phương án A–D đang nằm trong đề thành câu trắc nghiệm một đáp án "
                                          f"(đáp án {split_answer['labels'][0]} giữ nguyên)" if split_answer else "",f"bỏ {warns_removed} ô “đối tượng không hiển thị được”/ảnh số trang (tài liệu gốc không có nội dung ở đó)"
                                          if warns_removed else "","nhóm chỉ có lời dẫn, không có đoạn dữ liệu chung (đối chiếu tài liệu gốc)"
                                          if group_marked else "",
@@ -1054,7 +1186,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 edit["type"], edit["answer"] = "single_choice", split_answer
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
             stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached or warns_removed
-                                              or split_answer)
+                                              or split_answer or passage_recovered)
             stats["visual_fixed"] += wm_removed
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)

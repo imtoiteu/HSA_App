@@ -540,3 +540,23 @@ def test_split_inline_options():
     assert M.split_inline_options(c, {"kind": "text", "text": "36 cm"})[0] is None
     bad = dict(c, stem=c["stem"][:2])
     assert M.split_inline_options(bad, {"kind": "text", "text": "A"})[0] is None
+
+
+def test_docx_passage():
+    from app.review import remediate as M
+    P = lambda t, kind="p", runs=None: {"kind": kind, "text": t, "runs": runs or [(t, [])]}
+    long = "Sleep is food for the brain, so not sleeping well can be a severe problem for anyone. " * 5
+    paras = [P("Lời giải"), P("Read the passage carefully"), P(long, runs=[(long[:20], []), (long[20:40], ["u"]), (long[40:], [])]),
+             P("(Adapted from Prepare)"),
+             P("Choose an option (A, B, C or D) that best answers each question from 53 to 60."), P("Câu 53:"),
+             P("Which of the following can be the best title of the passage?")]
+    hdr = "Choose an option (A, B, C or D) that best answers each question from 53 to 60."
+    stem = plain("Which of the following can be the best title of the passage?")
+    blocks, why = M.docx_passage(paras, hdr, stem)
+    assert why == "" and len(blocks) == 2 and blocks[0]["c"][1] == {"t": "s", "v": long[20:40], "m": ["u"]}
+    after = [P("Read the following passage and answer the questions from 1 to 5."), P(long), P("Câu 1:"),
+             P("What is the main idea of the passage?")]
+    assert M.docx_passage(after, "Read the following passage and answer the questions from 1 to 5.",
+                          plain("What is the main idea of the passage?"))[0]
+    bad = paras[:2] + [P("A. achieving B. attempting")] + paras[2:]
+    assert M.docx_passage(bad, hdr, stem)[0] is None
