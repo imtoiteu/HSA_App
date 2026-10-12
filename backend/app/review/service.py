@@ -656,3 +656,27 @@ def assign(db: Session, user: User, qids: list[int], reviewer_id: int | None, as
         db.add(ReviewEvent(question_id=qid, external_id=ext, actor_id=user.id, action="assign",
                            changes=[{"field": "assignee", "old": None, "new": reviewer_id}]))
     return n
+
+
+def revert_publication(db: Session, q: Question, user: User, note: str, media_root=None) -> dict:
+    """Withdraw an approval and serve the upstream version again (e.g. a promotion found to be wrong). Every QA
+    confirmation is cleared; the review versions stay in history."""
+    if not (note or "").strip():
+        raise ReviewError("Hãy ghi lý do.", 422, "note_required")
+    r = get_review(db, q, lock=True)
+    old_cur, old_gate = q.current_version_id, q.review_gate
+    if q.upstream_version_id and q.current_version_id != q.upstream_version_id:
+        q.current_version_id = q.upstream_version_id
+        derive_fields(db, q, db.get(QuestionVersion, q.upstream_version_id))
+        q.content_changed_at = now()
+    r.draft_version_id, r.dims, r.status = None, {}, "none"
+    r.approved_by = r.approved_at = r.reviewed_by = r.reviewed_at = None
+    r.verified_by = r.verified_at = r.verification_method = None
+    q.review_gate = None
+    r.updated_by, r.updated_at = user.id, now()
+    event(db, q, user, "revert", [{"field": "current_version", "old": old_cur, "new": q.current_version_id},
+                                  {"field": "review_gate", "old": old_gate, "new": None}], note, None,
+          old_cur, q.current_version_id)
+    apply_policy(db, q)
+    refresh(db, q, r, media_root=media_root, force=True)
+    return {"served": q.is_served, "current_version_id": q.current_version_id}

@@ -1,0 +1,7 @@
+[
+ {"cq_id": "cq_60918aec8a5c578b", "answer": "D", "note": "Nguồn ghi B (0,048) nhưng sai: n(CO2)=0,12; n(BaCO3)=0,08 ⇒ n(Ba(HCO3)2)=(0,12−0,08)/2=0,02 ⇒ n(Ba)=0,10 ⇒ a=0,10/2,5=0,04 M (D). Ba(OH)2 dư thì kết tủa phải là 0,12 mol, mâu thuẫn."},
+ {"cq_id": "cq_9c41a5145233012d", "answer": "B", "note": "Nguồn ghi A nhưng sai: theo sơ đồ (hình) C2H2→X→C2H5OH và C2H2→Y→C2H5OH mỗi mũi tên một phản ứng: X=CH2=CH2 (C2H2+H2; C2H4+H2O→C2H5OH), Y=CH3CHO (C2H2+H2O/HgSO4; CH3CHO+H2→C2H5OH) (B). Với A, CH3–CHCl2 thuỷ phân cho CH3CHO chứ không cho C2H5OH."},
+ {"cq_id": "cq_447b25786e0d1d28", "answer": "D", "note": "Nguồn ghi C nhưng sai: CaC2 + H2O → C2H2; C2H2 + H2O (HgSO4) → CH3CHO; CH3CHO oxi hoá → CH3COOH ⇒ (1)→(4)→(2)→(3) (D). Dãy C bắt đầu từ CH3CHO→CaC2 là không thể."},
+ {"cq_id": "cq_4a2db76ea8d1e247", "revert": true, "note": "Rút khỏi READY: đề có hai đáp án đúng (n(Al(OH)3)=0,05 < n(Al3+)=0,1: NaOH 0,15 mol → 0,75M (A) hoặc NaOH 0,35 mol → 1,75M (B)); cần biên tập lại đề."},
+ {"cq_id": "cq_7f114cad2b10f35a", "subject": "biology", "note": "Thí nghiệm tiêm virus HEV cho lợn (mẫu đối chứng) — Sinh học, không phải Hoá học"}
+]

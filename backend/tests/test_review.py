@@ -379,3 +379,51 @@ def test_trim_contaminated_option_unit():
     assert labels == ["D"] and len(fixed["options"][3]["content"]) == 1 and M.check_source_text(fixed, pages).ok
     ok = dict(c, options=c["options"][:3] + [{"label": "D", "content": plain("O2- > Na+") + plain("> Mg2+.")}])
     assert M.trim_options(ok, pages)[1] == []  # multi-line option present in the source: untouched
+
+
+def test_remediation_group_passage_unit():
+    from app.review import remediate as M
+    pages = ["Đọc đoạn văn sau: Bão số 3 đổ bộ vào miền Bắc gây mưa lớn kéo dài nhiều ngày ở các tỉnh.\n"
+             "Câu 7. Theo đoạn văn, bão số 3 gây ra hiện tượng gì ở các tỉnh?\nA. Mưa lớn\nB. Nắng nóng\nC. Hạn hán\nD. Rét đậm\n"]
+    c = {"stem": plain("Theo đoạn văn, bão số 3 gây ra hiện tượng gì ở các tỉnh?"),
+         "options": [{"label": l, "content": plain(t)} for l, t in zip("ABCD", ["Mưa lớn", "Nắng nóng", "Hạn hán", "Rét đậm"])],
+         "group": {"key": "g", "header": [], "passage": plain("Bão số 3 đổ bộ vào miền Bắc gây mưa lớn kéo dài nhiều ngày ở các tỉnh.")}}
+    assert M.check_source_text(c, pages).ok
+    bad = dict(c, group={"key": "g", "header": [], "passage": plain("Lời giải Trong giai đoạn 1949-1959, Trung Quốc thi hành")})
+    assert "solution text" in M.check_source_text(bad, pages).reason
+    other = dict(c, group={"key": "g", "header": [], "passage": plain("Một đoạn văn hoàn toàn khác không có trong tài liệu gốc này")})
+    assert not M.check_source_text(other, pages).ok
+
+
+def test_structure_guard_and_revert(admin, refreshed, synced):
+    from app.review import remediate as M
+    from app.review import service as S
+    four = {"options": [{"label": l, "content": plain(t)} for l, t in zip("ABCD", "wxyz")]}
+    assert M.check_structure(four).ok
+    glued = {"options": four["options"][:3] + [{"label": "D", "content": plain("Line d A. a-b-c B. b-a-c C. c-a-b D. c-b-a")}]}
+    assert not M.check_structure(glued).ok
+    assert not M.check_structure({"options": four["options"] + [{"label": "E", "content": plain("v")}]}).ok
+    # revert: an approved+published review version goes back to the upstream version
+    qid = qid_of(synced["ids"]["pdf_math"])
+    db = SessionLocal()
+    q = db.get(Question, qid)
+    who = M.actor(db)
+    S.save_edit(db, q, who, {"stem": plain("Tính sin 0")}, note="t")
+    for dim in ("content", "answer", "formula", "visual", "subject", "source"):
+        S.confirm(db, q, who, dim, "ok", "t")
+    S.approve(db, q, who, "t")
+    db.commit()
+    assert q.review_gate == "ready" and q.current_version_id != q.upstream_version_id
+    res = S.revert_publication(db, q, who, "sai cấu trúc")
+    db.commit()
+    assert q.current_version_id == q.upstream_version_id and q.review_gate is None and res["served"] is False
+    db.close()
+
+
+def test_check_complete_unit():
+    from app.review import remediate as M
+    assert not M.check_complete({"stem": plain("Cho sơ đồ biến hóa sau: Công thức đúng của (X), (Y) là:")}).ok
+    assert M.check_complete({"stem": plain("Theo sơ đồ: C4H8O2 → A2 → A3, chất A2 là")}).ok
+    assert not M.check_complete({"stem": plain("Quan sát hình vẽ và cho biết")}).ok
+    assert M.check_complete({"stem": plain("Quan sát hình vẽ") + [{"t": "img", "src": "ab/" + "a" * 64 + ".png"}]}).ok
+    assert M.check_complete({"stem": plain("Từ nào viết đúng chính tả?")}).ok

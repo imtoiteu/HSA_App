@@ -67,6 +67,41 @@ class Verdict:
     details: dict = field(default_factory=dict)
 
 
+OPTION_LIST = re.compile(r"(?:^|\s)A[.)]\s.+?\sB[.)]\s.+?\sC[.)]\s", re.S)
+
+
+def check_structure(content: dict) -> Verdict:
+    """Single-choice HSA items have exactly four options, none of which carries its own A./B./C. list (arrangement
+    questions whose real options were glued into the last option are not repairable by trimming)."""
+    opts = content.get("options") or []
+    if len(opts) != 4:
+        return Verdict(False, f"option structure suspect: {len(opts)} options")
+    for o in opts:
+        if OPTION_LIST.search(plain_text(o.get("content") or [])):
+            return Verdict(False, f"option structure suspect: option {o.get('label')} contains an A./B./C. list")
+    return Verdict(True)
+
+
+FIGURE_HINT = re.compile(r"(sơ đồ|hình vẽ|hình bên|hình dưới|như hình (?:vẽ|bên|dưới|sau)|theo hình|"
+                         r"đồ thị (?:sau|bên|dưới|như)|bảng sau|bảng số liệu|bảng dưới|biểu đồ|quan sát hình|cho hình)",
+                         re.I)
+
+
+def check_complete(content: dict) -> Verdict:
+    """The stem refers to a figure/scheme/table that the parsed content does not contain."""
+    txt = unicodedata.normalize("NFC", plain_text(content.get("stem") or []) + " " +
+                                plain_text((content.get("group") or {}).get("passage") or []))
+    m = FIGURE_HINT.search(txt)
+    if not m:
+        return Verdict(True)
+    if C.images(content) or C.has_table(content):
+        return Verdict(True)
+    opts = " ".join(plain_text(o.get("content") or []) for o in content.get("options") or [])
+    if m.group(1).lower().startswith("sơ đồ") and re.search(r"[→⟶⇒]|->", txt + " " + opts):
+        return Verdict(True)  # the scheme is written out (in the stem or as the options)
+    return Verdict(False, f"incomplete: refers to “{m.group(1)}” but the question has no figure/table")
+
+
 def check_source_text(content: dict, pages: list[str]) -> Verdict:
     """Stem and every option must occur in the source text, options shortly after the stem."""
     full = [norm(p) for p in pages]
@@ -113,6 +148,20 @@ def check_source_text(content: dict, pages: list[str]) -> Verdict:
             at = k + 1
     if missing:
         return Verdict(False, f"options {','.join(missing)} not found (in order) after the stem in the source")
+    g = content.get("group") or {}
+    if g.get("passage"):
+        ptxt = _text_without_math(g["passage"])
+        low = unicodedata.normalize("NFC", ptxt).lower().strip()
+        if (re.match(r"(lời giải|hướng dẫn giải|đáp án|giải chi tiết|ta có|gọi|vậy|do đó|[⇒→=])", low)
+                or re.search(r"(chọn|đáp án)\s*(đáp án\s*)?[:.]?\s*[a-d]\b", low)):
+            return Verdict(False, "shared passage is solution text, not the question's passage")
+        pn = norm(ptxt)
+        probe_p = pn[:60]
+        if len(probe_p) >= 20:
+            # the passage must come before the stem, not far away (a passage of another question)
+            kp = joined.rfind(probe_p, max(0, pos - 30000), pos + 1)
+            if kp < 0:
+                return Verdict(False, "shared passage not found before the stem in the source")
     page = next((i + 1 for i, s in enumerate(starts) if s <= pos < s + len(full[i])), None)
     return Verdict(True, "stem and options match the source text" + (" (stem text occurs twice)" if dup else ""),
                    page, {"dup_stem_in_doc": dup})
@@ -162,6 +211,11 @@ def check_answer(q: Question, answer: dict | None, content: dict, up: Upstream) 
     if keys != {tuple(labels)}:
         return Verdict(False, f"source occurrences disagree on the key: {sorted(keys)}")
     ev = [e for o in occs for e in o["evidence"]]
+    kinds_ = {e.get("type") for e in ev}
+    if len(kinds_) < 2:
+        # one evidence type (e.g. only the answer-key table) can be misaligned with the questions: needs a second
+        # source signal or an independent solution before promotion
+        return Verdict(False, f"single answer evidence ({', '.join(sorted(k for k in kinds_ if k))}): needs independent check")
     sol = plain_text(content.get("solution") or []) + " " + plain_text(content.get("explanation") or [])
     said = {m.group(1).upper() for m in CHOSEN_RE.finditer(sol)}
     if len(said) == 1 and said != set(labels):  # one explicit "Chọn X" that contradicts the key
@@ -208,6 +262,25 @@ def subject_scores(text_: str) -> dict:
     return out
 
 
+SECTION_SUBJECTS = [  # heading of the source section the question sits in → subject (most specific first)
+    ("english", ["tiếng anh", "english"]),
+    ("physics", ["vật lí", "vật lý"]), ("chemistry", ["hoá học", "hóa học"]), ("biology", ["sinh học"]),
+    ("history", ["lịch sử"]), ("geography", ["địa lí", "địa lý"]),
+    ("literature", ["ngữ văn", "văn học", "tiếng việt", "tư duy định tính"]),
+    ("math", ["toán", "tư duy định lượng", "xử lí số liệu", "xử lý số liệu"]),
+]
+
+
+def section_subject(section: str | None) -> str | None:
+    t = unicodedata.normalize("NFC", section or "").lower()
+    if not t or "khoa học" in t and not any(k in t for _, ks in SECTION_SUBJECTS[:6] for k in ks):
+        return None  # "Khoa học"/"Tư duy khoa học" sections mix subjects
+    for subj, keys in SECTION_SUBJECTS:
+        if any(k in t for k in keys):
+            return subj
+    return None
+
+
 def check_subject(q: Question, content: dict) -> Verdict:
     """SUBJECT_OK when the content agrees with the label, or a high-confidence upstream label is not contradicted."""
     subj = q.subject_code
@@ -225,9 +298,19 @@ def check_subject(q: Question, content: dict) -> Verdict:
     high = q.classification_confidence == "high" or q.classification_source in ("semantic_correction",
                                                                                   "semantic_assignment")
     contradict = sc[best] >= 3 and best != subj and sc[best] >= mine + 3
+    sec = section_subject((q.provenance or {}).get("section"))
+    if sec == subj and not contradict:
+        return Verdict(True, f"mục của tài liệu gốc thuộc môn {subj}: “{(q.provenance or {}).get('section')}”")
+    if sec and sec != subj and sc.get(sec, 0) >= sc.get(subj, 0):
+        return Verdict(False, f"subject conflict: assigned {subj}, source section says {sec}",
+                       details={"suggest": sec, "scores": sc})
+    if best == subj and mine >= 1 and not contradict:
+        return Verdict(True, f"nội dung nghiêng về môn {subj} (từ khoá {mine}, không môn nào khác hơn)")
     if high and not contradict:
         return Verdict(True, f"phân loại cuối của ngân hàng ({q.classification_source}/{q.classification_confidence}),"
                              f" nội dung không mâu thuẫn")
+    if sc[best] == 0:
+        return Verdict(False, f"subject unverified: no content/section evidence for {subj}")
     return Verdict(False, f"subject conflict: assigned {subj}, content suggests {best} ({sc[best]} vs {mine})",
                    details={"suggest": best, "scores": sc})
 
@@ -373,6 +456,12 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 db.commit()
             log(f"  SKIP {q.external_id}: {reason}")
 
+        st = check_structure(v.content)
+        if st.ok:
+            st = check_complete(v.content)
+        if not st.ok:
+            unresolved(st.reason, conflict=True)
+            continue
         doc = (q.provenance or {}).get("document_id")
         sc = db.get(SourceCache, doc) if doc else None
         if not sc or sc.status != "ready" or not sc.blob_sha256:
@@ -479,6 +568,24 @@ def apply_decisions(db: Session, decisions: list[dict], media_root=None, log=pri
             n["missing"] += 1
             continue
         note = f"[claude_review] {d['note']}"
+        if d.get("revert"):
+            S.revert_publication(db, q, who, note, media_root=media_root)
+            n["reverted"] = n.get("reverted", 0) + 1
+            db.commit()
+            log(f"  {q.external_id}: reverted, served={q.is_served}")
+            continue
+        if d.get("answer"):
+            r = S.get_review(db, q)
+            if q.review_gate == "ready" and not r.draft_version_id:
+                pass  # the published version is edited through a draft and re-approved below
+            labels = d["answer"] if isinstance(d["answer"], list) else [d["answer"]]
+            S.save_edit(db, q, who, {"answer": {"kind": "choice", "labels": labels}}, note=note,
+                        media_root=media_root)
+            S.confirm(db, q, who, "answer", "ok", note, media_root=media_root, method="claude_review")
+            n["answer_fixed"] = n.get("answer_fixed", 0) + 1
+            view = S.dim_view(q, r, S.working_version(db, q, r))
+            if view["complete"]:
+                S.approve(db, q, who, note, media_root=media_root)
         if d.get("subject") and d["subject"] != q.subject_code:
             S.set_subject(db, q, who, d["subject"], note, media_root=media_root)
             n["subject_fixed"] += 1

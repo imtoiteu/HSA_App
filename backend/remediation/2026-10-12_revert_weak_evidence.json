@@ -1,0 +1,357 @@
+[
+{
+"cq_id": "cq_1e5e3658ab3e9402",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_2dc816cf2a1e1432",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_2de4efd98b4237eb",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_32253be8e02d4e26",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_46e51a8f1f37a138",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_73124188acccfc99",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_761522b77342f2ac",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_8fc4941a62071fef",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_cb495991b1340b4d",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_e9aa4730bf5c3dbf",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_02b52dd91b89c72e",
+"revert": true,
+"note": "Rút khỏi READY: đoạn dữ liệu chung thực chất là lời giải của câu khác (lỗi gom nhóm của nguồn)"
+},
+{
+"cq_id": "cq_03d389d0be8d20c2",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_046936853f762d39",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_0aa7c1ec08e6cd6d",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (solution_conclusion); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_240c4ef32ab0a85d",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_24363a9f4c5266f2",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_2654f733ceabca4b",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_3186c83b9cdb521b",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_318dc0dcaba398c8",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_3251de4222200e62",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_34a279a02c3b6e30",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_3fdb4e8f4e6d3ecc",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_41f5f2119aeb9e09",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_4a61f3eb124383ff",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_4c9b3d75d9628b8d",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_50ee8211c44054f7",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_5a29fc96517f895c",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (solution_conclusion); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_6a891efc5faf27e4",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_6ae50a0d4241fcf4",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_79aeb0c4536d95e5",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_805ec561a7997402",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_96e3e91078c75848",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_9c38a1ed870475d5",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_9f2c73eba9f8175f",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_baf14f6c59767adc",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_c1d9ee6cdc80a235",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_c298652c435b5817",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_e87f0ed4aca72a2e",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_f921a1582a0d5000",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_faf1b472ec164ddb",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_1d0e6d944ab98b34",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_b10cd50e405f5a1d",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_0ae6af8fb5779dca",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_265572262d373c39",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_9f82b6fdc56097bd",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_a3d0fc03e006aae1",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_1736d7d9b9c67f96",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_70c185f63b81d310",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_7251cbbe096ffbb5",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_4a4380189fd1dfeb",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_d7433d1cfe656d2a",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_cb1e621d3be0f4d9",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_90c04f9f01da88e3",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_4e45e9fbd8b7109b",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_a19950a80e4afed7",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_0012165f4401a6ec",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_0f3f82b95e5b9b46",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_1749459e53f640a0",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_1bc82a1a62043243",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (solution_conclusion); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_1fb2d82a26e6131c",
+"revert": true,
+"note": "Rút khỏi READY: đoạn dữ liệu chung thực chất là lời giải của câu khác (lỗi gom nhóm của nguồn)"
+},
+{
+"cq_id": "cq_26b186c9d6c982b8",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_b699e7e370797ad6",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_babaff23cf29525e",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_3299a6fa5e98ccaf",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_c012e677fc5da5bd",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_5a4af4102814a22a",
+"revert": true,
+"note": "Rút khỏi READY: đoạn dữ liệu chung thực chất là lời giải của câu khác (lỗi gom nhóm của nguồn)"
+},
+{
+"cq_id": "cq_631cc54c03ab0e02",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_64873c1f8750fe5d",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_724c176576f6b41b",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_ea5cead58508ea19",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+},
+{
+"cq_id": "cq_f9aaed113b23fb99",
+"revert": true,
+"note": "Rút khỏi READY: đáp án chỉ có một loại bằng chứng nguồn (answer_key_table); cần kiểm tra độc lập (bảng đáp án có thể lệch câu, ví dụ cq_5a4af4102814a22a)"
+}
+]
