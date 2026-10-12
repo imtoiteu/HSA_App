@@ -1,0 +1,576 @@
+[
+ {
+  "cq_id": "cq_1836af101e841da6",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_264d58646c558a49",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_4420b05d85eecbbd",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_7c79feac49fe064a",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_d657a7bc0d91c90f",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_f5470284768828d4",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_ca1d8ad723d219b9",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_7eb132aba4d0d73a",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_978da40879c7a330",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_d971569d2b215e3a",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_2c50679f149b979d",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A"
+ },
+ {
+  "cq_id": "cq_666d9696ddf717ca",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_b3fe9c87a0420b60",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A"
+ },
+ {
+  "cq_id": "cq_d1006ec9a96b4673",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_e5c3160d5c132676",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_f53d435a9f9b434b",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_da52983129fff6a4",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_59bea0fff4b71553",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_703444b3793c2353",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A"
+ },
+ {
+  "cq_id": "cq_7385b7a5a3c5c9ed",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_d667e521bc5fca14",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_4f253d745b963a02",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_a055419dddd19f00",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D"
+ },
+ {
+  "cq_id": "cq_6591961a6847080d",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_879a0d2ec045c05c",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_cdea7d9ee1d5719e",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D"
+ },
+ {
+  "cq_id": "cq_0eb77a528ba2f314",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A"
+ },
+ {
+  "cq_id": "cq_2b9453b420f2e5f3",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_ba23b6ba408ae691",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_497d4c91c7401bff",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_eded199f73ac795b",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_dde5ea46f7b36ba1",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_75da23a3bf3e15ce",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_a4cf242a06a56ad8",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D"
+ },
+ {
+  "cq_id": "cq_6039e58dad530368",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_285bb1ac447f669d",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_7e7b65847cecd69a",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_d67d40997fb02c54",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_5a398be47c8c337f",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_9621d65943fddec6",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_dca4dd782f2b6d92",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Giáo dục công dân",
+  "subject": "civics"
+ },
+ {
+  "cq_id": "cq_f865a12dc94edc78",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Giáo dục công dân",
+  "subject": "civics"
+ },
+ {
+  "cq_id": "cq_72ef68457f1bef2c",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_92e91f932048c03d",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_996c048116ce2903",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_990e582c6b28b06e",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_bec63359526ef0f0",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_deb2bfd4d179ebd2",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_2c1ef3936fb13819",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_7243e81bf37021c7",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_de1371a3fb83505f",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_de5cffd39731e6c2",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_80af2dc349ba569c",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_69f7eb50c1056e45",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_bedeb893529df408",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_8a2b3bc30c01f585",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_f4e7c963faff9df0",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_f56055c9d9f3b31c",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_5fc8c94931870d4b",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_706fff2de7f75655",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_8c6be5e1d733a6ee",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_f24d93a24ce6b3fd",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_b7d705ef97d05f5d",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_a0c8837e98f41d61",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_d64932e6bc76e6cd",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_0642b8596bd4f1fd",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_08ae2b208e5cf827",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_093ebe7fcbdb37e9",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_7dc8e175491f52fb",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_985c8a3bf6137288",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_eda780db83a1e816",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_eb49f471e6f34da4",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_7c5cc3a258257152",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_baea43dc6f8331ba",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_dcd24d0dd292bf74",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_e9358da93587ca71",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_7c219ba56c05f336",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Giáo dục công dân",
+  "subject": "civics"
+ },
+ {
+  "cq_id": "cq_ce4c63d5b7ca6d61",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Giáo dục công dân",
+  "subject": "civics"
+ },
+ {
+  "cq_id": "cq_c46eb468bf6f6a5f",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B"
+ },
+ {
+  "cq_id": "cq_8a2819ecff84330c",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_2ae08c9d1fdc7fe3",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_8d7facc6d5253b8f",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_a35e64ec13f9b5f0",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_e270e1a8485e19c2",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_970a2ac8a417c74c",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_ab5f770a33b49cc5",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_4cd44f7bc43847cc",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_7cb2b924d3df0417",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Vật lí",
+  "subject": "physics"
+ },
+ {
+  "cq_id": "cq_835ff2a156726788",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Ngữ văn",
+  "subject": "literature"
+ },
+ {
+  "cq_id": "cq_3175df16d23c6be5",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D"
+ },
+ {
+  "cq_id": "cq_63656de54ce059d4",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C"
+ },
+ {
+  "cq_id": "cq_c64189f95b6fa421",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A"
+ },
+ {
+  "cq_id": "cq_2bc6781754185af9",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_42f13ab93bfb484a",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_b9efb18ee7a3a774",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Hoá học",
+  "subject": "chemistry"
+ },
+ {
+  "cq_id": "cq_33eb717330cc09cd",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_79eccea1fd375a97",
+  "answer": "C",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án C; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_c4a0a8e0b208977b",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Sinh học",
+  "subject": "biology"
+ },
+ {
+  "cq_id": "cq_8dec1f95fe17a3c6",
+  "answer": "B",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án B; môn Toán",
+  "subject": "math"
+ },
+ {
+  "cq_id": "cq_5c5ab522a8714164",
+  "answer": "D",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án D; môn Địa lí",
+  "subject": "geography"
+ },
+ {
+  "cq_id": "cq_aa99dde3a670fdf0",
+  "answer": "A",
+  "note": "Tài liệu gốc không có đáp án; người duyệt tự giải độc lập (đối chiếu đoạn văn/ngữ liệu đi kèm): đáp án A; môn Địa lí",
+  "subject": "geography"
+ }
+]
