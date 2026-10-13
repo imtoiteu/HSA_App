@@ -108,6 +108,7 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | 2 | HINH HOC 12-dongke (rest) | 700 | 450 | 166 | 6 966 | 20 785 |
 | 3 | DAI SO VA GT 12-dongke (doc_8963cf…), 1st 900 | 900 | 553 | 139 | 7 519 | 21 338 |
 | 4 | DAI SO VA GT 12-dongke, next 900 | 900 | 372 | 213 | 7 891 | 21 710 |
+| 5 | DAI SO VA GT 12-dongke, 900 not yet examined | 900 | 570 | 140 | 8 461 | 22 280 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
 Batch 3: 23 questions whose source worked solution names another answer than the key table were left unresolved
