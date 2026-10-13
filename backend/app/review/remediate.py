@@ -1137,6 +1137,15 @@ BATCHES["answer_linking_formula"] = BATCHES["answer_linking"].replace(
     "AND NOT q.has_formula AND NOT q.has_image", "AND q.has_formula AND NOT q.has_image")
 BATCHES["answer_ambiguous_formula"] = BATCHES["answer_ambiguous"].replace(
     "AND NOT q.has_formula AND NOT q.has_image", "AND q.has_formula AND NOT q.has_image")
+# docx questions flagged only for an unsupported drawing whose placeholder sits in the solution: verified against
+# the source .docx that every lost floating object there is the site watermark (runs in the sources service)
+BATCHES["visual_watermark_shape"] = BASE + """
+      AND q.editorial_states @> '{NEEDS_VISUAL_REVIEW,NEEDS_REVIEW}' AND q.editorial_states <@ '{NEEDS_VISUAL_REVIEW,NEEDS_REVIEW}'
+      AND q.review_flags = '{unsupported_object}' AND q.state_notes = '{"unsupported object drawing_shape"}'
+      AND q.question_type = 'single_choice' AND NOT q.has_formula AND NOT q.has_image AND NOT q.has_table
+      AND (q.provenance->>'extraction_method') <> 'pdf_text_layer'
+"""
+SHAPE_BATCHES = {"visual_watermark_shape"}
 ANSWER_BATCHES = {"answer_linking", "answer_linking_pdf", "answer_ambiguous", "answer_linking_formula",
                   "answer_ambiguous_formula"}
 PLAIN_BATCHES.add("answer_linking_pdf")
@@ -1181,6 +1190,139 @@ def load_docx(store, document_id: str) -> list | None:
             return docx_paragraphs(src) if src else None
     except (OSError, KeyError, ValueError):
         return None
+
+
+def _is_watermark_picture(data: bytes) -> bool:
+    """A page-sized background picture that is almost all white with only light-grey text (site watermark):
+    no dark pixel at all, little ink. Real figures always have dark strokes."""
+    import io
+    from PIL import Image
+    try:
+        im = Image.open(io.BytesIO(data)).convert("RGBA")
+    except Exception:  # noqa: BLE001 - unreadable/vector media is never treated as a watermark
+        return False
+    bg = Image.new("RGBA", im.size, (255, 255, 255, 255))
+    bg.alpha_composite(im)
+    hist = bg.convert("L").histogram()
+    n = sum(hist) or 1
+    return sum(hist[:150]) / n < 0.001 and sum(hist[:245]) / n < 0.08
+
+
+def docx_floats(src) -> list[tuple[str, list[str]]]:
+    """Paragraphs of a .docx as (normalised text, floating objects) — floating = anchored drawings, VML pictures/
+    shapes/groups (what the bank cannot render). Each object is "watermark" or a short description."""
+    import zipfile
+    z = zipfile.ZipFile(src)
+    xml = z.read("word/document.xml").decode("utf8", "ignore")
+    rels = z.read("word/_rels/document.xml.rels").decode("utf8", "ignore")
+    out = []
+    for pm in re.finditer(r"<w:p[ >].*?</w:p>", xml, re.S):
+        p = pm.group(0)
+        body = re.sub(r"<w:txbxContent>.*?</w:txbxContent>", "", p, flags=re.S)
+        txt = norm("".join(re.findall(r"<w:t(?: [^>]*)?>([^<]*)</w:t>", body)))
+        floats = []
+        for om in re.finditer(r"<wp:anchor[ >].*?</wp:anchor>|<w:pict>.*?</w:pict>", p, re.S):
+            o = om.group(0)
+            if o.startswith("<w:pict>") and "<o:OLEObject" in o:
+                continue  # an equation object (handled by the formula pipeline), not a drawing
+            ext = re.search(r'<wp:extent cx="(\d+)" cy="(\d+)"', o)
+            rid = re.search(r'r:embed="(\w+)"', o)
+            tgt = re.search(rf'Id="{rid.group(1)}"[^>]*Target="([^"]+)"', rels) if rid else None
+            big = bool(ext) and int(ext.group(1)) > 8 * 360000 and int(ext.group(2)) > 8 * 360000
+            if (big and "<pic:pic" in o and tgt and not re.search(r"wpg:|wpc:|wps:wsp", o)
+                    and _is_watermark_picture(z.read("word/" + tgt.group(1).lstrip("/")))):
+                floats.append("watermark")
+            else:
+                kind = "group" if re.search(r"wpg:|wpc:|<v:group", o) else "picture" if (
+                    "<pic:pic" in o or "v:imagedata" in o) else "shape"
+                geom = re.findall(r'prstGeom prst="(\w+)"', o)
+                floats.append(f"{kind}{'/' + geom[0] if geom else ''}")
+        out.append((txt, floats))
+    return out
+
+
+def load_docx_floats(store, document_id: str):
+    import tempfile
+    from pathlib import Path
+    doc = store.up.document(document_id)
+    if not doc or (doc.get("file_kind") or "").lower() != "docx":
+        return None
+    try:
+        with tempfile.TemporaryDirectory(prefix="hsa_docx_", dir=store._tmp()) as tmp:
+            src = store._materialize(doc, Path(tmp))
+            return docx_floats(src) if src else None
+    except (OSError, KeyError, ValueError):
+        return None
+    except Exception:  # noqa: BLE001 - a corrupt archive (BadZipFile) is simply not usable here
+        return None
+
+
+def _count_warns(nodes) -> int:
+    n = 0
+
+    def walk(x):
+        nonlocal n
+        if isinstance(x, list):
+            for y in x:
+                walk(y)
+        elif isinstance(x, dict):
+            n += x.get("t") == "warn"
+            walk(x.get("c") or [])
+    walk(nodes or [])
+    return n
+
+
+def _drop_warns(nodes):
+    def walk(x):
+        if isinstance(x, list):
+            return [y for y in (walk(z) for z in x) if y is not None]
+        if isinstance(x, dict):
+            if x.get("t") == "warn":
+                return None
+            if "c" in x and isinstance(x["c"], list):
+                x = {**x, "c": walk(x["c"])}
+                if x.get("t") == "p" and not x["c"]:
+                    return None
+            return x
+        return x
+    return walk(nodes or [])
+
+
+def strip_watermark_placeholders(content: dict, paras) -> tuple[dict | None, int, str]:
+    """The bank's "object not shown" placeholders in a solution are dropped only when the source .docx proves that
+    every floating object around that solution is a site-watermark picture (no lost figure/shape/formula piece)."""
+    outside = _count_warns(content.get("stem")) + sum(_count_warns(o.get("content")) for o in content.get("options") or [])
+    g = content.get("group") or {}
+    outside += _count_warns(g.get("passage")) + _count_warns(g.get("header"))
+    if outside:
+        return None, 0, "unshown object in the stem/options/passage (part of the question)"
+    sol = list(content.get("solution") or []) + list(content.get("explanation") or [])
+    n = _count_warns(sol)
+    if not n:
+        return None, 0, "no unshown-object placeholder in the solution"
+    sp = [norm(plain_text([b])) for b in sol]
+    sp = [t for t in sp if len(t) >= 12]
+    if not sp:
+        return None, 0, "solution text too short to locate in the source .docx"
+    starts = [i for i, (t, _) in enumerate(paras) if t and sp[0][:40] in t]
+    if not starts:
+        return None, 0, "solution not found in the source .docx"
+    for a in starts:  # every occurrence of the solution must be clean
+        z = a
+        for t in sp[1:]:
+            k = next((i for i in range(z, min(len(paras), z + 400)) if paras[i][0] and t[:40] in paras[i][0]), None)
+            if k is not None:
+                z = k
+        floats = [f for i in range(max(0, a - 1), min(len(paras), z + 2)) for f in paras[i][1]]
+        other = [f for f in floats if f != "watermark"]
+        if other:
+            return None, 0, f"solution has lost floating objects in the source ({', '.join(sorted(set(other)))})"
+        if floats.count("watermark") < n:
+            return None, 0, "more placeholders than watermark pictures around the solution in the source"
+    c = json.loads(json.dumps(content))
+    c["solution"] = _drop_warns(c.get("solution")) if c.get("solution") is not None else None
+    c["explanation"] = _drop_warns(c.get("explanation")) if c.get("explanation") is not None else None
+    return c, n, "ok"
 
 
 def candidates(db: Session, batch: str, limit: int | None) -> list[int]:
@@ -1276,6 +1418,22 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             content = json.loads(json.dumps(content))
             content["group"]["passage"] = blocks
             passage_recovered = True
+        shape_wm_removed = 0
+        if batch in SHAPE_BATCHES:
+            if doc not in docx_cache:
+                db.commit() if apply else db.rollback()
+                docx_cache[doc] = load_docx_floats(store, doc)
+                q = db.scalar(select(Question).options(lazyload(Question.current_version)).where(Question.id == qid))
+                r = S.get_review(db, q)
+                v = S.working_version(db, q, r)
+            if docx_cache[doc] is None:
+                unresolved("source .docx not readable here", record=False)
+                continue
+            fixed, shape_wm_removed, why = strip_watermark_placeholders(content, docx_cache[doc])
+            if fixed is None:
+                unresolved(why)
+                continue
+            content = fixed
         split_answer = None
         if batch in SPLIT_BATCHES:
             content, split_answer, why = split_inline_options(content, v.answer)
@@ -1395,7 +1553,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
         if nfc_changed or wm_removed or trimmed or group_marked or group_detached or warns_removed or split_answer \
-                or passage_recovered:
+                or passage_recovered or shape_wm_removed:
             what = "; ".join(x for x in ("khôi phục đoạn văn chung bị mất từ tệp .docx gốc (khớp văn bản PDF)"
                                          if passage_recovered else "","tách 4 phương án A–D đang nằm trong đề thành câu trắc nghiệm một đáp án "
                                          f"(đáp án {split_answer['labels'][0]} giữ nguyên)" if split_answer else "",f"bỏ {warns_removed} ô “đối tượng không hiển thị được”/ảnh số trang (tài liệu gốc không có nội dung ở đó)"
@@ -1405,7 +1563,10 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                                          "bỏ ảnh quảng cáo/watermark Tailieuchuan.vn (không thuộc câu hỏi)"
                                          if wm_removed else "",
                                          f"cắt dòng thừa dính vào phương án {', '.join(trimmed)} theo đúng tài liệu gốc"
-                                         if trimmed else "") if x)
+                                         if trimmed else "",
+                                         f"bỏ {shape_wm_removed} ô “đối tượng không hiển thị được” trong lời giải: tệp .docx gốc "
+                                         "cho thấy đó chỉ là ảnh nền watermark Tuyensinh247 (không phải hình/công thức)"
+                                         if shape_wm_removed else "") if x)
             edit = {"stem": content["stem"], "options": content["options"], "solution": content.get("solution"),
                     "explanation": content.get("explanation")}
             if content.get("group") is not None or group_detached:
@@ -1415,7 +1576,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
             stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached or warns_removed
                                               or split_answer or passage_recovered)
-            stats["visual_fixed"] += wm_removed
+            stats["visual_fixed"] += bool(wm_removed or shape_wm_removed)
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)
         notes = {
@@ -1424,7 +1585,8 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             "formula": f"[{batch}] công thức giữ nguyên bản READY_TO_SERVE của ngân hàng; KaTeX hiển thị không lỗi"
             if C.collect_tex(v.content) else f"[{batch}] không có công thức",
             "visual": f"[{batch}] hình/bảng nhúng trong tài liệu gốc, tệp tồn tại" if has_vis else (
-                f"[{batch}] chỉ có ảnh watermark (đã bỏ); câu không cần hình" if wm_removed else f"[{batch}] không có hình"),
+                f"[{batch}] chỉ có ảnh watermark (đã bỏ); câu không cần hình" if (wm_removed or shape_wm_removed)
+                else f"[{batch}] không có hình"),
             "subject": f"[{batch}] {q.subject_code}: {sj.reason}",
             "source": f"[{batch}] {doc} trang {sv.page}, sha256 {sc.blob_sha256[:12]} đã xác minh",
         }

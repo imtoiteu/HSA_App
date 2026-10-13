@@ -655,3 +655,29 @@ def test_answer_linking_formula_batch():
     pdf = M.BATCHES["answer_ambiguous_pdf"]
     assert "= 'pdf_text_layer'" in pdf and "NOT q.has_formula" in pdf
     assert {"answer_ambiguous_pdf"} <= M.ANSWER_BATCHES & M.PLAIN_BATCHES & M.PDF_TEXT_BATCHES
+
+
+def test_watermark_placeholder_strip():
+    import io
+    from PIL import Image, ImageDraw
+    from app.review import remediate as M
+
+    def png(color, fill=0.03):
+        im = Image.new("RGB", (400, 400), "white")
+        d = ImageDraw.Draw(im)
+        d.rectangle([0, 0, 399, int(399 * fill)], fill=color)
+        b = io.BytesIO()
+        im.save(b, "PNG")
+        return b.getvalue()
+    assert M._is_watermark_picture(png((205, 205, 205)))  # light-grey site text only
+    assert not M._is_watermark_picture(png((20, 20, 20)))  # a real figure has dark strokes
+    P = lambda *xs: [{"t": "p", "c": [{"t": "s", "v": x} for x in xs]}]  # noqa: E731
+    sol = [{"t": "p", "c": [{"t": "warn", "v": "đối tượng không hiển thị được"}, {"t": "s", "v": "Cách giải: lời giải chi tiết"}]}]
+    c = {"stem": P("Câu hỏi?"), "options": [{"label": "A", "content": P("Một")}], "solution": sol}
+    paras = [(M.norm("Câu hỏi?"), []), (M.norm("Cách giải: lời giải chi tiết"), ["watermark"])]
+    fixed, n, why = M.strip_watermark_placeholders(c, paras)
+    assert n == 1 and M._count_warns(fixed["solution"]) == 0 and "Cách giải" in M.plain_text(fixed["solution"])
+    fixed, n, why = M.strip_watermark_placeholders(c, [paras[0], (paras[1][0], ["watermark", "picture/rect"])])
+    assert fixed is None and "lost floating objects" in why
+    c2 = {**c, "stem": [{"t": "p", "c": [{"t": "warn", "v": "x"}, {"t": "s", "v": "Câu hỏi?"}]}]}
+    assert M.strip_watermark_placeholders(c2, paras)[0] is None
