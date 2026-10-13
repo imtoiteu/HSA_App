@@ -114,8 +114,12 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | 8 | TUYEN TAP 12-LG, rest | 712 | 166 | 129 | 8 954 | 22 773 |
 | 9 | HINH HOC 12-dongke, rest | 694 | 524 | 99 | 9 478 | 23 297 |
 | fix 1 | 49 promoted questions withdrawn and rebuilt (see below) | 49 | 47 | 2 | 9 477 | 23 296 |
+| 10 | TUYEN TAP 12-NOLG (doc_bf5d…) | 593 | 52 | 341 | 9 529 | 23 348 |
+| fix 2 | 6 promoted questions withdrawn and rebuilt (see below) | 6 | 6 | 0 | 9 529 | 23 348 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
+Batch 10: 327 of the 411 rebuilt questions wait in Review Studio because no second edition confirms them: the
+only other copy of this book is a byte-different file with the same layout, which is not an independent check.
 Batch 7: this edition prints worked solutions, many with figures, so far fewer questions rebuild (325/1000);
 nested systems ({ containing [ …) are refused.
 Batch 3: 23 questions whose source worked solution names another answer than the key table were left unresolved
@@ -133,3 +137,12 @@ served version.
 All 49 were withdrawn (`review-decide` revert, reason recorded), rebuilt with the fixed engine and run through the
 same gates: 47 re-promoted; 2 wait in Review Studio (their subject could not be re-confirmed). No promoted
 question contains "\in/" any more. The old versions stay in the history.
+
+## Correction after batch 10
+
+The batch-10 spot check found a bracket system shown as a separate formula before its sentence ("… ⇔" left
+dangling). The fixed engine (54159ac) was run again on every promoted question (3 213): 6 differed, all with
+this error. Checking them found a second defect: a tall interval inside a row of the system (`x = 1 ∈ [1/2; 3]`)
+ended the row early and the interval was lost (fixed in f49508a). With both fixes, all 6 rebuild correctly, and
+the held-out sample is unchanged. The 6 were withdrawn and rebuilt through the same gates, and all 6 were
+re-promoted.
