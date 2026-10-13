@@ -97,3 +97,13 @@ hsa-app formula-pdf --document doc_… --limit 200 --tex-results /tmp/tex-result
 ```
 
 The dry run prints one line per question (`OK` / `SKIP <reason>`) and a JSON summary.
+
+## Batch log
+
+| Batch | Source | Examined | Promoted | Drafts waiting in Review Studio | Review READY | Runtime eligible = serving |
+|---|---|---|---|---|---|---|
+| (before) | | | | | 6 311 | 20 131 |
+| 1 | HINH HOC 12-dongke (doc_95b96e…) | 200 ×3 passes | 201 | 45 | 6 513 | 20 332 |
+| 2 | HINH HOC 12-dongke (rest) | 700 | 450 | 166 | 6 966 | 20 785 |
+
+Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
