@@ -1437,13 +1437,18 @@ def region(pages: dict[int, Page], first: int, number: int, size_hint=None):
     return parts
 
 
-def layout_question(pages: dict[int, Page], first: int, number: int) -> Result:
+def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: bool = False) -> Result:
+    """Rebuild question `number` starting on page `first`. stem_only: rebuild the stem and options only and read
+    the worked solution's verdict ("Chọn đáp án X") from its text (used for another edition of the question,
+    whose solution may hold a figure)."""
     res = Result()
     _LEDGER.clear()
     _CTX.update(script=0, size=0.0)
     glyph_items: list[Item] = []
     try:
         parts = region(pages, first, number)
+        if stem_only:
+            parts, res.answer_in_solution = _cut_at_solution(parts)
         res.pages = [p for p, _, _ in parts]
         all_items: list[tuple[int, Line]] = []
         size = None
@@ -1509,7 +1514,10 @@ def layout_question(pages: dict[int, Page], first: int, number: int) -> Result:
                                 raise Unresolved("a symbol lies inside a formula of another line (layout misread)")
             for L in lines:
                 all_items.append((pno, L))
+        said = res.answer_in_solution
         res.content, res.answer_in_solution = structure(all_items, number, size)
+        if stem_only:
+            res.answer_in_solution = said
         bad = [i for i in glyph_items if _LEDGER.get(id(i), 0) != 1]
         if bad:
             res.content = None
@@ -1522,6 +1530,35 @@ def layout_question(pages: dict[int, Page], first: int, number: int) -> Result:
     except RecursionError:
         res.content, res.reason = None, "formula nesting too deep"
     return res
+
+
+SOLUTION_HEAD = re.compile(r"^\s*Lời giải\s*[.:]?\s*$")
+
+
+def _cut_at_solution(parts):
+    """Keep the region up to the 'Lời giải.' line; read 'Chọn đáp án X' from the solution's text."""
+    out, said, cut = [], None, False
+    rest_text = []
+    for pno, glines, stop_y in parts:
+        if cut:
+            rest_text += [line_text(L) for L in glines]
+            continue
+        keep = []
+        for j, L in enumerate(glines):
+            if SOLUTION_HEAD.match(line_text(L)) and all(BOLD_FONT.search(g.font) for g in L if g.is_text):
+                cut = True
+                rest_text += [line_text(K) for K in glines[j + 1:]]
+                out.append((pno, keep, min(g.top for g in L)))
+                break
+            keep.append(L)
+        if not cut:
+            out.append((pno, keep, stop_y))
+    if not cut:
+        raise Unresolved("no worked solution in this edition")
+    found = set(re.findall(r"Chọn đáp án\s*([A-D])\b", " ".join(rest_text)))
+    if len(found) != 1:
+        raise Unresolved("the solution states no single answer")
+    return out, found.pop()
 
 
 def answer_circles(shapes, items, size):

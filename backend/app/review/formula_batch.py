@@ -22,6 +22,7 @@ from __future__ import annotations
 import collections
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from sqlalchemy import select, text
@@ -31,11 +32,13 @@ from ..models import FormulaCheck, Question, ReviewEvent, SourceCache
 from . import content as C
 from . import formula_pdf as F
 from . import service as S
-from .remediate import (BASE, METHOD, Verdict, actor, check_answer, check_subject, nfc_content,
-                        solution_contradicts)
+from .remediate import (BASE, METHOD, Verdict, actor, check_answer, check_subject, nfc_content, plain_text,
+                        solution_contradicts, subject_scores)
 from .sources import default_store
 
 BATCH = "pdf_formula_latex"
+# folders of the bank's source collections that hold one subject only ("…/3. Toán Thường/…")
+COLLECTION_SUBJECT = [(re.compile(r"(?:^|/)\d+\.\s*Toán\b"), "math")]
 ENGINE = "formula_pdf/1"
 # upstream flagged the question only because it comes from a PDF text layer (formulas flattened); the other
 # flags listed here are consequences of the flattening that the rebuild resolves (options lost into the stem)
@@ -74,7 +77,18 @@ def is_pdftex(pdf: Path) -> bool:
     return b"pdfTeX" in prod or b"LaTeX" in prod
 
 
-def _layout_jobs(jobs: list[tuple], store, log=print) -> dict:
+def _reset(pages):
+    for pg in pages.values():  # each rebuild starts from a clean page state
+        for g in pg.glyphs:
+            g.used = False
+        for r_ in pg.rules:
+            r_.used = False
+        for s_ in pg.shapes:
+            s_.used = False
+        F.frame(pg)
+
+
+def _layout_jobs(jobs: list[tuple], store, log=print, stem_fallback: bool = False) -> dict:
     """jobs: [(key, sha, page, number, doc)] → {key: rebuild result}. Each PDF is parsed once per chunk."""
     out: dict = {}
     by_sha = collections.defaultdict(list)
@@ -105,19 +119,18 @@ def _layout_jobs(jobs: list[tuple], store, log=print) -> dict:
                     out[key] = {"content": None, "reason": f"PDF could not be read: {ex.__class__.__name__}"}
                 continue
             for key, _, page, number, doc in chunk:
-                for pg in pages.values():  # each question starts from a clean page state
-                    for g in pg.glyphs:
-                        g.used = False
-                    for r_ in pg.rules:
-                        r_.used = False
-                    for s_ in pg.shapes:
-                        s_.used = False
-                    F.frame(pg)
+                _reset(pages)
                 res = F.layout_question(pages, page, number)
                 if res.content is not None:
                     why = F.ink_check(pdf, res, pages)
                     if why:
                         res.content, res.reason = None, why
+                if res.content is None and stem_fallback:
+                    # another edition: its stem/options and the solution's verdict are enough to confirm
+                    _reset(pages)
+                    res2 = F.layout_question(pages, page, number, stem_only=True)
+                    if res2.content is not None and not F.ink_check(pdf, res2, pages):
+                        res = res2
                 out[key] = {"content": res.content, "reason": res.reason, "answer_said": res.answer_in_solution,
                             "ref": {"document_id": doc, "page": page, "pages": res.pages, "blob_sha256": sha,
                                     "question_number": number, "method": "pdf_layout", "engine": ENGINE,
@@ -190,13 +203,13 @@ def rebuild(db: Session, qids: list[int], store, log=print) -> dict[int, dict]:
             seen_docs.add(x["document_id"])
             sib_jobs.append(((qid, x["occurrence_id"]), shas[x["document_id"]], x["pages"][0],
                              x["source_question_number"], x["document_id"]))
-    sibs = _layout_jobs(sib_jobs, store, log) if sib_jobs else {}
+    sibs = _layout_jobs(sib_jobs, store, log, stem_fallback=True) if sib_jobs else {}
     for (qid, occ_id), sb in sibs.items():
         b = out[qid]
         if sb["content"] is None or not _same_rebuild(b["content"], sb["content"]):
             continue
         b.setdefault("confirmed_by", []).append(sb["ref"])
-        if not b.get("sibling") and not b.get("answer_said") and sb.get("answer_said") and sb["content"].get("solution"):
+        if not b.get("sibling") and not b.get("answer_said") and sb.get("answer_said"):
             b["sibling"] = {"answer_said": sb["answer_said"], "solution": sb["content"]["solution"],
                             "ref": sb["ref"], "occurrence_id": occ_id}
     return out
@@ -290,7 +303,7 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
                 "KaTeX hiển thị không lỗi"
                 + (f"; lời giải lấy từ cùng câu trong {sib['ref']['document_id']} trang {sib['ref']['page']} "
                    f"(câu {sib['ref']['question_number']}, đề và phương án dựng lại giống hệt)"
-                   if sib and rebuilt.get("solution") is sib["solution"] else ""))
+                   if sib and sib["solution"] and rebuilt.get("solution") is sib["solution"] else ""))
         try:
             S.save_edit(db, q, who, edit, note=note, source_ref=ref, media_root=media_root,
                         tex_checks={t: {"ok": True} for t in texs})  # stored in formula_check with the version
@@ -343,6 +356,24 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
             if contra:
                 unresolved(f"formula rebuilt (draft in Review Studio); {contra}", conflict=True)
                 continue
+        if dims.get("subject") != "ok" and (q.subject_source == "unclassified" or q.subject_code in (None, "general")):
+            # unclassified upstream: the subject of the single-subject collection the book belongs to, when the
+            # question's own content agrees
+            path = (q.provenance or {}).get("document_path") or ""
+            coll = next((subj for rx, subj in COLLECTION_SUBJECT if rx.search(path)), None)
+            if coll:
+                txt = " ".join(plain_text(v.content.get(k) or []) for k in ("stem", "solution")) + " " + " ".join(
+                    plain_text(o.get("content") or []) for o in v.content.get("options") or [])
+                sc = subject_scores(txt)
+                if sc.get(coll, 0) >= max(sc.values()) and (sc.get(coll, 0) >= 1 or texs):
+                    why = (f"[{BATCH}] môn theo bộ tài liệu gốc chỉ gồm một môn: “{path.split(' ▸ ')[-1][:120]}”; "
+                           f"nội dung không nghiêng về môn khác (từ khoá {coll}: {sc.get(coll, 0)})")
+                    S.set_subject(db, q, who, coll, why, media_root=media_root)
+                    S.confirm(db, q, who, "subject", "ok", why, media_root=media_root, method=METHOD)
+                    stats["subject_fixed"] += 1
+                    r = S.get_review(db, q)
+                    v = S.working_version(db, q, r)
+                    dims = S.dim_view(q, r, v)["status"]
         sj = check_subject(q, v.content) if dims.get("subject") != "ok" else Verdict(True, "môn đã được xác nhận")
         if not sj.ok:
             unresolved(f"formula rebuilt (draft in Review Studio); subject: {sj.reason}")
