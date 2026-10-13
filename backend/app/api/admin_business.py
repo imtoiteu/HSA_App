@@ -3,7 +3,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import Date, case, cast, func, select
+from sqlalchemy import Date, case, cast, func, select, text
 from sqlalchemy.orm import Session
 
 from .. import auth
@@ -28,25 +28,45 @@ def iso(t):
 # ------------------------------------------------------------------------------------------------
 # dashboard
 # ------------------------------------------------------------------------------------------------
+def bank_status(db: Session) -> dict:
+    """Question-bank readiness from the current review state, in one pass over the narrow question_review table.
+
+    upstream_ready: the upstream bank's own READY_TO_SERVE; editorial_ready: READY after review (upstream READY
+    not blocked, or promoted by review); eligible/serving: the runtime policy. Queues are the Review Studio queues
+    (an upstream flag counts only while review has not confirmed that dimension)."""
+    row = db.execute(text("""
+        SELECT count(*),
+               count(*) FILTER (WHERE state = 'READY_TO_SERVE'),
+               count(*) FILTER (WHERE 'READY' = ANY(queues)),
+               count(*) FILTER (WHERE served),
+               count(*) FILTER (WHERE 'NEEDS_FORMULA_REVIEW' = ANY(queues)),
+               count(*) FILTER (WHERE 'NEEDS_ANSWER_LINKING' = ANY(queues)),
+               count(*) FILTER (WHERE 'NEEDS_VISUAL_REVIEW' = ANY(queues)),
+               count(*) FILTER (WHERE queues && ARRAY['SUBJECT_REVIEW', 'UNCLASSIFIED']::varchar[]),
+               count(*) FILTER (WHERE 'UNCLASSIFIED' = ANY(queues)),
+               count(*) FILTER (WHERE 'GENERAL_REVIEW' = ANY(queues)),
+               count(*) FILTER (WHERE dirty)
+        FROM question_review WHERE active""")).one()
+    eligible = db.scalar(select(func.count()).where(Question.policy_eligible.is_(True),
+                                                    Question.removed_upstream.is_(False))) or 0
+    total, upstream_ready, ready, served = row[0], row[1], row[2], row[3]
+    return {"total": total, "upstream_ready": upstream_ready, "editorial_ready": ready, "eligible": eligible,
+            "served": served, "excluded": total - served, "not_ready": total - ready,
+            "formula_unresolved": row[4], "answer_unresolved": row[5], "visual_unresolved": row[6],
+            "subject_unresolved": row[7], "unclassified": row[8], "general_review": row[9],
+            "pending_refresh": row[10]}
+
+
 @router.get("/dashboard")
 def dashboard(db: Session = Depends(get_db)):
     now = commerce.utcnow()
     d1, d7, d30 = (now - dt.timedelta(days=n) for n in (1, 7, 30))
     cnt = lambda *w: db.scalar(select(func.count()).where(*w)) or 0  # noqa: E731
 
-    # question bank
-    by_state = dict(db.execute(select(Question.editorial_state, func.count()).group_by(Question.editorial_state)).all())
-    total_q = sum(by_state.values())
-    served = cnt(Question.is_served.is_(True))
-    eligible = cnt(Question.policy_eligible.is_(True))
-    bank = {"total": total_q, "ready_to_serve": by_state.get("READY_TO_SERVE", 0), "eligible": eligible,
-            "served": served, "excluded": total_q - served, "by_state": by_state,
-            "unclassified": cnt(Question.subject_code == "general"),
-            "subject_review": cnt(Question.classification_review.is_not(None)),
-            "formula_review": by_state.get("NEEDS_FORMULA_REVIEW", 0),
-            "visual_review": by_state.get("NEEDS_VISUAL_REVIEW", 0),
-            "answer_linking": by_state.get("NEEDS_ANSWER_LINKING", 0),
-            "open_reports": cnt(QuestionReport.status == "open")}
+    # question bank: current Review Studio state (question_review is kept current by review refresh and
+    # apply_policy), never the upstream snapshot's primary editorial_state
+    bank = bank_status(db)
+    bank["open_reports"] = cnt(QuestionReport.status == "open")
 
     # users
     active_now = select(PlanSubscription.user_id).where(
@@ -248,11 +268,15 @@ def subject_reconciliation(db: Session = Depends(get_db)):
 # QA queues
 # ------------------------------------------------------------------------------------------------
 QUEUES = [
-    ("subject_review", "Cần xem lại phân loại môn", {"classification_review": "true"}),
-    ("formula", "Cần duyệt công thức", {"state": "NEEDS_FORMULA_REVIEW"}),
-    ("visual", "Cần duyệt hình ảnh", {"state": "NEEDS_VISUAL_REVIEW"}),
-    ("answer", "Cần liên kết đáp án", {"state": "NEEDS_ANSWER_LINKING"}),
-    ("review", "Cần xem lại", {"state": "NEEDS_REVIEW"}),
+    # review queues: the Review Studio queue of each question (current review state; an upstream flag counts only
+    # while review has not confirmed that dimension)
+    ("subject_review", "Cần xem lại phân loại môn", {"review_queue": "SUBJECT_REVIEW"}),
+    ("unclassified", "Chưa phân loại môn", {"review_queue": "UNCLASSIFIED"}),
+    ("formula", "Cần duyệt công thức", {"review_queue": "NEEDS_FORMULA_REVIEW"}),
+    ("visual", "Cần duyệt hình ảnh", {"review_queue": "NEEDS_VISUAL_REVIEW"}),
+    ("answer", "Cần liên kết đáp án", {"review_queue": "NEEDS_ANSWER_LINKING"}),
+    ("review", "Cần xem lại", {"review_queue": "GENERAL_REVIEW"}),
+    # runtime policy reasons (recomputed by apply_policy)
     ("render", "Lỗi hiển thị (công thức/đối tượng)", {"reason": "render_warning"}),
     ("formula_render", "Công thức lỗi KaTeX", {"reason": "formula_render_error"}),
     ("passage_missing", "Thiếu đoạn văn chung", {"reason": "group_context_missing"}),
@@ -264,19 +288,18 @@ QUEUES = [
 
 @router.get("/qa-queues")
 def qa_queues(db: Session = Depends(get_db)):
+    review = dict(db.execute(text("SELECT x, count(*) FROM question_review, unnest(queues) x WHERE active GROUP BY x")).all())
     out = []
     for key, label, f in QUEUES:
-        st = select(func.count()).select_from(Question)
-        if "classification_review" in f:
-            st = st.where(Question.classification_review.is_not(None))
-        if "state" in f:
-            st = st.where(Question.editorial_state == f["state"])
+        if "review_queue" in f:
+            out.append({"key": key, "label": label, "filter": f, "count": review.get(f["review_queue"], 0),
+                        "link": f"/admin/review/queue?queue={f['review_queue']}"})
+            continue
+        st = select(func.count()).select_from(Question).where(Question.removed_upstream.is_(False))
         if "reason" in f:
             st = st.where(Question.policy_reasons.any(f["reason"]))
         if "reported" in f:
             st = st.where(select(QuestionReport.id).where(QuestionReport.question_id == Question.id,
                                                           QuestionReport.status.in_(["open", "triaged"])).exists())
-        n = db.scalar(st) or 0
-        out.append({"key": key, "label": label, "filter": f, "count": n,
-                    "ready_upstream": db.scalar(st.where(Question.editorial_state == "READY_TO_SERVE")) or 0})
+        out.append({"key": key, "label": label, "filter": f, "count": db.scalar(st) or 0, "link": None})
     return {"items": out}

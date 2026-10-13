@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from app.commerce import access as plans
 from app.commerce import service as commerce
@@ -394,6 +394,21 @@ def test_admin_dashboard_reconciliation_and_queues(admin, student):
     queues = {x["key"]: x for x in admin.get("/api/admin/qa-queues").json()["items"]}
     assert {"subject_review", "formula", "visual", "answer", "review", "render", "passage_missing",
             "unsupported"} <= set(queues)
+    # bank metrics and review queues come from the current review state, not the upstream snapshot
+    db = SessionLocal()
+    sql = lambda w: db.scalar(text(f"SELECT count(*) FROM question_review WHERE active AND {w}"))  # noqa: E731
+    b = d["bank"]
+    assert b["total"] == sql("true") and b["served"] == sql("served")
+    assert b["upstream_ready"] == sql("state = 'READY_TO_SERVE'") and b["editorial_ready"] == sql("'READY' = ANY(queues)")
+    assert b["eligible"] == db.scalar(select(func.count()).where(Question.policy_eligible.is_(True),
+                                                                 Question.removed_upstream.is_(False)))
+    for k, qn in (("formula_unresolved", "NEEDS_FORMULA_REVIEW"), ("answer_unresolved", "NEEDS_ANSWER_LINKING"),
+                  ("visual_unresolved", "NEEDS_VISUAL_REVIEW")):
+        assert b[k] == sql(f"'{qn}' = ANY(queues)")
+    assert b["subject_unresolved"] == sql("queues && ARRAY['SUBJECT_REVIEW','UNCLASSIFIED']::varchar[]")
+    assert queues["formula"]["count"] == b["formula_unresolved"] and queues["answer"]["count"] == b["answer_unresolved"]
+    assert queues["formula"]["link"] == "/admin/review/queue?queue=NEEDS_FORMULA_REVIEW"
+    db.close()
     users = admin.get("/api/admin/users?plan=free").json()
     assert all(u["plan"] in ("FREE", "EXPIRED") for u in users["items"])
     detail = admin.get(f"/api/admin/users/{user_id(student)}").json()

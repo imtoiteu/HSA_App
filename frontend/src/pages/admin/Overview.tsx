@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { get } from "../../lib/api";
-import { dateTime, num, pct, STATE_LABELS, vnd } from "../../lib/format";
+import { dateTime, num, pct, vnd } from "../../lib/format";
 import { ErrorBox, Spinner, useAsync } from "../../components/ui";
 import { PageHead } from "./common";
 
 interface Dash {
-  bank: { total: number; ready_to_serve: number; eligible: number; served: number; excluded: number; by_state: Record<string, number>;
-    unclassified: number; subject_review: number; formula_review: number; visual_review: number; answer_linking: number; open_reports: number };
+  bank: { total: number; upstream_ready: number; editorial_ready: number; eligible: number; served: number; excluded: number;
+    not_ready: number; formula_unresolved: number; answer_unresolved: number; visual_unresolved: number; subject_unresolved: number;
+    unclassified: number; general_review: number; pending_refresh: number; open_reports: number };
   users: { total: number; students: number; admins: number; pro_active: number; free: number; pro_expired: number; new_24h: number;
     new_7d: number; new_30d: number; active_7d: number; active_30d: number };
   practice: { sessions: number; sessions_30d: number; answered: number; answered_by_subject: Record<string, number>; sessions_by_plan: Record<string, number> };
@@ -68,20 +69,26 @@ export default function Overview() {
       <section className="dash-section">
         <h2>Ngân hàng câu hỏi</h2>
         <div className="kpi-grid">
-          <K k="Câu đã nhập" v={d.bank.total} to="/admin/cau-hoi" />
-          <K k="READY_TO_SERVE" v={d.bank.ready_to_serve} to="/admin/cau-hoi?state=READY_TO_SERVE" />
-          <K k="Đủ điều kiện" v={d.bank.eligible} to="/admin/cau-hoi?eligible=true" />
+          <K k="Câu canonical" v={d.bank.total} to="/admin/cau-hoi" />
+          <K k="READY ở nguồn (upstream)" v={d.bank.upstream_ready} to="/admin/cau-hoi?ready_upstream=true" />
+          <K k="READY biên tập (Review Studio)" v={d.bank.editorial_ready} to="/admin/review/queue?ready=yes" />
+          <K k="Đủ điều kiện runtime" v={d.bank.eligible} to="/admin/cau-hoi?eligible=true" />
           <K k="Đang phục vụ" v={d.bank.served} tone="ok" to="/admin/cau-hoi?served=true" />
           <K k="Không phục vụ" v={d.bank.excluded} to="/admin/cau-hoi?served=false" />
-          <K k="Chưa phân loại môn" v={d.bank.unclassified} to="/admin/cau-hoi?subject=general" />
-          <K k="Cần xem lại môn" v={d.bank.subject_review} to="/admin/hang-doi-qa" />
-          <K k="Cần duyệt công thức" v={d.bank.formula_review} to="/admin/cau-hoi?state=NEEDS_FORMULA_REVIEW" />
-          <K k="Cần duyệt hình" v={d.bank.visual_review} to="/admin/cau-hoi?state=NEEDS_VISUAL_REVIEW" />
-          <K k="Cần liên kết đáp án" v={d.bank.answer_linking} to="/admin/cau-hoi?state=NEEDS_ANSWER_LINKING" />
+        </div>
+        <h3 className="mt">Hàng đợi chưa giải quyết (trạng thái review hiện tại)</h3>
+        <div className="kpi-grid">
+          <K k="Công thức" v={d.bank.formula_unresolved} to="/admin/review/queue?queue=NEEDS_FORMULA_REVIEW" />
+          <K k="Đáp án" v={d.bank.answer_unresolved} to="/admin/review/queue?queue=NEEDS_ANSWER_LINKING" />
+          <K k="Hình ảnh" v={d.bank.visual_unresolved} to="/admin/review/queue?queue=NEEDS_VISUAL_REVIEW" />
+          <K k="Môn học" v={d.bank.subject_unresolved} to="/admin/hang-doi-qa" sub={`${num(d.bank.unclassified, 0)} chưa phân loại`} />
+          <K k="Cần xem lại chung" v={d.bank.general_review} to="/admin/review/queue?queue=GENERAL_REVIEW" />
           <K k="Báo lỗi đang mở" v={d.bank.open_reports} tone={d.bank.open_reports ? "warn" : ""} to="/admin/bao-loi" />
         </div>
-        <div className="small muted mt">Trạng thái: {Object.entries(d.bank.by_state).map(([s, n]) => `${STATE_LABELS[s] || s} ${num(n, 0)}`).join(" · ")}
-          {d.last_sync && <> · đồng bộ gần nhất #{d.last_sync.id} {d.last_sync.status} {dateTime(d.last_sync.finished_at)}</>} · <Link to="/admin/doi-soat-mon">Đối soát theo môn →</Link></div>
+        <div className="small muted mt">Trạng thái hiện tại: READY biên tập {num(d.bank.editorial_ready, 0)} · chưa READY {num(d.bank.not_ready, 0)}
+          {" "}(trong đó {num(d.bank.editorial_ready - d.bank.upstream_ready, 0)} câu READY nhờ duyệt so với nguồn)
+          {d.bank.pending_refresh ? ` · ${num(d.bank.pending_refresh, 0)} câu chờ làm mới review` : ""}
+          {d.last_sync && <> · đồng bộ nguồn gần nhất #{d.last_sync.id} {d.last_sync.status} {dateTime(d.last_sync.finished_at)}</>} · <Link to="/admin/doi-soat-mon">Đối soát theo môn →</Link></div>
       </section>
 
       <section className="dash-section">

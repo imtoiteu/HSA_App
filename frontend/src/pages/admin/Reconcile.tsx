@@ -73,7 +73,7 @@ export function SubjectReconciliation() {
   );
 }
 
-interface Queue { key: string; label: string; filter: Record<string, string>; count: number; ready_upstream: number }
+interface Queue { key: string; label: string; filter: Record<string, string>; count: number; link: string | null }
 
 export function QaQueues() {
   const r = useAsync(() => get<{ items: Queue[] }>("/api/admin/qa-queues"), []);
@@ -82,15 +82,15 @@ export function QaQueues() {
   return (
     <div>
       <PageHead title="Hàng đợi QA"><Link className="btn sm" to="/admin/review/queue">Duyệt trong Review Studio ›</Link></PageHead>
-      <p className="muted">Mỗi hàng đợi mở danh sách câu hỏi đã lọc sẵn. Trạng thái biên tập đến từ ngân hàng nguồn (chỉ đọc).
+      <p className="muted">Hàng đợi công thức / hình / đáp án / môn / xem lại tính theo trạng thái review hiện tại (một cờ của nguồn chỉ còn
+        được đếm khi tiêu chí đó chưa được xác nhận) và mở thẳng Review Studio; các hàng đợi còn lại theo chính sách phục vụ hiện tại.
         Sửa nội dung, xác nhận từng tiêu chí QA và phê duyệt READY trong <Link to="/admin/review/queue">Review Studio</Link>
         (bản sửa là phiên bản riêng của ứng dụng, không ghi vào ngân hàng nguồn).</p>
       <div className="kpi-grid">
         {r.data.items.map((q) => (
-          <Link key={q.key} to={"/admin/cau-hoi" + qs(q.filter)} className={"kpi " + (q.count ? "warn" : "ok")}>
+          <Link key={q.key} to={q.link || "/admin/cau-hoi" + qs(q.filter)} className={"kpi " + (q.count ? "warn" : "ok")}>
             <span className="v">{num(q.count, 0)}</span>
             <span className="k">{q.label}</span>
-            {q.ready_upstream > 0 && q.ready_upstream !== q.count && <span className="k"> · {num(q.ready_upstream, 0)} đang READY ở nguồn</span>}
           </Link>
         ))}
       </div>
