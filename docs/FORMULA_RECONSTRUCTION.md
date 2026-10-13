@@ -96,7 +96,8 @@ node scripts/katex-check.mjs /tmp/tex.json /tmp/tex-results.json
 hsa-app formula-pdf --document doc_… --limit 200 --tex-results /tmp/tex-results.json --apply
 ```
 
-The dry run prints one line per question (`OK` / `SKIP <reason>`) and a JSON summary.
+Questions this batch already refused or rebuilt into a draft are skipped; `--retry` re-examines them (e.g. after an
+engine improvement). The dry run prints one line per question (`OK` / `SKIP <reason>`) and a JSON summary.
 
 ## Batch log
 
@@ -106,6 +107,7 @@ The dry run prints one line per question (`OK` / `SKIP <reason>`) and a JSON sum
 | 1 | HINH HOC 12-dongke (doc_95b96e…) | 200 ×3 passes | 201 | 45 | 6 513 | 20 332 |
 | 2 | HINH HOC 12-dongke (rest) | 700 | 450 | 166 | 6 966 | 20 785 |
 | 3 | DAI SO VA GT 12-dongke (doc_8963cf…), 1st 900 | 900 | 553 | 139 | 7 519 | 21 338 |
+| 4 | DAI SO VA GT 12-dongke, next 900 | 900 | 372 | 213 | 7 891 | 21 710 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
 Batch 3: 23 questions whose source worked solution names another answer than the key table were left unresolved
