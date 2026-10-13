@@ -116,6 +116,7 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | fix 1 | 49 promoted questions withdrawn and rebuilt (see below) | 49 | 47 | 2 | 9 477 | 23 296 |
 | 10 | TUYEN TAP 12-NOLG (doc_bf5d…) | 593 | 52 | 341 | 9 529 | 23 348 |
 | fix 2 | 6 promoted questions withdrawn and rebuilt (see below) | 6 | 6 | 0 | 9 529 | 23 348 |
+| 11 | DAI SO VA GT 12-LG (doc_e8c0ed…) | 459 | 92 | 87 | 9 621 | 23 440 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
 Batch 10: 327 of the 411 rebuilt questions wait in Review Studio because no second edition confirms them: the
