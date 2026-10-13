@@ -2,7 +2,7 @@
 // bold/italic/underline/superscript/subscript, lists, tables, inline/block images and formulas (MathLive).
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { Block } from "../../../lib/types";
-import { blocksToHtml, domToBlocks, inlinesHtml, mathHtml, textWithTex } from "./blockdom";
+import { blocksToHtml, domToBlocks, hasTexDelims, inlinesHtml, mathHtml, pasteTextToBlocks, textWithTex } from "./blockdom";
 import ImageTool, { type ImageResult, uploadBlob } from "./ImageTool";
 import MathDialog from "./MathDialog";
 
@@ -17,7 +17,9 @@ type ImgEdit = { el: HTMLElement | null; src?: string; alt?: string; caption?: s
 const BlockEditor = forwardRef<EditorHandle, {
   value: Block[] | null; onChange: (b: Block[]) => void; label: string; compact?: boolean; readOnly?: boolean;
   onFocusEditor?: () => void; placeholder?: string;
-}>(function BlockEditor({ value, onChange, label, compact, readOnly, onFocusEditor, placeholder }, ref) {
+  /** paste plain text as Markdown + LaTeX (a whole solution copied from ChatGPT/Claude) */
+  richPaste?: boolean;
+}>(function BlockEditor({ value, onChange, label, compact, readOnly, onFocusEditor, placeholder, richPaste }, ref) {
   const root = useRef<HTMLDivElement>(null);
   const saved = useRef<Range | null>(null);
   const [math, setMath] = useState<MathEdit | null>(null);
@@ -139,6 +141,15 @@ const BlockEditor = forwardRef<EditorHandle, {
     const html = e.clipboardData.getData("text/html");
     const text = e.clipboardData.getData("text/plain");
     e.preventDefault();
+    if (richPaste && text && (hasTexDelims(text) || !html)) {
+      const blocks = pasteTextToBlocks(text);
+      if (blocks.length) {
+        document.execCommand("insertHTML", false, blocks.length === 1 && blocks[0].t === "p" && !blocks[0].display
+          ? inlinesHtml(blocks[0].c) : blocksToHtml(blocks));
+        emitSoon();
+        return;
+      }
+    }
     if (html) {
       const tmp = document.createElement("div");
       tmp.innerHTML = html.replace(/<!--[\s\S]*?-->/g, "");
@@ -241,12 +252,12 @@ const BlockEditor = forwardRef<EditorHandle, {
                       if (math.el) {
                         const p = math.el.closest("p");
                         const tmp = document.createElement("div");
-                        tmp.innerHTML = mathHtml(tex);
+                        tmp.innerHTML = mathHtml(tex, false, !!(display && p));
                         math.el.replaceWith(tmp.firstChild!);
                         if (p) p.dataset.display = display ? "1" : "";
                         emitSoon();
                       } else {
-                        if (display) insertHtml(`<p data-display="1">${mathHtml(tex)}</p>`, true);
+                        if (display) insertHtml(`<p data-display="1">${mathHtml(tex, false, true)}</p>`, true);
                         else insertHtml(mathHtml(tex) + "&nbsp;");
                       }
                       setMath(null);

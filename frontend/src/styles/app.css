@@ -500,6 +500,7 @@ tr.mismatch td { background: var(--warn-50); }
 .ed-area ul, .ed-area ol, .rich ul, .rich ol { padding-left: 1.4em; margin: .3em 0 .6em; }
 .ed-math { display: inline-block; padding: 0 2px; border-radius: 4px; cursor: pointer; background: #f1f5ff; }
 .ed-math:hover { outline: 1px solid var(--brand); }
+.ed-math.ed-math-display { display: block; background: #f6f8ff; }
 .ed-math.review, .ed-img-inline.review { outline: 2px dashed var(--warn); }
 .ed-figure { display: block; margin: .5em 0; text-align: center; cursor: pointer; }
 .ed-figure img { max-width: 100%; height: auto; }

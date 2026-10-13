@@ -418,7 +418,7 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef, onSubject }: {
 
       <div className="field">
         <span className="label">Lời giải</span>
-        <BlockEditor ref={(h) => { solRef.current = h; }} label="Lời giải" value={edit.solution} readOnly={!canEdit}
+        <BlockEditor ref={(h) => { solRef.current = h; }} label="Lời giải" richPaste value={edit.solution} readOnly={!canEdit}
                      onFocusEditor={() => { focused.current = solRef.current; }} onChange={(b) => up({ solution: b })} placeholder="(chưa có lời giải)" />
       </div>
       {(edit.explanation.length > 0 || canEdit) && (

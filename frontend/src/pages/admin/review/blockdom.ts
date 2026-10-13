@@ -9,8 +9,8 @@ const MEDIA = "/media/";
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const MARK_TAG: Record<Mark, string> = { b: "strong", i: "em", u: "u", x: "s", sup: "sup", sub: "sub" };
 
-export function mathHtml(tex: string, review?: boolean): string {
-  return `<span class="ed-math${review ? " review" : ""}" contenteditable="false" data-tex="${esc(tex)}"${review ? ' data-review="1"' : ""} title="Bấm để sửa công thức">${renderTex(tex)}</span>`;
+export function mathHtml(tex: string, review?: boolean, display?: boolean): string {
+  return `<span class="ed-math${review ? " review" : ""}${display ? " ed-math-display" : ""}" contenteditable="false" data-tex="${esc(tex)}"${review ? ' data-review="1"' : ""} title="Bấm để sửa công thức">${renderTex(tex, display)}</span>`;
 }
 
 function inlineHtml(nodes: Inline[]): string {
@@ -37,6 +37,8 @@ export function blocksToHtml(blocks: Block[] | null | undefined): string {
   return (blocks || []).map((b) => {
     switch (b.t) {
       case "p":
+        if (b.display && b.c.length === 1 && b.c[0].t === "m")
+          return `<p data-display="1">${mathHtml(b.c[0].tex, b.c[0].review, true)}</p>`;
         return `<p${b.display ? ' data-display="1"' : ""}>${inlineHtml(b.c) || "<br>"}</p>`;
       case "img":
         return `<figure class="ed-figure" contenteditable="false" data-src="${esc(b.src)}"${b.w ? ` data-w="${b.w}"` : ""}${b.h ? ` data-h="${b.h}"` : ""} data-alt="${esc(b.alt || "")}" data-caption="${esc(b.caption || "")}"><img src="${MEDIA}${esc(b.src)}" alt="${esc(b.alt || "")}" style="max-width:min(100%, ${Math.min(b.w || 640, 640)}px)">${b.caption ? `<figcaption>${esc(b.caption)}</figcaption>` : ""}</figure>`;
@@ -44,7 +46,10 @@ export function blocksToHtml(blocks: Block[] | null | undefined): string {
         return `<table class="ed-table"><tbody>${b.rows.map((r) => `<tr>${r.map((c) => `<td${c.colspan ? ` colspan="${c.colspan}"` : ""}${c.rowspan ? ` rowspan="${c.rowspan}"` : ""}>${blocksToHtml(c.c) || "<p><br></p>"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
       case "list": {
         const tag = b.ordered ? "ol" : "ul";
-        return `<${tag}>${b.items.map((it) => `<li>${it.length === 1 && it[0].t === "p" ? inlineHtml(it[0].c) : blocksToHtml(it)}</li>`).join("")}</${tag}>`;
+        return `<${tag}>${b.items.map((it) => it.length === 1 && it[0].t === "p"
+          ? (it[0].display && it[0].c.length === 1 && it[0].c[0].t === "m"
+            ? `<li data-display="1">${mathHtml(it[0].c[0].tex, it[0].c[0].review, true)}</li>` : `<li>${inlineHtml(it[0].c)}</li>`)
+          : `<li>${blocksToHtml(it)}</li>`).join("")}</${tag}>`;
       }
       case "warn":
         return `<p><span class="ed-warn" contenteditable="false" data-warn="${esc(b.v)}">⚠ ${esc(b.v)}</span></p>`;
@@ -128,7 +133,11 @@ function inlines(node: Node, marks: Mark[], out: Inline[]) {
     return;
   }
   if (tag === "SCRIPT" || tag === "STYLE" || tag === "TEMPLATE") return;
-  if (el.classList?.contains("katex")) { pushText(out, el.querySelector("annotation")?.textContent || "", marks); return; }
+  if (el.classList?.contains("katex") || el.classList?.contains("katex-display")) {
+    const tex = el.querySelector("annotation")?.textContent?.trim();
+    if (tex) out.push({ t: "m", tex });
+    return;
+  }
   const m = TAG_MARK[tag];
   const next = m ? [...marks, m] : [...marks, ...(tag === "SPAN" || tag === "FONT" ? styleMarks(el) : [])];
   el.childNodes.forEach((c, i) => {
@@ -215,7 +224,11 @@ export function domToBlocks(root: HTMLElement): Block[] {
           const c: Inline[] = [];
           inlines(li, [], c);
           const p = para(c, li as HTMLElement);
-          if (p) { if (p.t === "p") delete p.display; items.push([p]); }
+          if (p) {
+            // a lone formula item: keep its display flag explicit (the server defaults a missing flag to display)
+            if (p.t === "p") { if (p.c.length === 1 && p.c[0].t === "m") p.display = (li as HTMLElement).dataset.display === "1"; else delete p.display; }
+            items.push([p]);
+          }
         }
       });
       if (items.length) out.push({ t: "list", ordered: tag === "OL", items });
@@ -232,8 +245,15 @@ export function domToBlocks(root: HTMLElement): Block[] {
       const p = para(c, el);
       if (p) {
         if (p.t === "p" && el.dataset.display !== "1" && p.display && c.length > 1) delete p.display;
+        if (p.t === "p" && p.c.length === 1 && p.c[0].t === "m" && el.querySelector(".katex-display")) p.display = true;
         out.push(p);
       }
+      return;
+    }
+    if (el.classList?.contains("katex-display")) {
+      flush();
+      const tex = el.querySelector("annotation")?.textContent?.trim();
+      if (tex) out.push({ t: "p", c: [{ t: "m", tex }], display: true });
       return;
     }
     inlines(el, [], pending);
@@ -255,6 +275,105 @@ export function textWithTex(text: string): Inline[] {
   }
   if (last < text.length) pushPlain(out, text.slice(last));
   return out;
+}
+
+/** Inline Markdown (**đậm**, *nghiêng*, `mã`) with $…$ / \(…\) formulas → inline nodes. */
+function mdInlines(text: string, out: Inline[] = []): Inline[] {
+  const re = /\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$|\*\*([^*\n]+?)\*\*|__([^_\n]+?)__|(?<![\w*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\w*])|`([^`\n]+)`/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (m.index > last) pushText(out, text.slice(last, m.index), []);
+    if (m[1] !== undefined || m[2] !== undefined) out.push({ t: "m", tex: (m[1] ?? m[2]).trim() });
+    else if (m[3] !== undefined || m[4] !== undefined) mdMarked(m[3] ?? m[4], "b", out);
+    else if (m[5] !== undefined) mdMarked(m[5], "i", out);
+    else pushText(out, m[6], []);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) pushText(out, text.slice(last), []);
+  return out;
+}
+
+function mdMarked(text: string, mark: Mark, out: Inline[]) {
+  for (const n of mdInlines(text)) {
+    if (n.t === "s") pushText(out, n.v, [...(n.m || []), mark]);
+    else out.push(n);
+  }
+}
+
+function mdItem(text: string): Block {
+  const c = mdInlines(text);
+  return c.length === 1 && c[0].t === "m" ? { t: "p", c, display: false } : { t: "p", c };
+}
+
+const MD_ITEM = /^\s*(?:([-*+•])|(\d+)[.)])\s+(.*)$/;
+
+/** A solution pasted as plain text from ChatGPT/Claude (Markdown + LaTeX) → blocks: paragraphs on blank lines,
+ *  line breaks kept, - / 1. lists, # headings (bold), **bold**, inline \(…\) $…$ and display \[…\] $$…$$ formulas
+ *  (each display formula on its own line). Nothing is centred except display formulas, as in the student view. */
+export function pasteTextToBlocks(text: string): Block[] {
+  const display: string[] = [];
+  const src = text.replace(/\r\n?/g, "\n").replace(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]/g, (_, a, b) => {
+    display.push(((a ?? b) as string).trim());
+    return `\n\n\u0000${display.length - 1}\u0000\n\n`;
+  });
+  const out: Block[] = [];
+  let list: { t: "list"; ordered: boolean; items: Block[][] } | null = null;
+  let para: string[] = [];
+  const flushPara = () => {
+    if (para.length) {
+      const c: Inline[] = [];
+      para.forEach((line, i) => { if (i) c.push({ t: "br" }); mdInlines(line, c); });
+      if (c.length && !isBlank(c)) out.push({ t: "p", c });
+    }
+    para = [];
+  };
+  const flushList = () => { if (list) out.push(list); list = null; };
+  for (const raw of src.split("\n")) {
+    const line = raw.replace(/\s+$/, "");
+    const dm = line.trim().match(/^\u0000(\d+)\u0000$/);
+    if (dm) {
+      flushPara(); flushList();
+      if (display[+dm[1]]) out.push({ t: "p", c: [{ t: "m", tex: display[+dm[1]] }], display: true });
+      continue;
+    }
+    if (!line.trim()) { flushPara(); flushList(); continue; }
+    if (/^\s*([-*_])\s*(\1\s*){2,}$/.test(line)) { flushPara(); flushList(); continue; }  // --- rule
+    const h = line.match(/^\s*#{1,6}\s+(.*)$/);
+    if (h) { flushPara(); flushList(); const c: Inline[] = []; mdMarked(h[1], "b", c); if (c.length) out.push({ t: "p", c }); continue; }
+    const it = line.match(MD_ITEM);
+    if (it && list && /^\s{2,}/.test(raw)) {  // indented item → sub-list of the last item
+      const last = list.items[list.items.length - 1];
+      const ordered = it[2] !== undefined;
+      let sub = last[last.length - 1];
+      if (sub.t !== "list" || sub.ordered !== ordered) { sub = { t: "list", ordered, items: [] }; last.push(sub); }
+      sub.items.push([mdItem(it[3])]);
+      continue;
+    }
+    if (it) {
+      flushPara();
+      const ordered = it[2] !== undefined;
+      if (list && list.ordered !== ordered) flushList();
+      if (!list) list = { t: "list", ordered, items: [] };
+      list.items.push([mdItem(it[3])]);
+      continue;
+    }
+    if (list && /^\s+\S/.test(raw)) {  // indented continuation of the last item
+      const p = list.items[list.items.length - 1][0] as Extract<Block, { t: "p" }>;
+      p.c.push({ t: "br" });
+      mdInlines(line.trim(), p.c);
+      continue;
+    }
+    flushList();
+    para.push(line.replace(/^\s*>\s?/, ""));
+  }
+  flushPara(); flushList();
+  return out;
+}
+
+/** Plain text that carries LaTeX delimiters (the source of a chatbot answer, not its rendering). */
+export function hasTexDelims(text: string): boolean {
+  return /\\\(|\\\[|\$\$|\$[^$\n]+\$/.test(text);
 }
 
 function pushPlain(out: Inline[], t: string) {

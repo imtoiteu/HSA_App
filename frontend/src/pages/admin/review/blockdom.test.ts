@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Block } from "../../../lib/types";
-import { blocksToHtml, collectTex, domToBlocks, textWithTex } from "./blockdom";
+import { blocksToHtml, collectTex, domToBlocks, hasTexDelims, pasteTextToBlocks, textWithTex } from "./blockdom";
 
 const roundtrip = (b: Block[]) => {
   const el = document.createElement("div");
@@ -44,5 +44,67 @@ describe("editor DOM <-> content model", () => {
     const inl = textWithTex("Tính $x^2$ và \\(\\sqrt{2}\\).");
     expect(inl.filter((n) => n.t === "m")).toEqual([{ t: "m", tex: "x^2" }, { t: "m", tex: "\\sqrt{2}" }]);
     expect([...collectTex([{ t: "p", c: inl }])]).toEqual(["x^2", "\\sqrt{2}"]);
+  });
+});
+
+describe("pasteTextToBlocks (ChatGPT/Claude solution)", () => {
+  const sol = [
+    "**Lời giải.** Xét hàm số \\(f(x)=x^2-4x+3\\) trên $[0;3]$.",
+    "Ta có",
+    "",
+    "\\[",
+    "f'(x)=2x-4",
+    "\\]",
+    "",
+    "Các bước:",
+    "1. Giải $f'(x)=0$ được $x=2$.",
+    "2. Tính giá trị:",
+    "   - $f(0)=3$",
+    "",
+    "- *Kết luận* min là $$f(2)=-1$$",
+    "",
+    "### Đáp án: C",
+  ].join("\n");
+  const b = pasteTextToBlocks(sol);
+  it("keeps paragraphs, line breaks, bold and inline math left-aligned", () => {
+    expect(b[0]).toEqual({ t: "p", c: [
+      { t: "s", v: "Lời giải.", m: ["b"] }, { t: "s", v: " Xét hàm số " }, { t: "m", tex: "f(x)=x^2-4x+3" },
+      { t: "s", v: " trên " }, { t: "m", tex: "[0;3]" }, { t: "s", v: "." }, { t: "br" }, { t: "s", v: "Ta có" }] });
+  });
+  it("puts \\[…\\] on its own display line", () => {
+    expect(b[1]).toEqual({ t: "p", c: [{ t: "m", tex: "f'(x)=2x-4" }], display: true });
+    expect(b[2]).toEqual({ t: "p", c: [{ t: "s", v: "Các bước:" }] });
+  });
+  it("builds ordered / unordered lists", () => {
+    expect(b[3].t).toBe("list");
+    const l = b[3] as Extract<Block, { t: "list" }>;
+    expect(l.ordered).toBe(true);
+    expect(l.items.length).toBe(2);
+    expect(l.items[1]).toEqual([{ t: "p", c: [{ t: "s", v: "Tính giá trị:" }] },
+      { t: "list", ordered: false, items: [[{ t: "p", c: [{ t: "m", tex: "f(0)=3" }], display: false }]] }]);
+    expect(b[4]).toMatchObject({ t: "list", ordered: false });
+  });
+  it("splits $$…$$ out as display, heading bold", () => {
+    expect(b).toContainEqual({ t: "p", c: [{ t: "m", tex: "f(2)=-1" }], display: true });
+    expect(b[b.length - 1]).toEqual({ t: "p", c: [{ t: "s", v: "Đáp án: C", m: ["b"] }] });
+  });
+  it("survives the editor round trip", () => {
+    const div = document.createElement("div");
+    div.innerHTML = blocksToHtml(b);
+    expect(domToBlocks(div)).toEqual(b);
+  });
+  it("plain text without markup stays one paragraph", () => {
+    expect(pasteTextToBlocks("Ta có 2 + 2 = 4")).toEqual([{ t: "p", c: [{ t: "s", v: "Ta có 2 + 2 = 4" }] }]);
+    expect(hasTexDelims("giá $5 và $6")).toBe(true);
+    expect(hasTexDelims("không có công thức")).toBe(false);
+  });
+  it("pasted KaTeX HTML keeps the formula, display stays display", () => {
+    const div = document.createElement("div");
+    div.innerHTML = '<p>Ta có <span class="katex"><span class="katex-mathml"><math><semantics><annotation encoding="application/x-tex">x^2</annotation></semantics></math></span></span> nên</p>'
+      + '<span class="katex-display"><span class="katex"><annotation encoding="application/x-tex">\\int_0^1 x\\,dx</annotation></span></span>';
+    expect(domToBlocks(div)).toEqual([
+      { t: "p", c: [{ t: "s", v: "Ta có " }, { t: "m", tex: "x^2" }, { t: "s", v: " nên" }] },
+      { t: "p", c: [{ t: "m", tex: "\\int_0^1 x\\,dx" }], display: true },
+    ]);
   });
 });
