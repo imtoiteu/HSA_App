@@ -105,5 +105,8 @@ The dry run prints one line per question (`OK` / `SKIP <reason>`) and a JSON sum
 | (before) | | | | | 6 311 | 20 131 |
 | 1 | HINH HOC 12-dongke (doc_95b96e…) | 200 ×3 passes | 201 | 45 | 6 513 | 20 332 |
 | 2 | HINH HOC 12-dongke (rest) | 700 | 450 | 166 | 6 966 | 20 785 |
+| 3 | DAI SO VA GT 12-dongke (doc_8963cf…), 1st 900 | 900 | 553 | 139 | 7 519 | 21 338 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
+Batch 3: 23 questions whose source worked solution names another answer than the key table were left unresolved
+(source conflict).
