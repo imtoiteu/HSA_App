@@ -560,6 +560,12 @@ def test_docx_passage():
                           plain("What is the main idea of the passage?"))[0]
     bad = paras[:2] + [P("A. achieving B. attempting")] + paras[2:]
     assert M.docx_passage(bad, hdr, stem)[0] is None
+    twice = paras + [P("ĐÁP ÁN")] + paras  # questions part + solutions part repeat the same passage
+    assert M.docx_passage(twice, hdr, stem)[0] == blocks
+    other = paras + [P("ĐÁP ÁN")] + [P("Read the passage carefully"), P(long.replace("brain", "body"))] + paras[3:]
+    assert M.docx_passage(other, hdr, stem)[0] is None  # two different passages: ambiguous
+    sol = paras + [P("ĐÁP ÁN"), P("Which of the following can be the best title of the passage?")]
+    assert M.docx_passage(sol, hdr, stem)[0] == blocks  # repeated in the solutions part without the instruction
 
 
 def test_docx_passage_vi_marker():

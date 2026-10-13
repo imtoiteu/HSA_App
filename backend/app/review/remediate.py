@@ -386,12 +386,31 @@ def docx_passage(paras: list[dict], header: str, stem_blocks: list) -> tuple[lis
     sk = norm(_text_without_math(stem_blocks))[:30]
     hk = norm(header)
     idx = [i for i, p in enumerate(paras) if len(sk) >= 15 and sk in norm(p["text"])]
-    if len(idx) != 1:
+    if not idx:
+        return None, "question found 0 times in the source .docx"
+    if len(idx) > 4:
         return None, f"question found {len(idx)} times in the source .docx"
-    i = idx[0]
+    # a question repeated in the document (questions part + solutions part) is accepted only when every
+    # occurrence yields the very same passage
+    found = [_passage_at(paras, i, hk, stem_blocks) for i in idx]
+    if len(idx) > 1:  # an occurrence without the group instruction before it (e.g. the solutions part) is no group
+        found = [f for f in found if f[0] is not None or not f[1].startswith(NO_GROUP_HERE)] or found
+    if any(b is None for b, _ in found):
+        why = next(w for b, w in found if b is None)
+        return None, why if len(idx) == 1 else f"question found {len(idx)} times; one occurrence: {why}"
+    texts = {plain_text(b) for b, _ in found}
+    if len(texts) != 1:
+        return None, f"question found {len(idx)} times in the source .docx with different passages"
+    return found[0]
+
+
+NO_GROUP_HERE = "group instruction not found before the question"
+
+
+def _passage_at(paras: list[dict], i: int, hk: str, stem_blocks: list) -> tuple[list | None, str]:
     hs = [j for j in range(max(0, i - 600), i) if hk and hk[:40] in norm(paras[j]["text"])]
     if not hs:
-        return None, "group instruction not found before the question in the source .docx"
+        return None, NO_GROUP_HERE + " in the source .docx"
     h = hs[-1]
     if any(PASSAGE_MARKER.match(paras[j]["text"]) for j in range(h + 1, i)):
         return None, "another passage starts between the group instruction and the question"
@@ -1185,14 +1204,37 @@ def load_docx(store, document_id: str) -> list | None:
     import tempfile
     from pathlib import Path
     doc = store.up.document(document_id)
-    if not doc or (doc.get("file_kind") or "").lower() != "docx":
+    kind = (doc or {}).get("file_kind") or ""
+    if kind.lower() not in ("docx", "doc"):
         return None
     try:
         with tempfile.TemporaryDirectory(prefix="hsa_docx_", dir=store._tmp()) as tmp:
             src = store._materialize(doc, Path(tmp))
+            if src and kind.lower() == "doc":
+                src = doc_to_docx(src, Path(tmp))  # the bank itself parsed these through LibreOffice
             return docx_paragraphs(src) if src else None
     except (OSError, KeyError, ValueError):
         return None
+
+
+def doc_to_docx(src, tmp):
+    """Legacy .doc → .docx with headless LibreOffice (the conversion the upstream bank used for these documents)."""
+    import shutil
+    import subprocess
+    from pathlib import Path
+    if not shutil.which("soffice"):
+        return None
+    work = Path(tmp) / "doc2docx"
+    work.mkdir(exist_ok=True)
+    inp = work / "in.doc"
+    shutil.copyfile(src, inp)
+    try:
+        subprocess.run(["soffice", "--headless", f"-env:UserInstallation=file://{work}/lo", "--convert-to", "docx",
+                        "--outdir", str(work), str(inp)], check=True, capture_output=True, timeout=180)
+    except (subprocess.SubprocessError, OSError):
+        return None
+    out = work / "in.docx"
+    return out if out.exists() else None
 
 
 def _is_watermark_picture(data: bytes) -> bool:
