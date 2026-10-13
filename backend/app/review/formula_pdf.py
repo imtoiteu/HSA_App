@@ -842,12 +842,21 @@ def build_rule(items: list[Item], r: Rule, size: float) -> list[Item]:
 
 def keep_stack(part, y, above, size):
     """The row next to the bar plus the scripts touching it; anything else belongs to another line."""
-    if not part:
-        return part
-    full = [i for i in part if i.size >= 0.85 * max(j.size for j in part)]
-    near = min(full, key=lambda i: abs(i.base - y)).base
-    row = [i for i in full if abs(i.base - near) <= 0.25 * size or
-           (i.kind == "box" and overlap(i.top, i.bot, y - 2 * size, y + 2 * size) > 0 and abs(i.base - near) <= 1.2 * size)]
+    while True:
+        if not part:
+            return part
+        full = [i for i in part if i.size >= 0.85 * max(j.size for j in part)]
+        near = min(full, key=lambda i: abs(i.base - y)).base
+        row = [i for i in full if abs(i.base - near) <= 0.25 * size or
+               (i.kind == "box" and overlap(i.top, i.bot, y - 2 * size, y + 2 * size) > 0 and abs(i.base - near) <= 1.2 * size)]
+        # the row must be next to the bar: a (smaller) symbol between it and the bar, right under/over it, is the
+        # real numerator/denominator, and the row is a script of the neighbouring line (log₅ above log_{1/5})
+        between = [i for i in part if i not in row and abs(i.base - y) < abs(near - y) - 0.1 * size and
+                   any(overlap(i.x0, i.x1, j.x0, j.x1) > 0.3 * min(i.x1 - i.x0, j.x1 - j.x0) for j in row)]
+        if not between:
+            break
+        lim = max(abs(i.base - y) for i in between)
+        part = [i for i in part if abs(i.base - y) <= lim + 0.25 * size]
     rest = [i for i in part if i not in row]
     grown = True
     while grown:  # scripts must touch the row (x² in a numerator), not merely lie under the bar

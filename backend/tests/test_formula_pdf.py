@@ -149,3 +149,17 @@ def test_slash_over_relation_is_its_negation():
     res = F.layout_question(question(stem), 1, 1)
     assert res.reason == ""
     assert {"t": "m", "tex": r"x\notin A"} in res.content["stem"][0]["c"]
+
+
+def test_script_fraction_ignores_a_script_of_the_line_above():
+    stem, x = word("Có", "VNR12", 90, 100)
+    x += 5
+    # line 1: x₅ (subscript at script size); line 2 right below: y_{1/5}, a script-size fraction whose numerator '1'
+    # sits just under that subscript '5'
+    stem += [g("x", "CMMI12", x, 100), g("5", "CMR8", x + 6, 103, size=8)]
+    stem += word("và", "VNR12", 90, 112)[0]
+    stem += [g("y", "CMMI12", x, 112), g("1", "CMR5", x + 6.5, 110, size=5), g("5", "CMR5", x + 6.5, 115.5, size=5)]
+    res = F.layout_question(question(stem, rules=[(x + 6, x + 9.5, 111.3)]), 1, 1)
+    assert res.reason == ""
+    tex = [n["tex"] for b in res.content["stem"] for n in b["c"] if n["t"] == "m"]
+    assert "x_5" in tex and r"y_{\frac{1}{5}}" in tex
