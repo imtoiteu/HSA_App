@@ -1179,7 +1179,10 @@ def systems(lines: list[Line], size: float) -> list[Line]:
                 R.items = [i for i in R.items if i not in members]
             # the system is centred on the math axis of the line it belongs to
             centre = (d.top + d.bot) / 2 + 0.25 * size
-            home = min(lines, key=lambda R: abs(R.base - centre))
+            ids = {id(m) for m in members}
+            # a line that keeps other content (not one of the system's own rows, now emptied)
+            live = [R for R in lines if any(id(i) not in ids for i in R.items)]
+            home = min(live, key=lambda R: abs(R.base - centre)) if live else L
             if abs(home.base - centre) > 0.5 * size:
                 home = L
             b = box(members, tex, base=home.base)
