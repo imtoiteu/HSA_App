@@ -681,3 +681,20 @@ def test_watermark_placeholder_strip():
     assert fixed is None and "lost floating objects" in why
     c2 = {**c, "stem": [{"t": "p", "c": [{"t": "warn", "v": "x"}, {"t": "s", "v": "Câu hỏi?"}]}]}
     assert M.strip_watermark_placeholders(c2, paras)[0] is None
+
+
+def test_dialogue_options_split():
+    from app.review import remediate as M
+    P = lambda *xs: [{"t": "p", "c": [{"t": "s", "v": x} for x in xs]}]  # noqa: E731
+    lines = ["Why is that?", "It looks like it may rain soon.", "I really love how rain clears the air.",
+             "Yes, and I hope that it does."]
+    opts = [{"label": L, "content": P(t)} for L, t in zip("ABC", lines[:3])]
+    opts.append({"label": "D", "content": P(lines[3] + " A. a-b-c-d B. a-d-c-b C. b-d-a-c D. b-a-c-d b-d-a-c")})
+    c = {"stem": P("Choose A, B, C or D to make a complete dialogue for each question."), "options": opts,
+         "solution": P("Thứ tự đúng: C. b-d-a-c")}
+    out, why = M.split_dialogue_options(c, {"labels": ["C"]})
+    assert why == "ok" and [M.plain_text(o["content"]) for o in out["options"]][2] == "b – d – a – c"
+    assert M.plain_text(out["stem"]).count("\n") >= 4 and "d. Yes, and I hope that it does." in M.plain_text(out["stem"])
+    assert M.split_dialogue_options(c, {"labels": ["A"]})[0] is None  # the solution states C's ordering
+    bad = {**c, "options": opts[:3] + [{"label": "D", "content": P(lines[3] + " A. a-b-c-d B. a-d-c-b C. b-d-a-a D. b-a-c-d")}]}
+    assert M.split_dialogue_options(bad, {"labels": ["C"]})[0] is None  # not a permutation

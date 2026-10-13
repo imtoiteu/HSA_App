@@ -1093,6 +1093,9 @@ BATCHES["inline_options_split"] = BASE + """
       AND q.question_type = 'short_response'
 """
 SPLIT_BATCHES = {"inline_options_split"}
+# dialogue-arrangement questions whose dialogue lines were parsed as options (contamination flagged upstream)
+BATCHES["dialogue_options_split"] = BATCHES["contamination_only"]
+DIALOGUE_BATCHES = {"dialogue_options_split"}
 # upstream READY reading questions whose shared passage was lost by the parser: recovered from the source .docx
 # (runs only where the original archives are readable: the sources service)
 BATCHES["group_passage_recover"] = BASE.replace(
@@ -1325,6 +1328,63 @@ def strip_watermark_placeholders(content: dict, paras) -> tuple[dict | None, int
     return c, n, "ok"
 
 
+_ORDER = r"[a-h](?:\s*[–—-]\s*[a-h]){1,7}"
+_ORDER_LIST = re.compile(rf"\s*A[.)]\s*({_ORDER})\s*B[.)]\s*({_ORDER})\s*C[.)]\s*({_ORDER})\s*D[.)]\s*({_ORDER})"
+                         rf"(?:\s*({_ORDER}))?\s*$")
+_DIALOGUE_STEM = re.compile(r"(complete|make)\s+(a\s+)?(dialogue|conversation)|dialogue arrangement|arrange the (sentences|lines)",
+                            re.I)
+
+
+def split_dialogue_options(content: dict, answer: dict | None) -> tuple[dict | None, str]:
+    """Dialogue-arrangement question parsed with its dialogue lines as options and the real choices
+    ("A. c-b-a-d  B. …") glued to the last line: lines become a–… in the stem, the four orderings become A–D.
+    Every ordering must be a permutation of the line letters; a trailing copy of one ordering (the answer
+    leaked after D) is dropped; the key must be the ordering the solution itself states."""
+    if not _DIALOGUE_STEM.search(plain_text(content.get("stem") or [])):
+        return None, "not a dialogue-arrangement question"
+    opts = content.get("options") or []
+    texts = [unicodedata.normalize("NFC", plain_text(o.get("content") or [])).replace("\n", " ").strip() for o in opts]
+    if len(texts) < 3:
+        return None, "too few dialogue lines"
+    m = _ORDER_LIST.search(texts[-1])
+    if not m:
+        return None, "no A–D ordering list after the dialogue lines"
+    last = texts[-1][:m.start()].strip()
+    if not last:
+        return None, "last dialogue line is empty"
+    lines = texts[:-1] + [last]
+    letters = [chr(ord("a") + i) for i in range(len(lines))]
+    orders = [re.findall(r"[a-h]", g) for g in m.groups()[:4]]
+    for o in orders:
+        if sorted(o) != letters:
+            return None, f"ordering {'-'.join(o)} is not a permutation of the {len(lines)} dialogue lines"
+    if len({tuple(o) for o in orders}) != 4:
+        return None, "two orderings are identical"
+    if m.group(5) and re.findall(r"[a-h]", m.group(5)) not in orders:
+        return None, "trailing ordering after D is not one of the choices"
+    key = ((answer or {}).get("labels") or [None])[0]
+    if key not in ("A", "B", "C", "D"):
+        return None, "no answer key"
+    sol = unicodedata.normalize("NFC", plain_text((content.get("solution") or []) + (content.get("explanation") or [])))
+    stated = [re.findall(r"[a-h]", x) for x in re.findall(_ORDER, sol)]
+    steps = re.findall(r"(?:^|\s)(\d)\s*[-–—.:)]\s*([a-h])[.)]\s", sol)  # "1 – b. …  2 – c. …"
+    if len(steps) == len(lines) and [int(n) for n, _ in steps] == list(range(1, len(lines) + 1)):
+        stated.append([x for _, x in steps])
+    ns, pos = norm(sol), []
+    for t in lines:  # the dialogue written out in order (e.g. a translation section quoting each line)
+        k = ns.find(norm(t)[:50]) if len(norm(t)) >= 15 else -1
+        pos.append(k)
+    if all(k >= 0 for k in pos) and len(set(pos)) == len(pos):
+        stated.append([letters[i] for i in sorted(range(len(lines)), key=lambda i: pos[i])])
+    if orders["ABCD".index(key)] not in stated or any(s in orders and s != orders["ABCD".index(key)] for s in stated):
+        return None, "the solution does not state the keyed ordering"
+    c = json.loads(json.dumps(content))
+    c["stem"] = list(c.get("stem") or []) + [{"t": "p", "c": [{"t": "s", "v": f"{l}. {t}"}]} for l, t in zip(letters, lines)]
+    c["options"] = [{"label": L, "content": [{"t": "p", "c": [{"t": "s", "v": " – ".join(o)}]}]}
+                    for L, o in zip("ABCD", orders)]
+    return c, "ok"
+
+
 def candidates(db: Session, batch: str, limit: int | None) -> list[int]:
     sql = f"SELECT q.id FROM question q JOIN question_review r ON r.question_id = q.id WHERE {BATCHES[batch]} ORDER BY q.id"
     if limit:
@@ -1363,7 +1423,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 db.commit()
             log(f"  SKIP {q.external_id}: {reason}")
 
-        st = check_structure(v.content) if batch not in SPLIT_BATCHES else Verdict(True)  # checked after the split
+        st = check_structure(v.content) if batch not in SPLIT_BATCHES | DIALOGUE_BATCHES else Verdict(True)  # after the split
         if st.ok:
             st = check_complete(v.content)
         if not st.ok:
@@ -1434,6 +1494,17 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 unresolved(why)
                 continue
             content = fixed
+        dialogue_split = False
+        if batch in DIALOGUE_BATCHES:
+            content, why = split_dialogue_options(content, v.answer)
+            if content is None:
+                unresolved(why)
+                continue
+            st = check_structure(content)
+            if not st.ok:
+                unresolved(st.reason, conflict=True)
+                continue
+            dialogue_split = True
         split_answer = None
         if batch in SPLIT_BATCHES:
             content, split_answer, why = split_inline_options(content, v.answer)
@@ -1553,7 +1624,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
             continue
         ref = {"document_id": doc, "page": sv.page, "blob_sha256": sc.blob_sha256, "method": METHOD, "batch": batch}
         if nfc_changed or wm_removed or trimmed or group_marked or group_detached or warns_removed or split_answer \
-                or passage_recovered or shape_wm_removed:
+                or passage_recovered or shape_wm_removed or dialogue_split:
             what = "; ".join(x for x in ("khôi phục đoạn văn chung bị mất từ tệp .docx gốc (khớp văn bản PDF)"
                                          if passage_recovered else "","tách 4 phương án A–D đang nằm trong đề thành câu trắc nghiệm một đáp án "
                                          f"(đáp án {split_answer['labels'][0]} giữ nguyên)" if split_answer else "",f"bỏ {warns_removed} ô “đối tượng không hiển thị được”/ảnh số trang (tài liệu gốc không có nội dung ở đó)"
@@ -1566,7 +1637,10 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                                          if trimmed else "",
                                          f"bỏ {shape_wm_removed} ô “đối tượng không hiển thị được” trong lời giải: tệp .docx gốc "
                                          "cho thấy đó chỉ là ảnh nền watermark Tuyensinh247 (không phải hình/công thức)"
-                                         if shape_wm_removed else "") if x)
+                                         if shape_wm_removed else "",
+                                         "câu sắp xếp hội thoại: các câu thoại a, b, c… đưa vào đề, 4 phương án A–D là các thứ tự "
+                                         "(trước đây bị tách nhầm thành phương án; đáp án giữ nguyên, khớp thứ tự lời giải nêu)"
+                                         if dialogue_split else "") if x)
             edit = {"stem": content["stem"], "options": content["options"], "solution": content.get("solution"),
                     "explanation": content.get("explanation")}
             if content.get("group") is not None or group_detached:
@@ -1575,7 +1649,7 @@ def run(db: Session, batch: str, limit: int | None = None, apply: bool = False, 
                 edit["type"], edit["answer"] = "single_choice", split_answer
             S.save_edit(db, q, who, edit, note=f"[{batch}] {what}", source_ref=ref, media_root=media_root)
             stats["structural_fixed"] += bool(nfc_changed or trimmed or group_marked or group_detached or warns_removed
-                                              or split_answer or passage_recovered)
+                                              or split_answer or passage_recovered or dialogue_split)
             stats["visual_fixed"] += bool(wm_removed or shape_wm_removed)
             v = S.working_version(db, q, r)
         has_vis = bool(C.images(v.content)) or C.has_table(v.content)
