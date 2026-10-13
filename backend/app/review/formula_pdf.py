@@ -1116,20 +1116,28 @@ def systems(lines: list[Line], size: float) -> list[Line]:
                            i.val in (r"\}", "]") and abs(i.top - d.top) < 2 and abs(i.bot - d.bot) < 2]
             if right_close:
                 continue  # a set in big braces: handled as \left\{ … \right\}
-            # the system ends before the next option label or the next big brace on any of its rows
+            # the system ends before the next option label or the next system on any of its rows (a big
+            # brace spanning several rows; a tall delimiter around a fraction inside one row is part of it)
+            def spans_rows(i):
+                return sum(1 for R in rows if i.top + 0.1 * size < R.base < i.bot - 0.1 * size) >= 2
             stop = []
             for R in rows:
                 ordered = sorted(R.items, key=lambda i: i.x0)
                 stop += [i.x0 for j, i in enumerate(ordered) if i.x0 > d.x1 and (
-                    (i.kind == "delim" and i.val in (r"\{", "[") and i.bot - i.top > 1.3 * size) or
+                    (i.kind == "delim" and i.val in (r"\{", "[") and i.bot - i.top > 1.3 * size
+                     and spans_rows(i)) or
                     (i.kind == "box" and i.extra.get("system")) or
                     (i.kind == "text" and i.bold and i.val in OPT_LABELS and j + 1 < len(ordered)
                      and ordered[j + 1].val == "."))]
             right = min(stop) if stop else 1e9
+            def within(i):  # a tall item (delimiter around a fraction) may hang past the brace: its axis counts
+                if i.bot - i.top > 1.3 * size:
+                    ax = (i.top + i.bot) / 2 + 0.25 * size
+                    return d.top - 0.6 * size <= ax - 0.75 * size and ax + 0.25 * size <= d.bot + 0.6 * size
+                return i.top >= d.top - 0.6 * size and i.bot <= d.bot + 0.6 * size
             row_items = []
             for R in sorted(rows, key=lambda R: R.base):
-                its = [i for i in R.items if i.x0 >= d.x1 - 0.5 and i.x1 <= right and i.top >= d.top - 0.6 * size
-                       and i.bot <= d.bot + 0.6 * size]
+                its = [i for i in R.items if i.x0 >= d.x1 - 0.5 and i.x1 <= right and within(i)]
                 row_items.append((R, its))
             # the system ends where the rows' math ends; text after it on the middle line stays outside
             mx = max((i.x1 for R, its in row_items for i in its if i.kind != "text"), default=None)
