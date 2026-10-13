@@ -160,6 +160,16 @@ def cmd_review_decide(a):
                                      media_root=get_settings().media_root), ensure_ascii=False))
 
 
+def cmd_formula_pdf(a):
+    """Rebuild flattened formulas of PDF text-layer questions from the source PDF layout (dry run unless --apply)."""
+    from .review.formula_batch import run
+    db = SessionLocal()
+    r = run(db, limit=a.limit, apply=a.apply, media_root=get_settings().media_root, export_tex=a.export_tex,
+            documents=a.document or None, tex_results=a.tex_results or None,
+            log=(lambda *x: None) if a.quiet else print)
+    print(json.dumps(r, ensure_ascii=False))
+
+
 def cmd_worker(a):
     """Scheduler loop: source documents for the Review Studio (every few seconds), maintenance and the
     incremental review refresh (every HSA_MAINTENANCE_INTERVAL seconds) in niced subprocesses."""
@@ -291,6 +301,14 @@ def main(argv=None):
     s = sub.add_parser("review-decide", help="apply reviewer decisions (JSON) through the review workflow")
     s.add_argument("file")
     s.set_defaults(fn=cmd_review_decide)
+    s = sub.add_parser("formula-pdf", help="rebuild flattened formulas from the source PDF layout (LaTeX PDFs)")
+    s.add_argument("--limit", type=int)
+    s.add_argument("--document", action="append", help="only questions of this source document (repeatable)")
+    s.add_argument("--export-tex", help="write the rebuilt formulas not yet KaTeX-checked (for katex-check.mjs)")
+    s.add_argument("--tex-results", action="append", help="katex-check.mjs results for the exported formulas")
+    s.add_argument("--apply", action="store_true", help="save drafts/approvals (default: dry run)")
+    s.add_argument("--quiet", action="store_true")
+    s.set_defaults(fn=cmd_formula_pdf)
     s = sub.add_parser("worker", help="scheduler loop (source documents, maintenance, review refresh)")
     s.add_argument("--sources-only", action="store_true", help="only prepare source documents (sources service)")
     s.add_argument("--no-sources", action="store_true", help="everything except source documents")
