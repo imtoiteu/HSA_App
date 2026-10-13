@@ -668,7 +668,7 @@ def attach_delims(items: list[Item], size: float) -> list[Item]:
         gap = min(c[0] for c in cands)
         near = [c[1] for c in cands if c[0] - gap < 0.3]
         if len({round(n.base) for n in near}) > 1:
-            if d.kind != "delim" or d.bot - d.top <= 1.6 * size:
+            if d.kind != "delim" or d.bot - d.top <= 1.3 * size:
                 raise Unresolved(f"big delimiter {d.val} between two rows")
             # a tall { or [ in front of stacked rows: a system, rebuilt by systems() around its centre
             centre = (d.top + d.bot) / 2 + 0.25 * size
@@ -732,7 +732,8 @@ def under(items, x0, x1, top, depth, size):
 
 
 def build_arrows(items: list[Item], size: float) -> list[Item]:
-    arrows = sorted([i for i in items if i.kind == "arrow"], key=lambda i: i.x0)
+    # pieces of an arrow: tail '#', extension pieces (their text is a space, but they are inked), head '»'
+    arrows = sorted([i for i in items if i.kind == "arrow"], key=lambda i: (round(i.base), i.x0))
     rest = [i for i in items if i.kind != "arrow"]
     # pieces of one arrow share a baseline and touch each other
     groups = []
@@ -1094,7 +1095,7 @@ def make_lines(items: list[Item], size: float) -> list[Line]:
 def systems(lines: list[Line], size: float) -> list[Line]:
     """A big { or [ followed by several stacked rows → cases / bracket system (one box on the middle line)."""
     cands = sorted([(d, L) for L in lines for d in L.items if d.kind == "delim" and d.val in (r"\{", "[")
-                    and d.bot - d.top > 1.6 * size], key=lambda t: t[0].x0)  # left to right: nested systems
+                    and d.bot - d.top > 1.3 * size], key=lambda t: t[0].x0)  # left to right: nested systems
     for d, L in cands:
         if d not in L.items:
             continue
@@ -1109,7 +1110,7 @@ def systems(lines: list[Line], size: float) -> list[Line]:
             for R in rows:
                 ordered = sorted(R.items, key=lambda i: i.x0)
                 stop += [i.x0 for j, i in enumerate(ordered) if i.x0 > d.x1 and (
-                    (i.kind == "delim" and i.val in (r"\{", "[") and i.bot - i.top > 1.6 * size) or
+                    (i.kind == "delim" and i.val in (r"\{", "[") and i.bot - i.top > 1.3 * size) or
                     (i.kind == "box" and i.extra.get("system")) or
                     (i.kind == "text" and i.bold and i.val in OPT_LABELS and j + 1 < len(ordered)
                      and ordered[j + 1].val == "."))]

@@ -110,7 +110,10 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | 4 | DAI SO VA GT 12-dongke, next 900 | 900 | 372 | 213 | 7 891 | 21 710 |
 | 5 | DAI SO VA GT 12-dongke, 900 not yet examined | 900 | 570 | 140 | 8 461 | 22 280 |
 | 6 | DAI SO VA GT 12-dongke, rest | 258 | 141 | 30 | 8 602 | 22 421 |
+| 7 | TUYEN TAP 12-LG (doc_a047a9…), 1st 1000 | 1000 | 186 | 127 | 8 788 | 22 607 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
+Batch 7: this edition prints worked solutions, many with figures, so far fewer questions rebuild (325/1000);
+nested systems ({ containing [ …) are refused.
 Batch 3: 23 questions whose source worked solution names another answer than the key table were left unresolved
 (source conflict).
