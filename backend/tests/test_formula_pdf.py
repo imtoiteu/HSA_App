@@ -140,3 +140,12 @@ def test_denominator_ignores_scripts_of_another_row():
     assert res.content is None or {"t": "m", "tex": r"\dfrac{1}{2}"} in res.content["stem"][0]["c"]
     if res.content is not None:
         assert "2_3" not in json.dumps(res.content) and "2^3" not in json.dumps(res.content)
+
+
+def test_slash_over_relation_is_its_negation():
+    stem, x = word("Có", "VNR12", 90, 100)
+    stem += [g("x", "CMMI12", x + 5, 100), g("∈", "CMSY10", x + 12, 100, w=8, code=0x32),
+             g("/", "CMMI12", x + 14, 100, w=5), g("A", "CMMI12", x + 22, 100)]
+    res = F.layout_question(question(stem), 1, 1)
+    assert res.reason == ""
+    assert {"t": "m", "tex": r"x\notin A"} in res.content["stem"][0]["c"]

@@ -57,8 +57,11 @@ def tex_sha(t: str) -> str:
     return hashlib.sha256(t.encode("utf-8")).hexdigest()
 
 
-def candidates(db: Session, limit: int | None, documents: list[str] | None = None, retry: bool = False) -> list[int]:
+def candidates(db: Session, limit: int | None, documents: list[str] | None = None, retry: bool = False,
+               questions: list[int] | None = None) -> list[int]:
     sql = f"SELECT q.id FROM question q JOIN question_review r ON r.question_id = q.id WHERE {CANDIDATES}"
+    if questions:
+        sql += f" AND q.id IN ({','.join(str(int(x)) for x in questions)})"
     if not retry:  # handled before (refused with a reason, or rebuilt into a draft): only --retry looks again
         sql += (f" AND NOT EXISTS (SELECT 1 FROM review_event e WHERE e.question_id = q.id"
                 f" AND e.action IN ('remediation_skip', 'edit') AND e.note LIKE '[{BATCH}]%')")
@@ -220,13 +223,13 @@ def rebuild(db: Session, qids: list[int], store, log=print) -> dict[int, dict]:
 
 def run(db: Session, limit: int | None = None, apply: bool = False, media_root=None, export_tex: str | None = None,
         documents: list[str] | None = None, tex_results: list[str] | None = None, retry: bool = False,
-        log=print) -> dict:
+        questions: list[int] | None = None, log=print) -> dict:
     store = default_store()
     who = actor(db)
     stats = {"examined": 0, "rebuilt": 0, "drafts": 0, "promoted": 0, "unresolved": 0, "formula_fixed": 0,
              "structural_fixed": 0, "answer_fixed": 0, "visual_fixed": 0, "subject_fixed": 0, "source_conflicts": 0,
              "tex_unchecked": 0, "reasons": {}}
-    qids = candidates(db, limit, documents, retry)
+    qids = candidates(db, limit, documents, retry, questions)
     built = rebuild(db, qids, store, log=log)
     checked = {r.tex_sha: r.ok for r in db.execute(select(FormulaCheck.tex_sha, FormulaCheck.ok))}
     for path in tex_results or []:  # output of frontend/scripts/katex-check.mjs (same KaTeX as the web app)

@@ -549,9 +549,20 @@ def math_tex(items: list[Item], base: float | None = None, size: float | None = 
             while k < len(items) and items[k].kind == "text" and abs(items[k].base - base) <= 0.28 * size:
                 run.append(items[k])
                 k += 1
-            parts.append(r"\text{%s}" % text_of(run, mark=True).replace("\\", "").replace("{", "").replace("}", ""))
+            words = text_of(run, mark=True).replace("\\", "").replace("{", "").replace("}", "")
+            # spaces only towards neighbouring symbols ("4 hay b"), never inside a subscript of its own (x_{CĐ})
+            parts.append(r"\text{%s%s%s}" % (" " if parts else "", words, " " if k < len(items) else ""))
             continue
         tex = it.val
+        if it.val == "/" and it.kind == "math" and parts and k > 0 and items[k - 1].kind == "math" \
+                and it.x0 < items[k - 1].x1 - 0.25 * (items[k - 1].x1 - items[k - 1].x0):
+            # a slash drawn over the previous relation (\in\!\!/): its negation
+            if parts[-1] not in NEGATED:
+                raise Unresolved(f"slash over {parts[-1]}")
+            parts[-1] = NEGATED[parts[-1]]
+            emit(it)
+            k += 1
+            continue
         if it.kind not in ("math", "box", "op"):
             raise Unresolved(f"unexpected {it.kind} inside a formula")
         if _CTX["size"] and it.size < 0.85 * _CTX["size"] and not _CTX["script"]:
@@ -1133,22 +1144,25 @@ def systems(lines: list[Line], size: float) -> list[Line]:
                 continue
             # the line the system sits in (text before the brace): what follows the rows there is the rest
             # of the sentence; the system's width comes from its other rows
-            host = {id(R) for R, its in row_items if any(i.x1 <= d.x0 + 0.5 for i in R.items)}
+            # (text before the brace, or the row on the system's axis: TeX centres the system on the text line)
+            axis_y = (d.top + d.bot) / 2 + 0.25 * size
+            host = {id(R) for R, its in row_items if any(i.x1 <= d.x0 + 0.5 for i in R.items)
+                    or abs(R.base - axis_y) < 0.35 * size}
             others = [i for R, its in row_items if id(R) not in host for i in its if i.kind != "text"]
             if others:
                 mx = max(i.x1 for i in others)
+            text_rows = any(i.kind == "text" for R, its in row_items if id(R) not in host for i in its)
             for R, its in row_items:
                 if id(R) in host:
                     inside = []
                     for i in sorted(its, key=lambda i: i.x0):
-                        if i.kind == "text" and i.x0 >= mx - 0.3 * size:
-                            break  # the sentence continues after the system
+                        if i.kind == "text" and (i.x0 >= mx - 0.3 * size or not text_rows):
+                            break  # the sentence continues after the system (no other row holds words)
                         if inside and i.x0 >= mx - 0.3 * size and i.x0 - max(j.x1 for j in inside) >= 0.5 * size:
                             break  # set apart by a wide space: "(t ∈ ℝ)" written after the system
                         inside.append(i)
                 else:
-                    # text after the rows' formulas (punctuation, words) stays outside the system
-                    inside = [i for i in its if i.x0 <= mx + 0.3 * size and not (i.kind == "text" and i.x0 > mx - 0.5 * size)]
+                    inside = list(its)  # a row of its own: everything up to the next system/label belongs to it
                 if any(i.kind != "text" for i in inside):
                     body_rows.append(inside)
                 elif inside:
