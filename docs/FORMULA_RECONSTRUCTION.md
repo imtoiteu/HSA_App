@@ -112,9 +112,24 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | 6 | DAI SO VA GT 12-dongke, rest | 258 | 141 | 30 | 8 602 | 22 421 |
 | 7 | TUYEN TAP 12-LG (doc_a047a9…), 1st 1000 | 1000 | 186 | 127 | 8 788 | 22 607 |
 | 8 | TUYEN TAP 12-LG, rest | 712 | 166 | 129 | 8 954 | 22 773 |
+| 9 | HINH HOC 12-dongke, rest | 694 | 524 | 99 | 9 478 | 23 297 |
+| fix 1 | 49 promoted questions withdrawn and rebuilt (see below) | 49 | 47 | 2 | 9 477 | 23 296 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
 Batch 7: this edition prints worked solutions, many with figures, so far fewer questions rebuild (325/1000);
 nested systems ({ containing [ …) are refused.
 Batch 3: 23 questions whose source worked solution names another answer than the key table were left unresolved
 (source conflict).
+
+## Correction after batch 9 (regression of every promoted question)
+
+Every promoted question (3 163) was rebuilt again with the engine after the batch-9 fixes and compared with its
+served version.
+* 42 differed substantively (1.3%): 26 "∉" drawn as ∈ with an overlaid slash had become "\in/"; 4 notes such as
+  "(loại)" in a system row had been moved out of the formula; 2 sentence continuations had been absorbed into a
+  system row; the rest smaller.
+* 7 more had words glued to symbols inside a formula ("4hayb").
+
+All 49 were withdrawn (`review-decide` revert, reason recorded), rebuilt with the fixed engine and run through the
+same gates: 47 re-promoted; 2 wait in Review Studio (their subject could not be re-confirmed). No promoted
+question contains "\in/" any more. The old versions stay in the history.
