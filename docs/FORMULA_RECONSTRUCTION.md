@@ -117,8 +117,13 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | 10 | TUYEN TAP 12-NOLG (doc_bf5d…) | 593 | 52 | 341 | 9 529 | 23 348 |
 | fix 2 | 6 promoted questions withdrawn and rebuilt (see below) | 6 | 6 | 0 | 9 529 | 23 348 |
 | 11 | DAI SO VA GT 12-LG (doc_e8c0ed…) | 459 | 92 | 87 | 9 621 | 23 440 |
+| 12 | DAI SO VA GT 12-NOdongke (doc_339749…) | 408 | 58 | 190 | 9 679 | 23 498 |
+| fix 3 | 2 promoted questions withdrawn and rebuilt (see below) | 2 | 2 | 0 | 9 679 | 23 498 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
+Batch 12: 181 confirmed rebuilds wait in Review Studio because their key comes only from an answer-key table and
+no edition with worked solutions holds them (this book's only other edition, GIAI TICH 12-NOdongke, has none
+either).
 Batch 10: 327 of the 411 rebuilt questions wait in Review Studio because no second edition confirms them: the
 only other copy of this book is a byte-different file with the same layout, which is not an independent check.
 Batch 7: this edition prints worked solutions, many with figures, so far fewer questions rebuild (325/1000);
@@ -147,3 +152,12 @@ this error. Checking them found a second defect: a tall interval inside a row of
 ended the row early and the interval was lost (fixed in f49508a). With both fixes, all 6 rebuild correctly, and
 the held-out sample is unchanged. The 6 were withdrawn and rebuilt through the same gates, and all 6 were
 re-promoted.
+
+## Correction after batch 12
+
+The batch-12 spot check found `log₅ x` in one option printed right above `log_{1/5} a` in the option below: the
+subscript 5 was taken as the numerator of the small fraction (`log^{5/5¹}`). The second edition has the same
+two-column layout, so it misread identically and could not catch it. A fraction's numerator and denominator are
+now the rows next to its bar (test added; fixed in 42f6e31). The regression of all 3 363 promoted questions found
+one more with the same misread (`8 log²_{b/a} a` read as `8 log_{2/a^b} a`). Both were withdrawn, rebuilt and
+re-promoted. The held-out sample is unchanged.
