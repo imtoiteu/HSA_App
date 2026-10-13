@@ -119,6 +119,7 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | 11 | DAI SO VA GT 12-LG (doc_e8c0ed…) | 459 | 92 | 87 | 9 621 | 23 440 |
 | 12 | DAI SO VA GT 12-NOdongke (doc_339749…) | 408 | 58 | 190 | 9 679 | 23 498 |
 | fix 3 | 2 promoted questions withdrawn and rebuilt (see below) | 2 | 2 | 0 | 9 679 | 23 498 |
+| 13 | HINH HOC 12-LG (doc_55bdf0…) | 302 | 62 | 50 | 9 741 | 23 560 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
 Batch 12: 181 confirmed rebuilds wait in Review Studio because their key comes only from an answer-key table and
