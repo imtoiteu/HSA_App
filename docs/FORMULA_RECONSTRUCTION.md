@@ -121,8 +121,14 @@ engine improvement). The dry run prints one line per question (`OK` / `SKIP <rea
 | fix 3 | 2 promoted questions withdrawn and rebuilt (see below) | 2 | 2 | 0 | 9 679 | 23 498 |
 | 13 | HINH HOC 12-LG (doc_55bdf0…) | 302 | 62 | 50 | 9 741 | 23 560 |
 | 14 | HINH HOC 12-NOdongke (doc_8f61e6…) | 181 | 29 | 119 | 9 770 | 23 589 |
+| 15 | remaining candidates of all LaTeX books (GIAI TICH 12-NOdongke, …) | 17 | 3 | 9 | 9 773 | 23 592 |
+| retry | questions refused earlier and never rebuilt, re-examined with the current engine | 2 719 | 16 | 13 | 9 789 | 23 608 |
+| fix 4 | 3 promoted questions withdrawn and rebuilt (see below) | 3 | 3 | 0 | 9 789 | 23 608 |
 
 Spot checks: 10 random promoted questions per batch compared with the PDF page, all correct.
+Retry pass: 227 of the 2 719 earlier refusals now rebuild; 198 of them stay unresolved because the source's worked
+solution names another answer than the key table. Questions that already had a draft were not retried (a retry
+would only save the same draft again).
 Batch 12: 181 confirmed rebuilds wait in Review Studio because their key comes only from an answer-key table and
 no edition with worked solutions holds them (this book's only other edition, GIAI TICH 12-NOdongke, has none
 either).
@@ -163,3 +169,18 @@ two-column layout, so it misread identically and could not catch it. A fraction'
 now the rows next to its bar (test added; fixed in 42f6e31). The regression of all 3 363 promoted questions found
 one more with the same misread (`8 log²_{b/a} a` read as `8 log_{2/a^b} a`). Both were withdrawn, rebuilt and
 re-promoted. The held-out sample is unchanged.
+
+## Correction after the retry pass
+
+The retry pass's spot check (all 16 promotions) found two bracket systems shown on a line of their own *before*
+"⇔ (log₃x)⁴ = 16 ⇔ ⇔": the big brackets sat on a baseline of their own, and that line was chosen as the systems'
+home. A system now goes on a line holding real content (fixed in b3501c2). The regression of all 3 473 promoted
+questions found 3 with this error; all 3 were withdrawn, rebuilt and re-promoted. The held-out sample is unchanged.
+
+## Status after all LaTeX books
+
+Every candidate of the 11 LaTeX books has been examined. Of 7 975 candidates, 3 473 are promoted and served
+(Review READY 6 311 → 9 789, serving 20 131 → 23 608). The rest either wait in Review Studio as drafts,
+mostly for lack of a second edition or of an independent answer check, or remain unresolved with their
+reason: figures and tables, ambiguous layout, conflicting source answers. Word/MathType PDFs (about 11 000
+questions) need a different engine and have not been started.
