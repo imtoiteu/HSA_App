@@ -486,6 +486,10 @@ def split_funcs(w: str) -> list[str] | None:
     return out
 
 
+GREEK_RE = re.compile(r"\\(?:var)?(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|"
+                      r"sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega)")
+
+
 def math_tex(atoms: list[Atom], base: float | None = None, size: float | None = None) -> str:
     """TeX of atoms laid out on one baseline with their scripts (recursively)."""
     atoms = [a for a in atoms if a.kind != "sp"]
@@ -494,7 +498,8 @@ def math_tex(atoms: list[Atom], base: float | None = None, size: float | None = 
     atoms = sorted(atoms, key=lambda a: a.x0)
     if size is None:
         # letters, digits and boxes set the size (MathType draws parentheses and some operators larger)
-        core = [a.size for a in atoms if a.kind in ("v", "t", "n", "box")] or [a.size for a in atoms]
+        core = [a.size for a in atoms if a.kind in ("v", "t", "n", "box") or GREEK_RE.fullmatch(a.val)] or \
+            [a.size for a in atoms]
         size = max(core)
     if base is None:
         mains = [a for a in atoms if a.size >= 0.82 * size]
@@ -773,7 +778,8 @@ def build_bar(atoms: list[Atom], s: Stroke, S: float) -> list[Atom]:
         small = max(a.size for a in num + den) < 0.82 * S
         tex = (r"\frac{%s}{%s}" if small else r"\dfrac{%s}{%s}") % (math_tex(num), math_tex(den))
         s.used, s.role = True, "fraction"
-        size = max(a.size for a in num + den)
+        # parentheses inside a numerator are drawn larger: the fraction's size is that of its letters and digits
+        size = max((a.size for a in num + den if a.kind != "delim"), default=max(a.size for a in num + den))
         b = box(num + den, tex, base=s.y + 0.28 * size, x0=s.x0, x1=s.x1, size=size)
         return [a for a in atoms if a not in num and a not in den] + [b]
     return atoms

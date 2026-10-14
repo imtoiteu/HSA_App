@@ -267,3 +267,26 @@ def test_big_integral_sign_with_limits_stays_in_its_line():
     res = question(stem)
     assert res.reason == ""
     assert math_nodes(res) == [r"\int_0^6f=5"]
+
+
+def at(val, kind, x, base, size=S, w=None):
+    w = w if w is not None else 0.5 * size
+    return W.Atom(x, x + w, base - 0.75 * size, base + 0.25 * size, base, size, kind, val)
+
+
+def test_greek_letter_with_a_small_word_subscript():
+    # the denominator λ_max of hc/λ_max: λ (a math symbol, full size) with "max" in small upright letters below
+    den = [at(r"\lambda", "m", 100, 100, w=6.6)] + [at(c, "t", 107 + 3.2 * i, 103.1, size=7, w=3.2) for i, c in enumerate("max")]
+    assert W.math_tex(den) == r"\lambda_{\max}"
+
+
+def test_fraction_with_tall_parentheses_does_not_shrink_its_row():
+    # a system row x_G = (1+(−1)+0)/3 = 0 where MathType draws the numerator's parentheses at 16 pt
+    num = [at("1", "n", 120, 93), at("+", "m", 126, 93), at("(", "delim", 133, 92.5, size=16, w=4), at("-", "m", 137, 93),
+           at("1", "n", 143, 93), at(")", "delim", 149, 92.5, size=16, w=4)]
+    den = [at("3", "n", 133, 108)]
+    bar = W.Stroke("hline", 119, 154, 96.5, 96.5)
+    row = [at("x", "v", 100, 100), at("G", "v", 106, 103.1, size=7), at("=", "m", 111, 100)] + num + den + \
+        [at("=", "m", 158, 100), at("0", "n", 166, 100)]
+    row = W.build_bar(row, bar, S)
+    assert W.math_tex(row) == r"x_G=\dfrac{1+(-1)}{3}=0"
