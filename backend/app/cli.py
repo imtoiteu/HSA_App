@@ -182,6 +182,17 @@ def cmd_formula_word(a):
     print(json.dumps(r, ensure_ascii=False))
 
 
+def cmd_unsupported_objects(a):
+    """Resolve "đối tượng không hiển thị được" placeholders from the original Word documents (dry run unless --apply).
+    Needs read access to the bank's source-original (run it in the sources service container)."""
+    from .review.unsupported_objects import run
+    db = SessionLocal()
+    r = run(db, limit=a.limit, apply=a.apply, media_root=get_settings().media_root, documents=a.document or None,
+            retry=a.retry, questions=a.question or None, workdir=a.workdir,
+            log=(lambda *x: None) if a.quiet else print)
+    print(json.dumps(r, ensure_ascii=False))
+
+
 def cmd_worker(a):
     """Scheduler loop: source documents for the Review Studio (every few seconds), maintenance and the
     incremental review refresh (every HSA_MAINTENANCE_INTERVAL seconds) in niced subprocesses."""
@@ -334,6 +345,16 @@ def main(argv=None):
     s.add_argument("--apply", action="store_true", help="save drafts/approvals (default: dry run)")
     s.add_argument("--quiet", action="store_true")
     s.set_defaults(fn=cmd_formula_word)
+    s = sub.add_parser("unsupported-objects",
+                       help="replace unrenderable Word drawing placeholders using the original documents")
+    s.add_argument("--limit", type=int)
+    s.add_argument("--document", action="append", help="only questions of this source document (repeatable)")
+    s.add_argument("--question", type=int, action="append", help="only this question id (repeatable)")
+    s.add_argument("--retry", action="store_true", help="also re-examine questions this batch handled before")
+    s.add_argument("--workdir", help="scratch directory for extracted documents and renders")
+    s.add_argument("--apply", action="store_true", help="save drafts/approvals (default: dry run)")
+    s.add_argument("--quiet", action="store_true")
+    s.set_defaults(fn=cmd_unsupported_objects)
     s = sub.add_parser("worker", help="scheduler loop (source documents, maintenance, review refresh)")
     s.add_argument("--sources-only", action="store_true", help="only prepare source documents (sources service)")
     s.add_argument("--no-sources", action="store_true", help="everything except source documents")
