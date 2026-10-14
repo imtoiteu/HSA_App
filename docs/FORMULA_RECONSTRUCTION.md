@@ -271,6 +271,8 @@ especially the no-text rendering, take its place. Their precision is measured on
 | fix W5 | 11 promoted questions withdrawn and rebuilt (see below) | 11 | 11 | 0 | 10 177 | 23 996 |
 | W6 | next 20 documents of the pool | 488 | 55 | 89 | 10 232 | 24 051 |
 | fix W6 | 110 promoted questions withdrawn; 109 rebuilt and re-promoted, 1 back to Review Studio (see below) | 110 | 109 | 0 | 10 231 | 24 050 |
+| W7 | next 25 documents of the pool | 1 377 | 36 | 88 | 10 267 | 24 086 |
+| fix W7 | 4 promoted questions withdrawn and rebuilt (see below) | 4 | 4 | 0 | 10 267 | 24 086 |
 
 W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
 unsupported_objects batch running alongside it.
@@ -321,3 +323,10 @@ The fixes:
 Each fix is covered by a test. The regression of all 344 Word-promoted questions changed 110; most are faithful line
 splits. All 110 were withdrawn and rebuilt: 109 were re-promoted and now match the engine exactly. q17935 is now held
 by the ink check and waits in Review Studio.
+
+**Correction after W7.** The spot check found two faults where a formula's size was misjudged, turning main symbols into
+scripts: λ_max came out as a raised λ before "max" (Greek letters did not count when sizing a formula, so the 7 pt
+"max" set it), and a system row x_G = (1+(−1)+0)/3 = 0 was garbled (the fraction took its size from its 16 pt
+parentheses). Both fixes are covered by tests. The regression of all 379 Word-promoted questions changed 4, all
+corrections (also q64019, q28774). They were withdrawn, rebuilt and re-promoted. Four questions are refused only by
+the local ink check (11–14 px); the production check passes them, and the ones looked at match their source.
