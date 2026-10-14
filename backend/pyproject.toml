@@ -16,6 +16,7 @@ dependencies = [
   "segno==1.6.1",
   "python-multipart==0.0.19",
   "pdfminer.six==20260107",
+  "pypdf==5.4.0",
 ]
 
 [project.optional-dependencies]
