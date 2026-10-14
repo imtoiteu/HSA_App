@@ -304,3 +304,24 @@ Use it for an answer that is an expression or formula, such as `a√6/6`, instea
 
   A key form the parser does not understand is refused when saving and flagged by the validators.
 * **Migration 0007** only relabels `answer_kind`. Numeric, text, true/false and choice answers are unchanged.
+
+## Batch `unsupported_objects` ("đối tượng không hiển thị được")
+
+Each placeholder of a Word-sourced question is traced to its drawing in the original document
+(`app/review/unsupported_objects.py`, CLI `hsa-app unsupported-objects`, run in the sources container, which can
+read source-original). How the decisions are made:
+* The normalised document's runs are aligned with `word/document.xml` block by block.
+* A placeholder is matched to its drawing by the surrounding text, across paragraph boundaries and ignoring
+  list numbering and question labels.
+* Light pictures that the document repeats ≥3 times (publisher watermarks such as "Tuyensinh247.com") are
+  removed. A single arrow shape becomes its Unicode arrow.
+* Any other picture is inserted, and other drawings are rendered alone with LibreOffice. In both cases the
+  question stays a draft for a reviewer.
+* An ambiguous or unmatched placeholder is left in place, with the reason recorded.
+
+Run of 2026-10-14:
+* 839 questions had placeholders (none served).
+* 563 were rebuilt as drafts; 41 passed every gate and were promoted. The others wait in the Review Studio for
+  subject, answer or formula decisions.
+* 241 still hold a placeholder that could not be matched to exactly one drawing.
+* No served question shows the placeholder (it is a critical validator finding).
