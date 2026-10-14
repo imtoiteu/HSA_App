@@ -276,6 +276,8 @@ especially the no-text rendering, take its place. Their precision is measured on
 | W8 | next 35 documents of the pool | 2 094 | 38 | 81 | 10 305 | 24 124 |
 | W9 | last 53 documents of the prepared list | 1 814 | 31 | 43 | 10 336 | 24 155 |
 | fix W9 | 3 promoted questions withdrawn and rebuilt (see below) | 3 | 3 | 0 | 10 336 | 24 155 |
+| W10 | the 32 Word documents left off the prepared list | 606 | 61 | 123 | 10 397 | 24 216 |
+| fix W10 | 7 promoted questions withdrawn; 5 rebuilt and re-promoted, 2 back to Review Studio (see below) | 7 | 5 | 0 | 10 395 | 24 214 |
 
 W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
 unsupported_objects batch running alongside it.
@@ -346,3 +348,37 @@ corrections. They were withdrawn, rebuilt and re-promoted.
 The examined counts of W7–W9 are larger than the candidate counts of the prepared list. That list left out questions
 carrying the accidental "not LaTeX-typeset" skip events of the LaTeX phase, but the Word batch does examine them. 32
 Word documents were left off the list entirely for the same reason and are processed in W10.
+
+**Correction after W10.** The spot check found a solution line lost at the top of a continuation page (q66122). The
+yellow shading box behind a solution's first line sits at the same place on every page, so it was taken for a
+repeated header, and the page's body was cut below it.
+- A repeated drawing with a line of text inside it is no longer furniture.
+- A real text line above a continuation page's body now refuses the question instead of being dropped.
+- `%` (and `#`, `&`, `$`) are escaped in formulas: a bare `%` is a TeX comment. The web app already escapes it before
+  rendering, so students were not affected (49 served questions, mostly upstream, have a bare `%`).
+- A last guard refuses structures no real formula has: a fraction over a lone "=", a script that is a lone bracket or
+  starts with a relation, a script on a bare minus.
+
+The regression of all 509 Word-promoted questions:
+- changed 6: lost lines restored in q40632, q49134, q66122; `\%` in q12166, q20998;
+- refused 2: q70914, whose exponent −(t₁+100)/T had been torn into system rows, and q23841, with text above the body
+  and a split number "1 2π". Both were withdrawn to Review Studio.
+
+## Word/MathType phase: summary
+
+- 10 batches (W1–W10) over every Word/MathType PDF with a prepared source. 8 953 questions examined; 507 promoted and
+  served, all passing the same gates as the LaTeX phase. 451 rebuilt drafts wait in Review Studio, held only by the
+  subject or answer gates (subject unclassified or conflicting, answer evidence from one source).
+- A random spot check of 10 promoted questions per batch against the PDF page found an engine error in W3, W5, W6, W7,
+  W9 and W10. Each time the engine was fixed with a test, all Word-promoted questions were rebuilt and compared, and
+  every changed one was withdrawn and rebuilt (or sent back to Review Studio when the fixed engine refuses it).
+  After the last correction every served Word-promoted question equals the engine's current rebuild.
+- What is left of the eligible formula pool (8 460 questions, all with a prepared source):
+  - 4 391 are in LaTeX-typeset books (the LaTeX engine's refusals);
+  - the Word questions are refused on purpose: figures/tables/drawings the text layer does not explain (~1 600),
+    ambiguous structures (unbalanced delimiters, accents or scripts without a clear nucleus, unknown MT Extra /
+    Wingdings glyphs, ~1 300), questions of a shared passage (151), option layouts that are not A–D (147);
+  - 14 have never been run through the Word engine; they are in LaTeX-typeset books.
+
+  None of these is guessed. They stay unresolved for Review Studio.
+- Counts after the phase: review READY 10 395, runtime eligible = serving 24 214 (9 789 / 23 608 before it).
