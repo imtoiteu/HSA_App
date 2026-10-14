@@ -12,9 +12,10 @@ type Change = { position: number; response?: Response; flagged?: boolean; time_m
 type SaveState = "saved" | "saving" | "pending" | "offline" | "error";
 
 const pendingKey = (id: string) => `hsa:pending:${id}`;
-const isAnswered = (r: Response) =>
+const isAnswered = (r: Response): boolean =>
   !!r && ((r.labels && r.labels.length > 0) || (r.values && r.values.some((v) => v !== null)) ||
-    (typeof r.value === "string" ? r.value.trim() !== "" : r.value != null) || (r.text != null && r.text.trim() !== ""));
+    (typeof r.value === "string" ? r.value.trim() !== "" : r.value != null) || (r.text != null && r.text.trim() !== "") ||
+    (!!r.parts && Object.values(r.parts).some((p) => isAnswered(p))));
 
 function loadPending(id: string): Record<number, Change> {
   try {
@@ -337,6 +338,7 @@ export default function Runner() {
           <RichContent blocks={item.question.stem} />
           <AnswerInput input={item.question.input} options={item.question.options} response={item.response}
                        disabled={locked} onChange={(r) => change({ position: item.position, response: r })}
+                       parts={item.question.parts} partResults={revealed ? item.part_results : undefined}
                        reveal={revealed ? { answer: item.answer, response: item.response } : undefined} />
 
           {data.feedback === "immediate" && !item.checked && (

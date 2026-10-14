@@ -20,6 +20,7 @@ from .media import MediaStore, audit_image
 
 VALID_TYPES = {"single_choice", "multiple_choice", "true_false", "true_false_statements", "numeric_response",
                "short_response", "error_identification", "constructed_response", "open_or_unknown"}
+# multi_part questions are authored in the Review Studio (their items are not part of the JSONL format yet)
 
 
 class ImportError_(Exception):

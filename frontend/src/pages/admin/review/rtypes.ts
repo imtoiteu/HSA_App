@@ -24,6 +24,7 @@ export interface QueueItem {
 export interface ContentDoc {
   type: string; language?: string; input: InputSpec; group: { key: string; header: Block[]; passage: Block[] } | null;
   stem: Block[]; options: { label: string; content: Block[] }[]; solution: Block[] | null; explanation: Block[] | null;
+  parts?: import("./PartsEditor").PartEdit[];
 }
 
 export interface VersionInfo {

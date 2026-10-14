@@ -564,3 +564,19 @@ kbd { border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 
 .studio .tabs button { padding: 8px 10px; font-size: .9rem; }
 .studio-foot .field { flex: 1 1 100%; margin: 0; }
 @media (min-width: 1500px) { .studio-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); } }
+
+/* multi-part questions ("Nhiều ý / Câu ghép") */
+.parts { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 12px; }
+.part { border: 1px solid var(--line, #d7dbe0); border-radius: 10px; padding: 10px 12px; }
+.part.part-correct { border-color: var(--ok); }
+.part.part-incorrect { border-color: var(--bad); }
+.part-head { display: flex; gap: 8px; align-items: baseline; }
+.part-label { font-weight: 700; min-width: 1.6em; }
+.part-prompt { flex: 1; }
+.part-result { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.part-solution { flex-basis: 100%; }
+.formula-preview { margin-top: 6px; }
+.ed-parts { display: grid; gap: 12px; }
+.ed-part { border: 1px dashed var(--line, #d7dbe0); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.ed-part-options { display: grid; gap: 6px; }
+.grow { flex: 1; }

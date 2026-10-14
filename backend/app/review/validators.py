@@ -49,6 +49,7 @@ LABELS = {
     "exact_duplicate": "Trùng hoàn toàn với câu khác",
     "near_duplicate": "Gần trùng với câu khác",
     "upstream_changed": "Nguồn (HSA-question-bank) đã thay đổi sau khi biên tập",
+    "parts_malformed": "Câu nhiều ý chưa đầy đủ (ý thiếu nội dung, dạng trả lời hoặc phương án)",
 }
 CRITICAL_CODES = {k for k in LABELS if k not in {
     "duplicate_option", "raw_latex_in_text", "ocr_garbage", "group_key_mismatch", "subject_missing",
@@ -180,12 +181,23 @@ def validate(q, content: dict, answer: dict | None, media_root: Path | None, fai
         elif kind == "text":
             if not (answer.get("text") or "").strip():
                 add("answer_malformed", "answer", "đáp án chữ trống")
+        elif kind == "parts":
+            from ..content import parts as P
+            miss = P.missing_answers(content, answer)
+            if miss:
+                add("answer_missing", "answer", "ý " + ", ".join(miss))
         elif kind != "boolean":
             add("answer_malformed", "answer", f"dạng {kind}")
+    if qtype == "multi_part":
+        from ..content import parts as P
+        for prob in P.problems(content, answer):
+            if "chưa có đáp án" not in prob:
+                add("parts_malformed", "content", prob)
 
     # --- images
+    from ..content import parts as _P
     for n in walk([stem, [o.get("content") for o in options], content.get("group"), content.get("solution"),
-                   content.get("explanation")]):
+                   content.get("explanation")] + _P.part_blocks(content)):
         if n.get("t") != "img":
             continue
         src = n.get("src") or ""
@@ -195,7 +207,8 @@ def validate(q, content: dict, answer: dict | None, media_root: Path | None, fai
             add("missing_asset", "visual", src)
 
     # --- placeholders / raster fragments the student would see
-    shown = [stem, [o.get("content") for o in options], content.get("group")]
+    shown = [stem, [o.get("content") for o in options], content.get("group")] + \
+        [[p.get("prompt"), [o.get("content") for o in p.get("options") or []]] for p in _P.parts_of(content)]
     warn_n = sum(1 for n in walk(shown) if n.get("t") == "warn" or n.get("review"))
     if warn_n:
         dim = "formula" if any(n.get("review") and n.get("t") in ("img", "m") for n in walk(shown)) else "visual"

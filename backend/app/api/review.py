@@ -367,9 +367,15 @@ def preview_payload(v: QuestionVersion | None) -> dict | None:
     c = v.content
     opts = [{"key": o["label"], "display": DISPLAY[i] if i < len(DISPLAY) else o["label"], "content": o["content"]}
             for i, o in enumerate(c.get("options") or [])]
-    return {"type": c["type"], "language": c.get("language"), "input": c["input"], "group": c.get("group"),
-            "stem": c["stem"], "options": opts, "answer": v.answer, "solution": c.get("solution"),
-            "explanation": c.get("explanation")}
+    out = {"type": c["type"], "language": c.get("language"), "input": c["input"], "group": c.get("group"),
+           "stem": c["stem"], "options": opts, "answer": v.answer, "solution": c.get("solution"),
+           "explanation": c.get("explanation")}
+    from ..content import parts as P
+    if P.is_multi(c):
+        from ..exam.service import part_results
+        out["parts"] = P.public_parts(c)
+        out["part_results"] = part_results(c, v.answer, None, {})
+    return out
 
 
 def _version(v: QuestionVersion | None, users: dict) -> dict | None:
@@ -461,6 +467,7 @@ class EditIn(BaseModel):
     solution: list | None = None
     explanation: list | None = None
     group: dict | None = None
+    parts: list | None = None   # items of a multi-part question ("Nhiều ý / Câu ghép")
     detach_group: bool = False
     apply_group: bool = False  # also update the shared passage of the other questions of the group
     note: str | None = Field(default=None, max_length=2000)

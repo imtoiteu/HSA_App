@@ -2,7 +2,7 @@
 // history/compare/restore, validator findings, on-demand AI; Save / Save & Next / Approve & Next with shortcuts.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { AnswerInput, Passage, Solution } from "../../../components/QuestionBody";
+import { AnswerInput, Passage, Solution, partsFromContent } from "../../../components/QuestionBody";
 import { RichContent } from "../../../components/RichContent";
 import { ErrorBox, Modal, Spinner, useToast } from "../../../components/ui";
 import { ApiError, get, post, put, qs } from "../../../lib/api";
@@ -11,6 +11,7 @@ import type { Answer, Block } from "../../../lib/types";
 import { StateBadge, copyText, errMsg } from "../common";
 import BlockEditor, { type EditorHandle } from "./BlockEditor";
 import { collectTex } from "./blockdom";
+import PartsEditor, { type PartEdit } from "./PartsEditor";
 import SourceViewer from "./SourceViewer";
 import { texChecks } from "./tex";
 import { DIM_ICON, DIM_KEYS, DIM_TONE, STATUS_LABEL, type ContentDoc, type Detail, type DimState, type Meta, type SourceInfo } from "./rtypes";
@@ -18,7 +19,7 @@ import { useMeta } from "./useMeta";
 
 type Edit = {
   type: string; stem: Block[]; options: { label: string; content: Block[] }[]; answer: Answer | null;
-  solution: Block[]; explanation: Block[]; group: ContentDoc["group"]; applyGroup: boolean;
+  solution: Block[]; explanation: Block[]; group: ContentDoc["group"]; applyGroup: boolean; parts: PartEdit[];
 };
 const FILTER_KEYS = ["queue", "subject", "document", "page_from", "page_to", "ready", "answer", "formula", "visual", "findings",
   "assignee", "status", "modified_from", "modified_to", "q", "qtype", "served", "assignment", "sort"];
@@ -27,7 +28,8 @@ const LETTERS = "ABCDEFGH";
 function fromDetail(d: Detail): Edit {
   const c = d.working.content;
   return { type: c.type, stem: c.stem || [], options: (c.options || []).map((o) => ({ ...o })), answer: d.working.answer,
-           solution: c.solution || [], explanation: c.explanation || [], group: c.group ? { ...c.group } : null, applyGroup: true };
+           solution: c.solution || [], explanation: c.explanation || [], group: c.group ? { ...c.group } : null, applyGroup: true,
+           parts: (c.parts || []).map((p) => ({ ...p })) };
 }
 
 function isTyping(t: EventTarget | null) {
@@ -89,6 +91,7 @@ export default function ReviewStudio() {
     if (JSON.stringify(edit.options) !== JSON.stringify(base.options)) out.options = edit.options;
     if (JSON.stringify(edit.solution) !== JSON.stringify(base.solution)) out.solution = edit.solution;
     if (JSON.stringify(edit.explanation) !== JSON.stringify(base.explanation)) out.explanation = edit.explanation;
+    if (edit.type === "multi_part" && (JSON.stringify(edit.parts) !== JSON.stringify(base.parts) || edit.type !== base.type)) out.parts = edit.parts;
     if (JSON.stringify(edit.answer) !== JSON.stringify(base.answer)) { if (edit.answer) out.answer = edit.answer; else out.clear_answer = true; }
     if (JSON.stringify(edit.group) !== JSON.stringify(base.group)) {
       if (edit.group) { out.group = edit.group; out.apply_group = edit.applyGroup; } else out.detach_group = true;
@@ -112,6 +115,12 @@ export default function ReviewStudio() {
         .map((x) => (Array.isArray(x) ? x : [x])));
       // options are {label, content}: walk their content too
       ((changed.options as Edit["options"]) || []).forEach((o) => collectTex(o.content, texs));
+      // items of a multi-part question: prompts, options, solutions and formula keys
+      ((changed.parts as PartEdit[]) || []).forEach((p) => {
+        collectTex(p.prompt, texs);
+        collectTex(p.solution || [], texs);
+        (p.options || []).forEach((o) => collectTex(o.content, texs));
+      });
       const r = await put<{ changed: boolean; changes?: string[]; group_updated?: number }>(`/api/review/questions/${qid}`,
         { ...changed, note: note.trim() || undefined, source_ref: sourceRef || undefined, tex_checks: texChecks(texs) });
       toast(r.changed ? `Đã lưu bản nháp (${(r.changes || []).join(", ")})${r.group_updated ? ` · cập nhật ${r.group_updated} câu cùng nhóm` : ""}` : "Không có thay đổi.", "ok");
@@ -398,6 +407,10 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef, onSubject }: {
                      onFocusEditor={() => { focused.current = stemRef.current; }} onChange={(b) => up({ stem: b })} placeholder="Nhập đề bài…" />
       </div>
 
+      {edit.type === "multi_part" ? (
+        <PartsEditor parts={edit.parts} answer={edit.answer} canEdit={canEdit}
+                     onChange={(parts, answer) => up({ parts, answer })} />
+      ) : <>
       <div className="field">
         <div className="row between"><span className="label">Phương án</span>
           {canEdit && edit.options.length < 8 && <button className="btn ghost sm" onClick={() => up({ options: [...edit.options, { label: LETTERS[edit.options.length], content: [] }] })}>+ Thêm phương án</button>}
@@ -415,6 +428,7 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef, onSubject }: {
       </div>
 
       <AnswerEditor edit={edit} up={up} canEdit={canEdit} choice={choice} />
+      </>}
 
       <div className="field">
         <span className="label">Lời giải</span>
@@ -506,9 +520,12 @@ function StudentPreview({ d, edit, dirty }: { d: Detail; edit: Edit; dirty: bool
     if (which === "published" && d.published_preview) return d.published_preview;
     const base = d.preview;
     if (!dirty) return base;
+    const mp = partsFromContent({ type: edit.type, parts: edit.parts }, edit.answer);
     return { ...base, type: edit.type, stem: edit.stem, group: edit.group, solution: edit.solution.length ? edit.solution : null,
              explanation: edit.explanation.length ? edit.explanation : null, answer: edit.answer,
-             options: edit.options.map((o, i) => ({ key: o.label, display: LETTERS[i], content: o.content })) };
+             options: edit.options.map((o, i) => ({ key: o.label, display: LETTERS[i], content: o.content })),
+             input: edit.type === "multi_part" ? { kind: "parts" as const, parts: mp.parts.map((p) => ({ key: p.key, ...p.input })) } : base.input,
+             parts: mp.parts, part_results: mp.results };
   }, [d, edit, dirty, which]);
   return (
     <div>
@@ -528,6 +545,7 @@ function StudentPreview({ d, edit, dirty }: { d: Detail; edit: Edit; dirty: bool
         <div className="q-head"><span className="q-num">Câu 1</span></div>
         <RichContent blocks={q.stem} />
         <AnswerInput input={q.input} options={q.options} response={null} disabled onChange={() => {}}
+                     parts={q.parts} partResults={reveal ? q.part_results : undefined} graded={false} idPrefix="pv"
                      reveal={reveal ? { answer: q.answer, response: null } : undefined} />
         {reveal && <Solution q={q} answer={q.answer} />}
       </article>

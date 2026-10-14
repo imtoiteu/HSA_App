@@ -14,7 +14,8 @@ const SOURCES: [string, string, string][] = [
   ["wrong", "Câu từng làm sai", "Ôn lại những câu bạn đã trả lời sai"],
   ["bookmarks", "Câu đã lưu", "Luyện lại các câu bạn đã lưu"],
 ];
-const TYPES = ["single_choice", "numeric_response", "short_response", "true_false_statements", "error_identification"];
+const TYPES = ["single_choice", "numeric_response", "short_response", "true_false_statements", "error_identification",
+  "multi_part"];
 
 export default function Practice() {
   const { data: cat, error, loading } = useAsync(() => get<Catalog>("/api/catalog"), []);

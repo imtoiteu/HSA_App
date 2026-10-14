@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 QTYPES = ["single_choice", "multiple_choice", "true_false", "true_false_statements", "numeric_response",
-          "short_response", "error_identification", "constructed_response", "open_or_unknown"]
+          "short_response", "error_identification", "constructed_response", "open_or_unknown", "multi_part"]
 
 
 class _M(BaseModel):

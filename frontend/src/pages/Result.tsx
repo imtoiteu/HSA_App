@@ -150,6 +150,7 @@ export default function Result() {
                 </div>
                 <RichContent blocks={it.question.stem} />
                 <AnswerInput input={it.question.input} options={it.question.options} response={it.response} disabled onChange={() => {}}
+                             parts={it.question.parts} partResults={it.part_results} idPrefix={`r${it.position}`}
                              reveal={{ answer: it.answer, response: it.response }} />
                 <Solution q={it} answer={it.answer} answerDisplay={it.answer_display} />
               </div>

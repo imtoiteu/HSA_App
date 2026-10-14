@@ -5,6 +5,7 @@ maximum score.
 """
 from dataclasses import dataclass
 
+from ..content import parts as P
 from ..content.answers import norm_text, parse_number
 
 THPT2025_TF = {0: 0.0, 1: 0.1, 2: 0.25, 3: 0.5, 4: 1.0}
@@ -20,6 +21,8 @@ class ItemScore:
 def is_blank(resp: dict | None) -> bool:
     if not resp:
         return True
+    if "parts" in resp:
+        return P.all_blank(resp)
     if "labels" in resp:
         return not resp["labels"]
     if "values" in resp:
@@ -31,12 +34,18 @@ def is_blank(resp: dict | None) -> bool:
     return True
 
 
-def score_item(answer: dict | None, scoring_mode: str, resp: dict | None, points: float, cfg: dict) -> ItemScore:
+def score_item(answer: dict | None, scoring_mode: str, resp: dict | None, points: float, cfg: dict,
+               content: dict | None = None) -> ItemScore:
     if scoring_mode != "auto" or not answer:
         return ItemScore("unanswered" if is_blank(resp) else "ungraded", 0.0, 0.0)
     if is_blank(resp):
         return ItemScore("unanswered", cfg.get("unanswered", 0.0) * points, points)
-    frac = fraction_correct(answer, resp, cfg)
+    if answer["kind"] == "parts":
+        # a multi-part question: the points-weighted share of its items (each scored by its own kind)
+        frac = P.fraction(content or {"type": P.QTYPE, "parts": [{"key": k} for k in answer["parts"]]},
+                          answer, resp, cfg, fraction_correct)
+    else:
+        frac = fraction_correct(answer, resp, cfg)
     if frac >= 1.0:
         return ItemScore("correct", cfg.get("correct", 1.0) * points, points)
     if frac > 0:
@@ -92,7 +101,7 @@ def score_session(items: list[dict], cfg: dict, sections: list[dict]) -> dict:
              "counts": {k: 0 for k in counts}} for s in sections]
     score = max_score = 0.0
     for it in items:
-        r = score_item(it["answer"], it["scoring_mode"], it["response"], it["points"], cfg)
+        r = score_item(it["answer"], it["scoring_mode"], it["response"], it["points"], cfg, it.get("content"))
         per_item[it["position"]] = r
         counts[r.outcome] += 1
         score += r.points

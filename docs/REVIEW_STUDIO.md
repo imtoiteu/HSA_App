@@ -249,3 +249,33 @@ these variables, the actions report "not configured" and everything else works.
   ```
   docker compose exec scheduler nice -n 10 hsa-app review-refresh [--all]
   ```
+
+## Multi-part questions ("Nhiều ý / Câu ghép")
+
+Question type `multi_part`: one shared stem and several child items. Use it for a source question whose a), b),
+c)… items each have their own answer, instead of faking the items as options.
+
+* **Editor.** Choose the type "Nhiều ý / Câu ghép". The shared stem stays in "Đề bài". "+ Thêm ý" adds an item.
+  Each item has:
+  * a label (a, b, c, …) and its own prompt;
+  * an answer type: Chọn phương án (with its own options, optionally several correct), Số, Chữ, Công thức
+    (LaTeX), Đúng/Sai;
+  * its own key, its own worked solution, and its points (weight).
+
+  Items can be reordered or removed. The parent has no single answer and no options. An optional overall solution
+  can stay in "Lời giải".
+* **Storage.** `content.parts[]` holds `{key, label, prompt, answer_type, multi, options, solution, points}`. The
+  answer is `{"kind": "parts", "parts": {key: <answer of the item's kind>}}`, and a formula key is `{"kind":
+  "formula", "tex", "accepted"}`. The input spec is `{"kind": "parts", "parts": [...]}`. No column changed;
+  migration 0006 only adds the type to a stored serving policy.
+* **Checks.** An item without a prompt, answer type or options, or without a key, is a critical finding
+  (`parts_malformed` / `answer_missing`), so the question cannot be approved until every item is complete. The
+  content hashes of existing questions are unchanged.
+* **Students.** The shared stem is shown once, then every item with its own input. After checking or submitting,
+  each item shows its outcome, points, key and solution. Scoring:
+  * each item uses the rules of its kind; formula answers are compared up to spacing and equivalent spellings
+    (`\dfrac`/`\frac`, `\left`/`\right`);
+  * the question earns the points-weighted share of its items: correct, partial or incorrect. It is still one
+    source question with one entry in history, bookmarks and reports.
+* **Import.** Multi-part questions are authored in the Review Studio; the JSONL import format does not carry
+  items yet.

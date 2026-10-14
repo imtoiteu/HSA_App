@@ -101,3 +101,39 @@ describe("normalizeTex", () => {
     expect(normalizeTex("\\frac{1}{2}")).toBe("\\frac{1}{2}");
   });
 });
+
+describe("multi-part questions", () => {
+  const p = (v: string): Block[] => [{ t: "p", c: [{ t: "s", v }] }];
+  const parts = [
+    { key: "p1", label: "a", prompt: p("Tung độ giao điểm"), input: { kind: "numeric" as const }, points: 1 },
+    { key: "p2", label: "b", prompt: p("Khoảng đồng biến"), input: { kind: "choice" as const, multi: false }, points: 2,
+      options: [{ key: "A", display: "A", content: p("(2;+∞)") }, { key: "B", display: "B", content: p("(−∞;2)") }] },
+  ];
+
+  it("renders every item with its own input and keeps the answers per item", () => {
+    const seen: unknown[] = [];
+    const { container, getByText } = render(
+      <AnswerInput input={{ kind: "parts", parts: [{ key: "p1", kind: "numeric" }, { key: "p2", kind: "choice", multi: false }] }}
+                   options={[]} response={{ parts: { p1: { value: "3" } } }} parts={parts} onChange={(r) => seen.push(r)} />,
+    );
+    expect(container.querySelectorAll("li.part").length).toBe(2);
+    expect(container.textContent).toContain("Tung độ giao điểm");
+    fireEvent.click(getByText("(2;+∞)"));
+    expect(seen[seen.length - 1]).toEqual({ parts: { p1: { value: "3" }, p2: { labels: ["A"] } } });
+  });
+
+  it("shows each item's outcome, key and solution once graded", () => {
+    const { container } = render(
+      <AnswerInput input={{ kind: "parts", parts: [] }} options={[]} response={null} parts={parts} disabled onChange={() => {}}
+                   partResults={[
+                     { key: "p1", label: "a", outcome: "correct", fraction: 1, points: 1, awarded: 1, answer: { kind: "numeric", value: 3, text: "3" }, solution: p("y(0)=3") },
+                     { key: "p2", label: "b", outcome: "incorrect", fraction: 0, points: 2, awarded: 0, answer: { kind: "choice", labels: ["A"] }, solution: null },
+                   ]} />,
+    );
+    expect(container.querySelector("li.part-correct")).not.toBeNull();
+    expect(container.querySelector("li.part-incorrect")).not.toBeNull();
+    expect(container.textContent).toContain("y(0)=3");
+    expect(container.textContent).toContain("0/2 điểm");
+    expect(answerText({ kind: "parts", parts: {} })).toBe("Chưa có đáp án");
+  });
+});

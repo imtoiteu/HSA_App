@@ -5,7 +5,7 @@ import { dateTime, REPORT_LABELS, TYPE_LABELS } from "../../lib/format";
 import type { Answer, Block, Group, InputSpec, OptionView } from "../../lib/types";
 import { ErrorBox, Modal, Spinner, useAsync, useToast } from "../../components/ui";
 import { RichContent } from "../../components/RichContent";
-import { AnswerInput, Passage, Solution } from "../../components/QuestionBody";
+import { AnswerInput, Passage, Solution, partsFromContent } from "../../components/QuestionBody";
 import { errMsg, Json, PageHead, ServedBadge, StateBadge } from "./common";
 
 interface Content {
@@ -34,12 +34,14 @@ interface Detail {
 }
 
 export function QuestionPreview({ content, answer }: { content: Content; answer: Answer | null }) {
-  const opts: OptionView[] = content.options.map((o) => ({ key: o.label, display: o.label, content: o.content }));
+  const opts: OptionView[] = (content.options || []).map((o) => ({ key: o.label, display: o.label, content: o.content }));
+  const mp = partsFromContent(content, answer);
   return (
     <div>
       {content.group && <Passage group={content.group} lang={content.language} />}
       <RichContent blocks={content.stem} />
-      <AnswerInput input={content.input} options={opts} response={null} onChange={() => {}} disabled reveal={{ answer, response: null }} />
+      <AnswerInput input={content.input} options={opts} response={null} onChange={() => {}} disabled reveal={{ answer, response: null }}
+                   parts={mp.parts} partResults={mp.results} graded={false} />
       <Solution q={content} answer={answer} />
     </div>
   );

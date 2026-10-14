@@ -124,12 +124,18 @@ def _require_open(s: ExamSession):
 # ------------------------------------------------------------------------------------------------
 # answers
 # ------------------------------------------------------------------------------------------------
-def validate_response(inp: dict, resp, option_labels: list[str]):
+def validate_response(inp: dict, resp, option_labels: list[str], content: dict | None = None):
     if resp is None:
         return None
     if not isinstance(resp, dict):
         raise SessionError("Định dạng câu trả lời không hợp lệ.")
     k = inp.get("kind")
+    if k == "parts":
+        from ..content import parts as P
+        try:
+            return P.validate_response(inp, resp, content or {}, validate_response)
+        except ValueError:
+            raise SessionError("Định dạng câu trả lời không hợp lệ.") from None
     if k == "choice":
         labels = resp.get("labels")
         if not isinstance(labels, list) or not all(isinstance(x, str) for x in labels):
@@ -200,7 +206,7 @@ def save_answers(db: Session, s: ExamSession, changes: list[dict], now=None) -> 
         if "response" in ch:
             _editable(s, it, now)
             c = it.version.content
-            it.answer = validate_response(c["input"], ch["response"], [o["label"] for o in c.get("options") or []])
+            it.answer = validate_response(c["input"], ch["response"], [o["label"] for o in c.get("options") or []], c)
             it.answered_at = now
         saved[it.position] = "ok"
     db.commit()
@@ -215,7 +221,7 @@ def check_item(db: Session, s: ExamSession, position: int, now=None) -> ExamItem
         raise SessionError("Chế độ này chỉ hiện đáp án khi nộp bài.", 409, "no_immediate")
     it = _item(s, position)
     if not it.checked:
-        r = score_item(it.version.answer, it.scoring_mode, it.answer, it.points, s.scoring_config)
+        r = score_item(it.version.answer, it.scoring_mode, it.answer, it.points, s.scoring_config, it.version.content)
         it.checked, it.outcome = True, r.outcome
     db.commit()
     return it
@@ -245,7 +251,8 @@ def submit(db: Session, s: ExamSession, reason: str = "user", now=None) -> ExamS
     _require_open(s)
     cfg = cfg_of(s)
     rows = [{"position": it.position, "section_index": it.section_index, "answer": it.version.answer,
-             "scoring_mode": it.scoring_mode, "response": it.answer, "points": it.points} for it in s.items]
+             "scoring_mode": it.scoring_mode, "response": it.answer, "points": it.points,
+             "content": it.version.content} for it in s.items]
     res = score_session(rows, s.scoring_config, [{"key": x.key, "title": x.title} for x in cfg.sections])
     for it in s.items:  # items first: the freeze trigger fires once the session is 'submitted'
         r = res["items"][it.position]
@@ -286,6 +293,9 @@ def item_payload(s: ExamSession, it: ExamItem, reveal: bool) -> dict:
     c = it.version.content
     q = {"type": c["type"], "language": c.get("language"), "input": c["input"], "group": c.get("group"),
          "stem": c["stem"], "options": _options_for(c, it.option_order)}
+    from ..content import parts as P
+    if P.is_multi(c):
+        q["parts"] = P.public_parts(c)
     out = {"position": it.position, "section_index": it.section_index, "question": q, "response": it.answer,
            "flagged": it.flagged, "checked": it.checked, "scoring_mode": it.scoring_mode,
            "self_assessment": it.self_assessment, "question_ref": it.question_id, "points": it.points}
@@ -298,6 +308,20 @@ def item_payload(s: ExamSession, it: ExamItem, reveal: bool) -> dict:
         out["explanation"] = c.get("explanation")
         out["outcome"] = it.outcome
         out["points_awarded"] = it.points_awarded
+        if P.is_multi(c):
+            out["part_results"] = part_results(c, a, it.answer, s.scoring_config)
+    return out
+
+
+def part_results(content: dict, answer: dict | None, resp: dict | None, cfg: dict) -> list[dict]:
+    """Per item of a multi-part question, once revealed: its outcome, points, key and worked solution."""
+    from ..content import parts as P
+    from .scoring import fraction_correct
+    keys = ((answer or {}).get("parts") or {})
+    sol = {p["key"]: p.get("solution") for p in P.parts_of(content)}
+    out = []
+    for r in P.results(content, answer, resp, cfg, fraction_correct):
+        out.append({**r, "answer": keys.get(r["key"]), "solution": sol.get(r["key"])})
     return out
 
 

@@ -22,6 +22,8 @@ export type InputSpec =
   | { kind: "text" }
   | { kind: "tf_sequence"; n: number }
   | { kind: "boolean" }
+  | { kind: "formula" }
+  | { kind: "parts"; parts: ({ key: string } & InputSpec)[] }
   | { kind: "none" };
 
 export type Answer =
@@ -29,9 +31,23 @@ export type Answer =
   | { kind: "numeric"; value: number; text: string; unit?: string | null }
   | { kind: "text"; text: string; accepted?: string[] }
   | { kind: "tf_sequence"; values: boolean[] }
-  | { kind: "boolean"; value: boolean };
+  | { kind: "boolean"; value: boolean }
+  | { kind: "formula"; tex: string; accepted?: string[] }
+  | { kind: "parts"; parts: Record<string, Answer> };
 
-export type Response = { labels?: string[]; value?: string | boolean | null; text?: string; values?: (boolean | null)[] } | null;
+export type Response = {
+  labels?: string[]; value?: string | boolean | null; text?: string; values?: (boolean | null)[];
+  parts?: Record<string, Response>;
+} | null;
+
+// multi-part question ("Nhiều ý / Câu ghép"): one shared stem, items with their own input, key and solution
+export interface PartView {
+  key: string; label: string | null; prompt: Block[]; input: InputSpec; points: number; options?: OptionView[];
+}
+export interface PartResult {
+  key: string; label: string | null; outcome: "correct" | "incorrect" | "partial" | "unanswered" | "ungraded";
+  fraction: number; points: number; awarded: number; answer?: Answer | null; solution?: Block[] | null;
+}
 
 export interface Group { key: string; header: Block[]; passage: Block[] }
 export interface OptionView { key: string; display: string; content: Block[] }
@@ -46,6 +62,8 @@ export interface QuestionView {
   answer_display?: string[];
   solution?: Block[] | null;
   explanation?: Block[] | null;
+  parts?: PartView[];
+  part_results?: PartResult[];
 }
 
 export interface SessionItem {
@@ -66,6 +84,7 @@ export interface SessionItem {
   explanation?: Block[] | null;
   outcome?: "correct" | "incorrect" | "partial" | "unanswered" | "ungraded" | null;
   points_awarded?: number | null;
+  part_results?: PartResult[];
 }
 
 export interface SectionInfo {

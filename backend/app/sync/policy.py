@@ -36,7 +36,8 @@ NON_BLOCKING_REASONS = {"solution_formula_render_error"}
 DEFAULT_POLICY = {
     "allowed_states": ["READY_TO_SERVE"],
     "allowed_types": ["single_choice", "multiple_choice", "true_false", "true_false_statements",
-                      "numeric_response", "short_response", "error_identification", "constructed_response"],
+                      "numeric_response", "short_response", "error_identification", "constructed_response",
+                      "multi_part"],
     "blocking_reasons": sorted(set(APP_REASONS) - {"solution_formula_render_error"}),
     "practice_allow_self_check": True,     # practice may include items the student checks against the key
     "text_answers_auto_scored": False,     # free-text keys are compared by the student, not auto-scored

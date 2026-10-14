@@ -38,6 +38,8 @@ export default function Bookmarks() {
                     {open === b.question_ref && (
                       <>
                         <AnswerInput input={b.question.input} options={b.question.options} response={null} disabled onChange={() => {}}
+                                     parts={b.question.parts} partResults={b.revealed ? b.question.part_results : undefined} graded={false}
+                                     idPrefix={`b${b.question_ref}`}
                                      reveal={b.revealed ? { answer: b.question.answer } : undefined} />
                         {b.revealed ? <Solution q={b.question} answer={b.question.answer} answerDisplay={b.question.answer_display} />
                           : <div className="alert info mt">Đáp án sẽ hiển thị sau khi bạn nộp bài có câu hỏi này.</div>}

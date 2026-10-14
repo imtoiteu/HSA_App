@@ -181,7 +181,11 @@ def derive_fields(db: Session, q: Question, v: QuestionVersion, failing: set | N
     q.answer_kind = a["kind"] if a else None
     from ..content import answers as A
     inp = c.get("input") or {"kind": "none"}
-    mode = A.scoring_mode(inp, a, bool(c.get("solution") or c.get("explanation")))
+    if c.get("type") == "multi_part":
+        from ..content import parts as P
+        mode = P.scoring_mode(c, a)
+    else:
+        mode = A.scoring_mode(inp, a, bool(c.get("solution") or c.get("explanation")))
     policy = get_setting(db, "serving_policy")
     if q.answer_kind == "text" and policy.get("text_answers_auto_scored"):
         mode = "auto"
@@ -363,6 +367,13 @@ def diff_versions(old: QuestionVersion | None, new_content: dict, new_answer) ->
         if oo.get(lab) != no.get(lab):
             ch.append({"field": f"option:{lab}", "old": _txt(oo.get(lab)) if lab in oo else None,
                        "new": _txt(no.get(lab)) if lab in no else None})
+    op = {p["key"]: p for p in oc.get("parts") or []}
+    np_ = {p["key"]: p for p in new_content.get("parts") or []}
+    for key in sorted(set(op) | set(np_)):
+        if op.get(key) != np_.get(key):
+            o_, n_ = op.get(key) or {}, np_.get(key) or {}
+            ch.append({"field": f"part:{(n_ or o_).get('label') or key}",
+                       "old": _txt(o_.get("prompt")) if o_ else None, "new": _txt(n_.get("prompt")) if n_ else None})
     if (oc.get("group") or None) != (new_content.get("group") or None):
         og, ng = oc.get("group") or {}, new_content.get("group") or {}
         ch.append({"field": "group", "old": (og.get("key"), _txt(og.get("passage"))) if og else None,
@@ -425,11 +436,18 @@ def save_edit(db: Session, q: Question, user: User, edit: dict, note: str | None
         content = C.build_content(base.content, edit, _known_src(db))
         labels = [o["label"] for o in content.get("options") or []]
         if "answer" in edit:
-            answer = C.normalize_answer(content["type"], edit["answer"], labels)
+            answer = C.normalize_answer(content["type"], edit["answer"], labels, content)
         else:
             answer = base.answer
             if answer and answer.get("kind") == "choice" and any(l not in labels for l in answer["labels"]):
                 raise C.ContentError("Đáp án hiện tại không còn khớp phương án sau khi sửa; hãy chọn lại đáp án.")
+            if (answer or {}).get("kind") == "parts" and content["type"] != "multi_part":
+                answer = None   # the items' answers do not apply to another type
+            elif content["type"] == "multi_part" and answer is not None:
+                if answer.get("kind") != "parts":
+                    answer = None
+                else:   # re-check the kept item answers against the edited items
+                    answer = C.normalize_answer("multi_part", answer, labels, content)
         C.finalize(content, answer)
     except C.ContentError as ex:
         raise ReviewError(str(ex), 422, "invalid") from ex

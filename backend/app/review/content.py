@@ -10,6 +10,7 @@ import json
 import re
 
 from ..content import answers as A
+from ..content import parts as P
 from ..content.render import plain_text
 from ..sync.hsa_upstream import _has_warn
 from ..sync.subjects import collect_tex
@@ -29,7 +30,7 @@ DIM_PARTS = {
 DIM_STATES = ("ok", "na", "fail")
 
 QTYPES = ["single_choice", "multiple_choice", "true_false", "true_false_statements", "numeric_response",
-          "short_response", "error_identification", "constructed_response", "open_or_unknown"]
+          "short_response", "error_identification", "constructed_response", "open_or_unknown", "multi_part"]
 MARKS = {"b", "i", "u", "x", "sup", "sub"}
 SRC_RE = re.compile(r"^[0-9a-f]{2}/[0-9a-f]{64}\.(png|jpg|gif|webp|svg)$")
 MAX_TEXT = 20000
@@ -55,7 +56,7 @@ def walk(nodes):
 
 def content_nodes(content: dict) -> list:
     return [content.get("stem"), [o.get("content") for o in content.get("options") or []],
-            content.get("group"), content.get("solution"), content.get("explanation")]
+            content.get("group"), content.get("solution"), content.get("explanation")] + P.part_blocks(content)
 
 
 def images(content: dict) -> list[str]:
@@ -78,8 +79,14 @@ def part_hashes(content: dict, answer: dict | None, subject: str | None, provena
     prov = provenance or {}
     return {
         "type": h(content.get("type")),
-        "stem": h(content.get("stem")),
-        "options": h(content.get("options")),
+        # a multi-part question's items belong to its stem (prompts, solutions) and options (answer types,
+        # options); other questions keep exactly the hashes they always had
+        "stem": h(content.get("stem")) if not P.is_multi(content) else
+        h([content.get("stem"), [[p.get("label"), p.get("prompt"), p.get("solution"), p.get("points")]
+                                 for p in P.parts_of(content)]]),
+        "options": h(content.get("options")) if not P.is_multi(content) else
+        h([content.get("options"), [[p.get("key"), p.get("answer_type"), p.get("multi"), p.get("options")]
+                                    for p in P.parts_of(content)]]),
         "solution": h([content.get("solution"), content.get("explanation")]),
         "group": h(content.get("group")),
         "answer": h(answer),
@@ -225,8 +232,13 @@ def sanitize_blocks(blocks, known_src, depth=0) -> list:
     return out
 
 
-def normalize_answer(qtype: str, raw: dict | None, labels: list[str]) -> dict | None:
+def normalize_answer(qtype: str, raw: dict | None, labels: list[str], content: dict | None = None) -> dict | None:
     """Reviewer-entered answer → normalised answer (content/answers.py). Raises ContentError when malformed."""
+    if qtype == P.QTYPE:
+        try:
+            return P.normalize_answer(content or {"type": qtype}, raw)
+        except P.PartError as ex:
+            raise ContentError(str(ex)) from ex
     if not raw:
         return None
     kind = raw.get("kind")
@@ -294,9 +306,58 @@ def build_content(base: dict, edit: dict, known_src) -> dict:
                           "passage": sanitize_blocks(g.get("passage"), known_src)}
             if g.get("instruction_only") and not c["group"]["passage"]:
                 c["group"]["instruction_only"] = True  # verified: the header is only an instruction, no shared data
+    if "parts" in edit:
+        c["parts"] = sanitize_parts(edit["parts"], known_src)
+    if c.get("type") == P.QTYPE:
+        c["options"] = []   # a multi-part question has no options of its own: each item has its own
+        c.setdefault("parts", [])
+    elif "parts" in c:
+        c.pop("parts")       # another type: the items no longer apply
     if len(json.dumps(c, ensure_ascii=False)) > MAX_CONTENT_BYTES:
         raise ContentError("Nội dung quá lớn.")
     return c
+
+
+def sanitize_parts(parts, known_src) -> list[dict]:
+    """The items of a multi-part question as posted by the editor."""
+    if parts is None:
+        return []
+    if not isinstance(parts, list) or len(parts) > P.MAX_PARTS:
+        raise ContentError(f"Tối đa {P.MAX_PARTS} ý.")
+    out, keys = [], set()
+    for i, p in enumerate(parts):
+        if not isinstance(p, dict):
+            raise ContentError("Ý không hợp lệ.")
+        key = str(p.get("key") or f"p{i + 1}")
+        if not P.KEY_RE.match(key) or key in keys:
+            raise ContentError("Khoá của ý không hợp lệ hoặc bị trùng.")
+        keys.add(key)
+        t = p.get("answer_type")
+        if t not in P.ANSWER_TYPES:
+            raise ContentError(f"Ý {i + 1}: dạng trả lời không hợp lệ.")
+        label = _s(str(p.get("label") or chr(ord("a") + i)), 8).strip() or chr(ord("a") + i)
+        try:
+            pts = float(p.get("points") if p.get("points") not in (None, "") else 1.0)
+        except (TypeError, ValueError):
+            raise ContentError(f"Ý {label}: điểm không hợp lệ.") from None
+        if not 0 < pts <= 100:
+            raise ContentError(f"Ý {label}: điểm phải lớn hơn 0.")
+        item = {"key": key, "label": label, "prompt": sanitize_blocks(p.get("prompt"), known_src),
+                "answer_type": t, "points": pts}
+        sol = sanitize_blocks(p.get("solution"), known_src)
+        item["solution"] = sol or None
+        if t == "choice":
+            item["multi"] = bool(p.get("multi"))
+            opts, seen = [], set()
+            for o in p.get("options") or []:
+                lab = str(o.get("label") or "").strip().upper()
+                if not re.fullmatch(r"[A-H]", lab) or lab in seen:
+                    raise ContentError(f"Ý {label}: nhãn phương án phải là A–H và không trùng nhau.")
+                seen.add(lab)
+                opts.append({"label": lab, "content": sanitize_blocks(o.get("content"), known_src)})
+            item["options"] = opts
+        out.append(item)
+    return out
 
 
 def finalize(content: dict, answer: dict | None) -> dict:
@@ -304,8 +365,12 @@ def finalize(content: dict, answer: dict | None) -> dict:
     labels = [o["label"] for o in content.get("options") or []]
     opts_md = [(o["label"], plain_text(o["content"])) for o in content.get("options") or []]
     stem_txt = "\n".join(plain_text([b]) for b in content.get("stem") or [])
-    content["input"] = A.input_spec(content["type"], opts_md, answer, stem_txt)
-    content["shuffle_safe"] = A.shuffle_safe(content["type"], {l: t for l, t in opts_md}) if labels else False
+    if P.is_multi(content):
+        content["input"] = P.input_spec(content)
+        content["shuffle_safe"] = False
+    else:
+        content["input"] = A.input_spec(content["type"], opts_md, answer, stem_txt)
+        content["shuffle_safe"] = A.shuffle_safe(content["type"], {l: t for l, t in opts_md}) if labels else False
     content["assets"] = sorted({s.split("/")[1].split(".")[0] for s in images(content)})
     return content
 
@@ -318,7 +383,8 @@ def version_hash(content: dict, answer: dict | None) -> str:
 
 CONTENT_FLAGS = {"empty_stem", "too_few_options", "empty_option", "render_warning", "answer_not_in_options",
                  "answer_empty", "answer_without_options", "group_context_missing", "no_input",
-                 "inline_options_in_short_response", "answer_unparseable", "answer_kind_unknown"}
+                 "inline_options_in_short_response", "answer_unparseable", "answer_kind_unknown",
+                 "parts_incomplete"}
 
 
 def derived_flags(content: dict, answer: dict | None) -> set:
@@ -327,8 +393,14 @@ def derived_flags(content: dict, answer: dict | None) -> set:
     stem = content.get("stem") or []
     options = content.get("options") or []
     inp = content.get("input") or {}
-    if not plain_text(stem).strip() and not any(b.get("t") in ("img", "table") for b in stem):
+    if not plain_text(stem).strip() and not any(b.get("t") in ("img", "table") for b in stem) and \
+            not (P.is_multi(content) and P.parts_of(content)):
         flags.add("empty_stem")
+    if P.is_multi(content):
+        if P.problems(content, answer):
+            flags.add("parts_incomplete")
+        if _has_warn(P.part_blocks(content)):
+            flags.add("render_warning")
     if inp.get("kind") == "choice":
         if len(options) < 2:
             flags.add("too_few_options")

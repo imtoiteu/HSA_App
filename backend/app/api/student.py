@@ -426,6 +426,11 @@ def _reviewed_question(v: QuestionVersion, order) -> dict:
     if a and a["kind"] == "choice":
         o = order or [x["label"] for x in c.get("options") or []]
         out["answer_display"] = [DISPLAY[o.index(l)] for l in a["labels"] if l in o]
+    from ..content import parts as P
+    if P.is_multi(c):
+        from ..exam.service import part_results
+        out["parts"] = P.public_parts(c)
+        out["part_results"] = part_results(c, a, None, {})
     return out
 
 

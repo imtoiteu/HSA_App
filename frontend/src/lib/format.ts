@@ -43,6 +43,7 @@ export const TYPE_LABELS: Record<string, string> = {
   error_identification: "Tìm lỗi sai",
   constructed_response: "Tự luận",
   open_or_unknown: "Chưa xác định",
+  multi_part: "Nhiều ý / Câu ghép",
 };
 
 export const STATE_LABELS: Record<string, string> = {

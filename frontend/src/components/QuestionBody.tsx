@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Answer, Group, InputSpec, OptionView, QuestionView, Response } from "../lib/types";
+import type { Answer, Group, InputSpec, OptionView, PartResult, PartView, QuestionView, Response } from "../lib/types";
 import { RichContent } from "./RichContent";
 
 
@@ -31,9 +31,96 @@ function optionState(opt: OptionView, selected: boolean, reveal?: Reveal): strin
   return "";
 }
 
-export function AnswerInput({ input, options, response, onChange, disabled, reveal }: {
-  input: InputSpec; options: OptionView[]; response: Response; onChange: (r: Response) => void; disabled?: boolean; reveal?: Reveal;
+const PART_OUTCOME: Record<string, [string, string]> = {
+  correct: ["Đúng", "ok"], incorrect: ["Sai", "bad"], partial: ["Đúng một phần", "warn"], unanswered: ["Chưa trả lời", ""],
+  ungraded: ["Chưa chấm", ""],
+};
+
+/** The items of a multi-part question: each with its own prompt, input and — once revealed — key and solution. */
+/** Items and their keys/solutions from a raw content document (admin previews, unsaved editor state). */
+export function partsFromContent(content: any, answer: Answer | null | undefined): { parts: PartView[]; results: PartResult[] } {
+  const keys: Record<string, Answer> = answer && answer.kind === "parts" ? answer.parts : {};
+  const ps: any[] = content?.type === "multi_part" ? content.parts || [] : [];
+  const parts: PartView[] = ps.map((p) => ({
+    key: p.key, label: p.label ?? null, prompt: p.prompt || [], points: Number(p.points || 1),
+    input: p.answer_type === "choice" ? { kind: "choice", multi: !!p.multi } : { kind: p.answer_type || "none" } as InputSpec,
+    options: p.answer_type === "choice" ? (p.options || []).map((o: any) => ({ key: o.label, display: o.label, content: o.content || [] })) : undefined,
+  }));
+  const results: PartResult[] = ps.map((p) => ({
+    key: p.key, label: p.label ?? null, outcome: keys[p.key] ? "unanswered" : "ungraded", fraction: 0, points: Number(p.points || 1),
+    awarded: 0, answer: keys[p.key] || null, solution: p.solution || null,
+  }));
+  return { parts, results };
+}
+
+export function PartsInput({ parts, response, onChange, disabled, results, idPrefix = "p", graded = true }: {
+  parts: PartView[]; response: Response; onChange: (r: Response) => void; disabled?: boolean; results?: PartResult[];
+  idPrefix?: string; graded?: boolean;
 }) {
+  const cur = response?.parts || {};
+  const byKey = Object.fromEntries((results || []).map((r) => [r.key, r]));
+  return (
+    <ol className="parts" aria-label="Các ý của câu hỏi">
+      {parts.map((p) => {
+        const res = byKey[p.key];
+        const set = (r: Response) => {
+          const next = { ...cur };
+          if (r) next[p.key] = r; else delete next[p.key];
+          onChange(Object.keys(next).length ? { parts: next } : null);
+        };
+        const [lbl, tone] = res ? PART_OUTCOME[res.outcome] || ["", ""] : ["", ""];
+        return (
+          <li key={p.key} className={"part" + (res ? " part-" + res.outcome : "")}>
+            <div className="part-head">
+              <span className="part-label">{p.label ? `${p.label})` : ""}</span>
+              <div className="part-prompt"><RichContent blocks={p.prompt} /></div>
+              <span className="small muted">{p.points} điểm</span>
+            </div>
+            <AnswerInput input={p.input} options={p.options || []} response={cur[p.key] || null} onChange={set}
+                         disabled={disabled} idPrefix={`${idPrefix}-${p.key}`}
+                         reveal={res ? { answer: res.answer, response: cur[p.key] || null } : undefined} />
+            {res && (
+              <div className="part-result">
+                {graded && <span className={"badge " + tone}>{lbl}{res.outcome !== "ungraded" ? ` · ${res.awarded}/${res.points} điểm` : ""}</span>}
+                {res.answer ? <span className="small">Đáp án: <b>{answerText(res.answer)}</b></span>
+                  : <span className="badge warn">Ý này chưa có đáp án</span>}
+                {res.solution && res.solution.length > 0 && (
+                  <details className="part-solution" open><summary>Lời giải ý {p.label}</summary><RichContent blocks={res.solution} /></details>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function FormulaInput({ value, onChange, disabled, id }: { value: string; onChange: (t: string) => void; disabled?: boolean; id: string }) {
+  return (
+    <div className="answer-box">
+      <label className="label" htmlFor={id}>Công thức:</label>
+      <input id={id} className="input mono" value={value} disabled={disabled} autoComplete="off" spellCheck={false}
+             placeholder="Ví dụ: 2x-4 hoặc \frac{1}{2}" onChange={(e) => onChange(e.target.value)} />
+      {value.trim() && <div className="formula-preview"><RichContent blocks={[{ t: "p", c: [{ t: "m", tex: value }] }]} /></div>}
+      <span className="hint">Nhập dạng LaTeX; bản xem trước hiện bên dưới.</span>
+    </div>
+  );
+}
+
+export function AnswerInput({ input, options, response, onChange, disabled, reveal, parts, partResults, idPrefix = "ans",
+                             graded = true }: {
+  input: InputSpec; options: OptionView[]; response: Response; onChange: (r: Response) => void; disabled?: boolean; reveal?: Reveal;
+  parts?: PartView[]; partResults?: PartResult[]; idPrefix?: string; graded?: boolean;
+}) {
+  if (input.kind === "parts") {
+    return <PartsInput parts={parts || []} response={response} onChange={onChange} disabled={disabled} results={partResults}
+                       idPrefix={idPrefix} graded={graded} />;
+  }
+  if (input.kind === "formula") {
+    return <FormulaInput id={`${idPrefix}-formula`} value={response?.text ?? ""} disabled={disabled}
+                         onChange={(t) => onChange(t.trim() ? { text: t } : null)} />;
+  }
   if (input.kind === "choice") {
     const labels = response?.labels || [];
     const toggle = (key: string) => {
@@ -68,8 +155,8 @@ export function AnswerInput({ input, options, response, onChange, disabled, reve
     const v = input.kind === "numeric" ? ((response?.value as string) ?? "") : (response?.text ?? "");
     return (
       <div className="answer-box">
-        <label className="label" htmlFor="ans-input">{input.kind === "numeric" ? "Đáp số:" : "Câu trả lời:"}</label>
-        <input id="ans-input" className="input" value={v} disabled={disabled} autoComplete="off"
+        <label className="label" htmlFor={`${idPrefix}-input`}>{input.kind === "numeric" ? "Đáp số:" : "Câu trả lời:"}</label>
+        <input id={`${idPrefix}-input`} className="input" value={v} disabled={disabled} autoComplete="off"
                inputMode={input.kind === "numeric" ? "decimal" : "text"}
                placeholder={input.kind === "numeric" ? "Ví dụ: 2,5 hoặc -3" : "Nhập câu trả lời"}
                onChange={(e) => {
@@ -134,17 +221,21 @@ export function answerText(a: Answer | null | undefined, display?: string[]): st
     case "text": return a.text;
     case "tf_sequence": return a.values.map((v, i) => `${String.fromCharCode(97 + i)}) ${v ? "Đúng" : "Sai"}`).join("; ");
     case "boolean": return a.value ? "Đúng" : "Sai";
+    case "formula": return a.tex;
+    case "parts": return Object.keys(a.parts).length ? "đáp án và lời giải ở từng ý" : "Chưa có đáp án";
   }
 }
 
 export function Solution({ q, answer, answerDisplay }: { q: QuestionView | { solution?: any; explanation?: any }; answer?: Answer | null; answerDisplay?: string[] }) {
   const sol = (q as any).solution, expl = (q as any).explanation;
+  const multi = answer?.kind === "parts" || (q as any).question?.type === "multi_part" || (q as any).type === "multi_part";
+  if (multi && !sol && !expl) return null;   // each item shows its own key and solution
   return (
     <div className="solution">
-      <div className="key-line">Đáp án: <span className="badge ok" style={{ fontSize: ".95rem" }}>{answerText(answer, answerDisplay)}</span></div>
+      {!multi && <div className="key-line">Đáp án: <span className="badge ok" style={{ fontSize: ".95rem" }}>{answerText(answer, answerDisplay)}</span></div>}
       {expl && <><h4>Phương pháp</h4><RichContent blocks={expl} /></>}
       {sol && <><h4 style={{ marginTop: expl ? 12 : 0 }}>Lời giải</h4><RichContent blocks={sol} /></>}
-      {!sol && !expl && <div className="muted small">Tài liệu nguồn chưa có lời giải chi tiết cho câu này.</div>}
+      {!sol && !expl && !multi && <div className="muted small">Tài liệu nguồn chưa có lời giải chi tiết cho câu này.</div>}
     </div>
   );
 }
