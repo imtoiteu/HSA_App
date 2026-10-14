@@ -263,7 +263,10 @@ especially the no-text rendering, take its place. Their precision is measured on
 | (before) | | | | | 9 789 | 23 608 |
 | W1 | Chuyên đề 19. Phương trình mũ - logarit (doc_8b6e30…) | 364 | 74 | 12 | 9 863 | 23 682 |
 | fix W1 | 5 promoted questions withdrawn and rebuilt (see below) | 5 | 5 | 0 | 9 863 | 23 682 |
+| W2 | Chuyên đề 18 (Hàm số mũ - logarit) + Chuyên đề 1 (Tính đơn điệu) | 389 | 40 | 23 | 9 995 | 23 814 |
 
+W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
+unsupported_objects batch running alongside it.
 W1: 57 rebuilds were first held back by the character check, which ignored the letters of `\log`, `\ln`, …
 in the rebuild (fixed). With the corrected check they passed, and 47 of them were promoted.
 
