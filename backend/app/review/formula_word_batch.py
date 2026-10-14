@@ -132,6 +132,9 @@ def _chars(content: dict, parts=("stem", "options")) -> collections.Counter:
                     out.append(n.get("v", ""))
                 elif n.get("t") == "m":
                     t = re.sub(r"\\(?:text|mathrm|operatorname)\{([^{}]*)\}", r" \1 ", n.get("tex", ""))
+                    # function names print their letters (\log → log); other commands are symbols
+                    t = re.sub(r"\\(log|ln|lg|sin|cos|tan|cot|lim|max|min|exp|sup|inf|det|arg|gcd|deg|sinh|"
+                               r"cosh|tanh|arcsin|arccos|arctan)(?![A-Za-z])", r" \1 ", t)
                     out.append(re.sub(r"\\[A-Za-z]+", " ", t))
     for k in parts:
         if k == "options":

@@ -132,3 +132,20 @@ def test_a_row_of_exponents_near_the_page_top_is_not_a_page_number():
     stem += [g("x", TNRI, x, 60), g("2", TNR, x + 6.5, 55, size=7)]
     res = question(stem, base=60)
     assert res.reason == "" and math_nodes(res) == ["x^2"]
+
+
+def test_superscript_in_a_system_row_stays_with_its_row():
+    # ⇔ [ 3 = 1 ; 3^x = 3 ]: the bracket (two pieces) sits on the axis between the rows; the superscript x of
+    # the second row must not attach to the bracket's line
+    stem, x = text("Ta có ", TNR, 90, 100)
+    x += 4
+    stem += [g("", SYM, x, 101, w=10)]
+    bx = x + 12
+    stem += [g("", SYM, bx, 95, w=4), g("", SYM, bx, 107, w=4)]
+    r1, r2 = bx + 4.5, bx + 4.5   # MathType sets the rows right after the bracket
+    stem += [g("3", TNR, r1, 94), g("=", TNR, r1 + 8, 94), g("1", TNR, r1 + 16, 94)]
+    stem += [g("3", TNR, r2, 109), g("x", TNRI, r2 + 6.2, 104, size=7), g("=", TNR, r2 + 12, 109),
+             g("3", TNR, r2 + 20, 109)]
+    res = question(stem)
+    assert res.reason == ""
+    assert any(r"\left[\begin{aligned} 3=1 \\ 3^x=3 \end{aligned}\right." in t for t in math_nodes(res))

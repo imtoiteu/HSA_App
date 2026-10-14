@@ -883,7 +883,9 @@ def make_lines(atoms: list[Atom], S: float) -> list[Line]:
             raise Unresolved(f"small glyph {a.val!r} on no line")
         # the line whose atom ends right before it (its nucleus), else the nearest baseline
         def score(L):
-            near = min((abs(a.x0 - b.x1) for b in L.atoms if b.x1 <= a.x0 + 1.5), default=99)
+            # the nucleus is a symbol, never the tall brace of a system (whose box spans several rows)
+            near = min((abs(a.x0 - b.x1) for b in L.atoms if b.x1 <= a.x0 + 1.5 and
+                        not (b.kind == "delim" and b.extra.get("tall"))), default=99)
             return (near > 0.6 * S, abs(a.base - L.base))
         best = min(cands, key=score)
         best.atoms.append(a)
@@ -1105,8 +1107,11 @@ def line_nodes(L: Line, S: float) -> list[dict]:
         # sentence punctuation after a formula stays text
         atoms = sorted(atoms, key=lambda a: a.x0)
         tail = []
-        while atoms and atoms[-1].kind == "n" and atoms[-1].val in ".,;:" and abs(atoms[-1].base - L.base) <= 0.3 * S:
-            tail.insert(0, atoms.pop())
+        while atoms and abs(atoms[-1].base - L.base) <= 0.3 * S and (
+                (atoms[-1].kind == "n" and atoms[-1].val in ".,;:") or
+                (atoms[-1].kind == "delim" and atoms[-1].val in "([" and not atoms[-1].extra.get("tall")
+                 and k + 1 < len(nodes) and nodes[k + 1][0] == "t")):
+            tail.insert(0, atoms.pop())   # punctuation, or "(" opening a text remark "4 (thỏa)"
         tex = line_math(atoms, L, S)
         out.append({"t": "s", "v": " "} if out else {"t": "s", "v": ""})
         out.append({"t": "m", "tex": tex})

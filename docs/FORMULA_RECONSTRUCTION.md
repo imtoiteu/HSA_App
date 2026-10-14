@@ -184,3 +184,90 @@ Every candidate of the 11 LaTeX books has been examined. Of 7 975 candidates, 3 
 mostly for lack of a second edition or of an independent answer check, or remain unresolved with their
 reason: figures and tables, ambiguous layout, conflicting source answers. Word/MathType PDFs (about 11 000
 questions) need a different engine and have not been started.
+
+# Word/MathType PDFs (`app/review/formula_word.py`, batch `pdf_formula_word`)
+
+The rest of the flattened-formula questions come from PDFs printed from Word, whose formulas are MathType (or
+Equation Editor / Word equation) objects. They need their own engine: the fonts, encodings and layout rules
+have nothing in common with TeX.
+
+## Pool (2026-10-14)
+
+4 583 single-choice candidates in 191 non-LaTeX documents. 2 488 of them have their source PDF prepared, so
+the batches work on those first. The other sources are prepared later in small groups, because the server disk
+is nearly full.
+
+## How a formula is read
+
+* **Fonts.**
+  * Variables are italic Times New Roman (or Euclid/Palatino/Cambria).
+  * Digits and function names are upright.
+  * Operators, relations, Greek letters and the pieces of big delimiters come from the Symbol fonts (Symbol,
+    SymbolMT, Euclid Symbol). Their private-use codes U+F0xx, or Latin-1 bytes, are the Adobe Symbol encoding:
+    0xB3 is ≥, 0xCE is ∈, 0xE6–0xFE are delimiter pieces.
+  * ℝ ℤ ℕ ℓ, vector arrows and wide hats come from MT Extra. Its codes were identified on the bank's documents.
+  * Legacy 8-bit Vietnamese fonts (VNI, .Vn) are refused.
+* **Structures** are rebuilt from geometry, innermost first:
+  * accents: an arrow or hat on its own baseline above the letters it covers;
+  * fraction bars, whose numerator and denominator are the rows next to the bar;
+  * radicals: a sign drawn as an outline plus strokes, or as lines only, or a √ glyph, with its overline and an
+    optional index;
+  * drawn slashes and underlines (formatting only);
+  * extensible delimiters, then systems (`cases` / bracket `aligned`, stopped by a second system to their
+    right);
+  * scripts, by size and baseline: nested, pre-scripts (²³⁵₉₂U), limits under min/max/lim, primes.
+* **Lines become text and formulas.** A word holding a Vietnamese letter is text; italic Latin letters, symbols,
+  structures and scripts make a formula. A formula glued to a word ("(C)tâm") is split. Upright words inside an
+  equation become `\text{…}`, or `\mathrm{…}` for units and element symbols.
+* **Page furniture.** Header/footer text and drawings repeated on the neighbouring pages are ignored, and so
+  are rotated watermark text and light watermark images. Questions are labelled "Câu N" or "Bài N".
+
+## Checks (a question is refused when any of these fails)
+
+1. Every glyph has a known meaning, and every glyph of the question's region ends up in the rebuild (ledger).
+2. Every dark stroke is explained: fraction bar, radical, slash, underline, or page furniture.
+3. **Page image, with its text:** after masking where each glyph's ink actually lies (x-height for small
+   letters, so an accent drawn above one is not hidden), no dark ink remains.
+4. **Page image, without its text:** the page is rendered again with every text object removed (pypdf, also
+   inside the equation objects). Any drawing or picture ink left in the region refuses the question, unless it
+   lies on an explained stroke. This catches figures, tables, and accents or whole equations that MathType
+   embedded as pictures.
+5. The words of the stored (flattened) version match (≥95%), and nearly all its letters and digits (≥97%)
+   reappear in the rebuild.
+6. KaTeX renders every formula. The answer passes the same rules as the other batches, where a key from an
+   answer table alone needs the solution's "Chọn X". The subject and visual checks are the same.
+7. Questions of a shared passage, and stored versions with figures or tables, are left for review.
+
+Word books rarely exist in a second edition, so there is no identical-rebuild confirmation. The checks above,
+especially the no-text rendering, take its place. Their precision is measured on samples.
+
+## Measured quality
+
+* Development samples (60 + 200 questions): every rebuild compared with the PDF page. Each error found was fixed
+  and the samples were re-run:
+  * slanted Greek letters dropped as watermarks;
+  * an underline read as a fraction bar;
+  * a label-line numerator outside the region;
+  * radical index or slash misread;
+  * two adjacent systems merged;
+  * pre-scripts attached to an operator;
+  * a lone row of exponents taken for a page number.
+* **Held-out sample** (150 questions, seed 303, not used for tuning): 28 rebuilt. All of the 27 not also in the
+  development samples are exactly right. Refusals are mostly figures/tables, ambiguous delimiters and unknown
+  glyphs.
+
+## Batch log
+
+| Batch | Source | Examined | Promoted | Drafts waiting in Review Studio | Review READY | Runtime eligible = serving |
+|---|---|---|---|---|---|---|
+| (before) | | | | | 9 789 | 23 608 |
+| W1 | Chuyên đề 19. Phương trình mũ - logarit (doc_8b6e30…) | 364 | 74 | 12 | 9 863 | 23 682 |
+| fix W1 | 5 promoted questions withdrawn and rebuilt (see below) | 5 | 5 | 0 | 9 863 | 23 682 |
+
+W1: 57 rebuilds were first held back by the character check, which ignored the letters of `\log`, `\ln`, …
+in the rebuild (fixed). With the corrected check they passed, and 47 of them were promoted.
+
+**Correction after W1.** The spot check found a system row `3^x = 3` whose superscript had attached to the
+system's bracket and come out as a row of its own. The fix (a nucleus is never a system's tall bracket) is
+covered by a test. The regression of all 74 promoted questions found 2 with that error and 3 with an opening
+bracket kept inside a formula before a remark ("4 (thỏa)"). All 5 were withdrawn, rebuilt and re-promoted.
