@@ -509,6 +509,9 @@ def math_tex(atoms: list[Atom], base: float | None = None, size: float | None = 
     def is_main(a):
         if a.kind == "m" and a.val in BIG_OPS and a.size >= 1.2 * size and a.top < base - 0.3 * size < a.bot:
             return True   # a big ∫ / ∑ spans the line's axis
+        if a.kind == "delim" and a.val in "()[]{}|" and a.size >= 1.1 * size and a.top < base - 0.5 * size and \
+                a.bot > base and abs(a.base - base) <= 0.4 * size:
+            return True   # an enlarged bracket around a radical: drawn lower, it still encloses the row
         return abs(a.base - base) <= tol and not a.extra.get("prime") and \
             (a.size >= 0.82 * size or (a.kind == "delim" and a.extra.get("tall")))
     mains = [a for a in atoms if is_main(a)]

@@ -290,3 +290,11 @@ def test_fraction_with_tall_parentheses_does_not_shrink_its_row():
         [at("=", "m", 158, 100), at("0", "n", 166, 100)]
     row = W.build_bar(row, bar, S)
     assert W.math_tex(row) == r"x_G=\dfrac{1+(-1)}{3}=0"
+
+
+def test_enlarged_brackets_around_radicals_are_not_scripts():
+    # x²(√7 + 4): MathType enlarges the parentheses around a radical and sets them ~3 pt lower than the row
+    row = [at("x", "v", 100, 100), at("2", "n", 106, 95, size=7), at("(", "delim", 111, 103, size=16, w=4),
+           at(r"\sqrt{7}", "box", 115, 100, w=10), at("+", "m", 127, 100), at("4", "n", 135, 100),
+           at(")", "delim", 141, 103, size=16, w=4)]
+    assert W.math_tex(row) == r"x^2(\sqrt{7}+4)"
