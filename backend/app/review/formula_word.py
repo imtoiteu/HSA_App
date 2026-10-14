@@ -426,6 +426,9 @@ def join(parts: list[str]) -> str:
     return out
 
 
+TEXT_WORDS = {"khi", "hay"}
+
+
 def word_tex(run: list[Atom]) -> list[str]:
     """Upright letter runs: function names → \\ln…, others → \\mathrm{…}; italic letters stay as variables."""
     out, i = [], 0
@@ -499,6 +502,8 @@ def math_tex(atoms: list[Atom], base: float | None = None, size: float | None = 
     tol = 0.22 * size
 
     def is_main(a):
+        if a.kind == "m" and a.val in BIG_OPS and a.size >= 1.2 * size and a.top < base - 0.3 * size < a.bot:
+            return True   # a big ∫ / ∑ spans the line's axis
         return abs(a.base - base) <= tol and not a.extra.get("prime") and \
             (a.size >= 0.82 * size or (a.kind == "delim" and a.extra.get("tall")))
     mains = [a for a in atoms if is_main(a)]
@@ -531,6 +536,18 @@ def math_tex(atoms: list[Atom], base: float | None = None, size: float | None = 
         m = mains[k]
         if k == 0 and pre:
             parts.append(script_tex(pre, base, size, pre_of=m))
+        if m.kind == "v":
+            # an italic Vietnamese word written in the equation font ("… khi x ≠ 1"), set apart by spaces
+            j = k
+            while j + 1 < len(mains) and mains[j + 1].kind == "v" and mains[j + 1].x0 - mains[j].x1 < 0.12 * size:
+                j += 1
+            w = "".join(x.val for x in mains[k:j + 1])
+            if w in TEXT_WORDS and not any(buckets[i] for i in range(k, j + 1)) and \
+                    (k == 0 or m.x0 - mains[k - 1].x1 >= 0.12 * size) and \
+                    (j + 1 == len(mains) or mains[j + 1].x0 - mains[j].x1 >= 0.15 * size):
+                parts.append(r"\text{%s%s }" % (" " if k > 0 else "", w))
+                k = j + 1
+                continue
         if m.kind == "t":
             # a run of upright letters with no script inside: one word (ln, log, min, cm)
             j = k
@@ -561,7 +578,10 @@ def math_tex(atoms: list[Atom], base: float | None = None, size: float | None = 
                 continue
             if min(s.x0 for s in sc) - m.x1 > 0.6 * size:
                 raise Unresolved(f"small glyph {sc[0].val!r} far from its nucleus")
-            parts.append(script_tex(sc, base, size))
+            if m.kind == "m" and m.val in BIG_OPS and m.size >= 1.2 * size:
+                parts.append(script_tex(sc, m.base, m.size))   # limits of ∫ / ∑: measured on the big sign
+            else:
+                parts.append(script_tex(sc, base, size))
         k += 1
     # upright letter runs among the mains (function names)
     return fix_words(parts, mains)
@@ -880,11 +900,17 @@ class Line:
         return max(a.bot for a in self.atoms)
 
 
+BIG_OPS = {r"\int", r"\sum", r"\prod", r"\oint", r"\iint"}
+
+
 def make_lines(atoms: list[Atom], S: float) -> list[Line]:
     """Main-size atoms grouped by baseline; small atoms (scripts) join the line of the nucleus they follow."""
     for a in atoms:
         if a.val == "'" and a.kind in ("m", "n"):
             a.extra["prime"] = True
+        if a.kind == "m" and a.val in BIG_OPS and a.size >= 1.2 * S and not a.glyphs[1:]:
+            # a big ∫/∑ glyph sits lower than the text: its line is the one through its middle (like built pieces)
+            a.base = (a.top + a.bot) / 2 + 0.3 * S
     mains = sorted([a for a in atoms if (a.size >= 0.82 * S or (a.kind == "delim" and a.extra.get("tall")))
                     and a.kind != "sp" and not a.extra.get("prime")],
                    key=lambda a: a.base)
@@ -900,6 +926,11 @@ def make_lines(atoms: list[Atom], S: float) -> list[Line]:
     smalls = [a for a in atoms if a.kind != "sp" and not any(a in L.atoms for L in lines)]
     for a in smalls:
         cands = [L for L in lines if -1.0 * S <= a.base - L.base <= 0.75 * S]
+        if not cands:   # the limits over / under a big ∫ / ∑ stand further out than any script
+            cands = [L for L in lines if any(b.kind == "m" and b.val in BIG_OPS and b.size >= 1.2 * S and
+                                             b.x0 - 0.3 * S <= a.xc <= b.x1 + 0.6 * S and
+                                             (b.top - 1.0 * S <= a.base <= b.top + 0.3 * S or
+                                              b.bot - 0.3 * S <= a.base <= b.bot + 1.0 * S) for b in L.atoms)]
         if not cands:
             raise Unresolved(f"small glyph {a.val!r} on no line")
         # the line whose atom ends right before it (its nucleus), else the nearest baseline
@@ -942,12 +973,24 @@ def build_systems(lines: list[Line], S: float) -> list[Line]:
                      and a.top < d.bot and a.bot > d.top]
             right = min((a.x0 for a in stops), default=1e9)
             body, cands = [], []
+            # a second column ("… khi x ≠ 1"): items starting at the same x after a gap in at least two rows
+            starts = []
+            for M in rows:
+                its = sorted([a for a in M.atoms if a.xc >= d.x1 and a.kind != "sp" and a.x0 < right - 0.5],
+                             key=lambda a: a.x0)
+                starts += [(M, b.x0) for a, b in zip(its, its[1:]) if b.x0 - a.x1 >= 0.6 * S and b.x0 - d.x1 >= 2 * S]
+            cols = sorted({round(x, 1) for M, x in starts
+                           if len({id(N) for N, y in starts if abs(y - x) < 1.5}) >= 2})
+            col = cols[0] if cols else None
             for M in sorted(rows, key=lambda M: M.base):
                 its = sorted([a for a in M.atoms if a.xc >= d.x1 and a.kind != "sp"], key=lambda a: a.x0)
                 row, label = [], []
                 for n, a in enumerate(its):
                     if a.x0 >= right - 0.5:
                         break
+                    if row and a.x0 - row[-1].x1 > 1.5 * S and col is not None and abs(a.x0 - col) < 1.5:
+                        row.append(a)
+                        continue
                     if row and a.x0 - row[-1].x1 > 1.5 * S:
                         # an equation label "(1)" / "(I)" after a wide gap still belongs to the row
                         rest = [b for b in its[n:] if b.x0 < right - 0.5]
@@ -985,7 +1028,13 @@ def build_systems(lines: list[Line], S: float) -> list[Line]:
                         body.append(c)
             if len(body) < 2:
                 continue
-            tex_rows = [math_tex(r) + (r" \quad " + math_tex(lab) if lab else "") for _, r, lab in body]
+            def row_tex(r):
+                k = next((i for i, a in enumerate(r) if i > 0 and col is not None and abs(a.x0 - col) < 1.5
+                          and a.x0 - r[i - 1].x1 >= 0.6 * S), None)
+                if k is None:
+                    return math_tex(r)
+                return math_tex(r[:k]) + (" & " if d.val == "{" else r" \quad ") + math_tex(r[k:])
+            tex_rows = [row_tex(r) + (r" \quad " + math_tex(lab) if lab else "") for _, r, lab in body]
             tex = (r"\begin{cases} %s \end{cases}" if d.val == "{" else r"\left[\begin{aligned} %s \end{aligned}\right.") \
                 % r" \\ ".join(tex_rows)
             members = [d] + [a for _, r, lab in body for a in r + lab]
@@ -1387,6 +1436,13 @@ def line_top(pg: Page, L: list[Glyph]) -> float:
         if family(g.font) in EXTRA_FAMILIES and lb - 1.6 * S <= g.base < lt + 0.2 * S and \
                 any(abs(h.xc - g.xc) < 0.6 * S for h in L):
             top = min(top, g.top)
+    body = min((g.size for g in L if g.ch.strip()), default=S)
+    for h in L:   # the upper limit over a big ∫ / ∑ of the line
+        if h.size >= 1.2 * body and family(h.font) in SYMBOL_FAMILIES and symbol_char(h.ch)[0] in ("∫", "∑", "∏"):
+            for g in pg.glyphs:
+                if g.size < 0.82 * body and h.x0 - 0.3 * body <= g.xc <= h.x1 + 0.6 * body and \
+                        h.top - 1.0 * body <= g.base <= h.top + 0.3 * body:
+                    top = min(top, g.top)
     return top
 
 
@@ -1536,7 +1592,11 @@ def structure(lines: list[Line], number: int, S: float):
         zone = "opts"
     if sorted(opts) != list("ABCD"):
         raise Unresolved("options not exactly A-D")
-    content = {"stem": paragraphs(stem, S), "options": [{"label": k, "content": paragraphs(opts[k], S)}
+    # the text's right margin, per page, over the whole question (a solution of short lines never "runs to the margin")
+    right: dict[int, float] = {}
+    for L, _ in nodes:
+        right[L.page] = max(right.get(L.page, 0.0), L.x1)
+    content = {"stem": paragraphs(stem, S, right), "options": [{"label": k, "content": paragraphs(opts[k], S, right)}
                                                          for k in "ABCD"]}
     ans = None
     sol_blocks = []
@@ -1548,7 +1608,7 @@ def structure(lines: list[Line], number: int, S: float):
         if m and ans is None:
             ans = m.group(1)
         sol_blocks.append((L, ns))
-    content["solution"] = paragraphs(sol_blocks, S) or None
+    content["solution"] = paragraphs(sol_blocks, S, right) or None
     if any(not o["content"] for o in content["options"]):
         raise Unresolved("empty option")
     if not content["stem"]:
@@ -1627,16 +1687,17 @@ def split_options(ns: list[dict]):
     return lead, out
 
 
-def paragraphs(items: list[tuple[Line, list[dict]]], S: float) -> list[dict]:
-    """Lines → paragraphs: a line that runs to the right margin continues on the next one."""
+def paragraphs(items: list[tuple[Line, list[dict]]], S: float, margins: dict[int, float] | None = None) -> list[dict]:
+    """Lines → paragraphs: a line that runs to the right margin (of its page's question text) continues on the next."""
     if not items:
         return []
-    right = max(L.x1 for L, _ in items)
+    own = max(L.x1 for L, _ in items)
     out = []
     prev = None
     for L, ns in items:
         if not ns:
             continue
+        right = max(own, (margins or {}).get(prev.page, 0.0)) if prev is not None else own
         if out and prev is not None and prev.x1 >= right - 1.5 * S and prev.page == L.page:
             out[-1]["c"] = tidy(out[-1]["c"] + [{"t": "s", "v": " "}] + [dict(n) for n in ns])
         else:

@@ -228,3 +228,42 @@ def test_full_stop_after_a_formula_ends_it():
     res = question(stem)
     assert res.reason == ""
     assert math_nodes(res) == ["AD=a", "SA"]
+
+
+def test_piecewise_function_second_column_and_khi():
+    # { (x+1)  khi x ≠ 1 ;  n  khi x = 1 }: the conditions stand in a second column, far right of a short first item
+    def cond(rel):
+        return lambda b, x0: [g("k", TNRI, x0, b), g("h", TNRI, x0 + 5.5, b), g("i", TNRI, x0 + 11, b),
+                              g("x", TNRI, x0 + 21, b), g(rel, SYM if rel == "\uf0b9" else TNR, x0 + 28, b),
+                              g("1", TNR, x0 + 36, b)]
+    res = three_row_system([
+        lambda b: [g("x", TNRI, 106, b), g("+", TNR, 113, b), g("1", TNR, 121, b)] + cond("")(b, 150),
+        lambda b: [],
+        lambda b: [g("n", TNRI, 106, b)] + cond("=")(b, 150),
+    ])
+    assert res.reason == ""
+    assert any(r"\begin{cases} x+1 & \text{khi }x\ne1 \\ n & \text{khi }x=1 \end{cases}" in t for t in math_nodes(res)), \
+        math_nodes(res)
+
+
+def test_short_solution_lines_are_not_joined():
+    # every solution line is short; the stem runs to the margin: each solution line stays its own paragraph
+    stem, _ = text("Cho bài toán dài chạy tới lề phải của trang để làm mốc lề phải cho cả câu hỏi này nhé", TNR, 90, 100)
+    sol = text("Chọn A", TNRB, 60, 160)[0]
+    sol += [g("x", TNRI, 60, 175), g("=", TNR, 68, 175), g("1", TNR, 76, 175)]
+    sol += [g("y", TNRI, 60, 190), g("=", TNR, 68, 190), g("2", TNR, 76, 190)]
+    res = question(stem, solution=sol)
+    assert res.reason == ""
+    assert len(res.content["solution"]) == 3
+
+
+def test_big_integral_sign_with_limits_stays_in_its_line():
+    # a single 18 pt ∫ (Symbol 0xF2) sits lower than the text; its limits stand above and below it
+    stem, x = text("Nếu ", TNR, 90, 100)
+    stem += [W.Glyph("", SYM, 18, x, x + 5, 100 - 9.6 - 4.3 + 4.3, 100 + 8.1, 104.3),
+             g("6", TNR, x + 0.7, 86.1, size=7), g("0", TNR, x + 0.7, 113, size=7)]
+    stem += [g("f", TNRI, x + 9, 100), g("=", TNR, x + 16, 100), g("5", TNR, x + 24, 100)]
+    stem += text(" bằng", TNR, x + 30, 100)[0]
+    res = question(stem)
+    assert res.reason == ""
+    assert math_nodes(res) == [r"\int_0^6f=5"]
