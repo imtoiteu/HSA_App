@@ -149,3 +149,52 @@ def test_superscript_in_a_system_row_stays_with_its_row():
     res = question(stem)
     assert res.reason == ""
     assert any(r"\left[\begin{aligned} 3=1 \\ 3^x=3 \end{aligned}\right." in t for t in math_nodes(res))
+
+
+def test_function_names_written_together_are_split():
+    assert W.split_funcs("lnsin") == ["ln", "sin"]
+    assert W.split_funcs("lnx") is None
+    stem, x = text("Cho ", TNR, 90, 100)
+    for ch in "lnsin":
+        stem.append(g(ch, TNR, x, 100))
+        x += 5
+    stem += [g("A", TNRI, x + 2, 100)]
+    res = question(stem)
+    assert res.reason == "" and math_nodes(res) == [r"\ln\sin A"]
+
+
+def three_row_system(rows, after=()):
+    """A tall { in three Symbol pieces at x=100 with rows at baselines 94/106/118 (each row: [(glyphs, x)])."""
+    stem, _ = text("Ta có", TNR, 90, 80)
+    stem += [g("\uf0ec", SYM, 100, 96, w=5), g("\uf0ed", SYM, 100, 106, w=5), g("\uf0ee", SYM, 100, 116, w=5)]
+    for k, r in enumerate(rows):
+        stem += r(94 + 12 * k)
+    stem += list(after)
+    return question(stem)
+
+
+def test_word_after_a_system_row_is_text():
+    res = three_row_system([
+        lambda b: [g("x", TNRI, 106, b), g(">", TNR, 113, b), g("2", TNR, 121, b)],
+        lambda b: [g("y", TNRI, 106, b), g("=", TNR, 113, b), g("1", TNR, 121, b)],
+        lambda b: [g("c", TNRI, 106, b), g("=", TNR, 113, b), g("R", TNRI, 121, b),
+                   g(" ", TNR, 127, b, w=3)] + text("với", TNR, 131, b)[0],
+    ])
+    assert res.reason == ""
+    texts = "".join(n.get("v", "") for bl in res.content["stem"] for n in bl["c"])
+    assert "với" in texts and not any("v" in t.replace(r"\begin", "") for t in math_nodes(res))
+
+
+def test_centred_system_rows_keep_their_labels():
+    # MathType centres the rows; each row ends with an equation label (1), (2), (3) far to the right
+    def row(glyphs, x0):
+        return lambda b: [g(c, f, x0 + 7 * i, b) for i, (c, f) in enumerate(glyphs)] + \
+            [g(c, TNR, 170 + 5 * i, b) for i, c in enumerate(f"({len(glyphs) % 9})")]
+    res = three_row_system([
+        row([("x", TNRI), (">", TNR), ("2", TNR)], 122),
+        row([("x", TNRI), ("+", TNR), ("y", TNRI), ("\uf0b3", SYM), ("0", TNR), ("1", TNR), ("1", TNR)], 108),
+        row([("y", TNRI), ("<", TNR), ("4", TNR), ("1", TNR)], 119),
+    ])
+    assert res.reason == ""
+    assert any(r"\begin{cases} x>2 \quad (3) \\ x+y\ge011 \quad (7) \\ y<41 \quad (4) \end{cases}" in t
+               for t in math_nodes(res)), math_nodes(res)

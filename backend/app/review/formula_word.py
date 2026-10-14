@@ -437,6 +437,11 @@ def word_tex(run: list[Atom]) -> list[str]:
                     (j == i or run[j].x0 - run[j - 1].x1 < 0.25 * a.size):
                 j += 1
             w = "".join(x.val for x in run[i:j])
+            chain = split_funcs(w)
+            if chain and len(chain) > 1:   # "lnsin": two function names written without a space
+                out.extend(OTHER_FUNCS.get(f, "\\" + f) for f in chain)
+                i = j
+                continue
             k = next((n for n in sorted(FUNCS | set(OTHER_FUNCS), key=len, reverse=True) if w.startswith(n)), None)
             if k and (len(w) == len(k) or not w[len(k):].isalpha() or w in FUNCS):
                 out.append(OTHER_FUNCS.get(k, "\\" + k))
@@ -462,6 +467,19 @@ def word_tex(run: list[Atom]) -> list[str]:
             raise Unresolved(f"text letter {a.val!r} inside a formula: " + "".join(x.val for x in run)[:30])
         out.append(tok_tex(a))
         i += 1
+    return out
+
+
+def split_funcs(w: str) -> list[str] | None:
+    """A run of letters made only of function names (lnsin → [ln, sin]); None otherwise."""
+    names = sorted(FUNCS | set(OTHER_FUNCS), key=len, reverse=True)
+    out, i = [], 0
+    while i < len(w):
+        n = next((x for x in names if w.startswith(x, i)), None)
+        if n is None:
+            return None
+        out.append(n)
+        i += len(n)
     return out
 
 
@@ -920,29 +938,54 @@ def build_systems(lines: list[Line], S: float) -> list[Line]:
                      ((a.kind == "delim" and a.val in "{[" and a.extra.get("tall")) or a.extra.get("system"))
                      and a.top < d.bot and a.bot > d.top]
             right = min((a.x0 for a in stops), default=1e9)
-            body = []
+            body, cands = [], []
             for M in sorted(rows, key=lambda M: M.base):
                 its = sorted([a for a in M.atoms if a.xc >= d.x1 and a.kind != "sp"], key=lambda a: a.x0)
-                row = []
-                for a in its:
+                row, label = [], []
+                for n, a in enumerate(its):
                     if a.x0 >= right - 0.5:
                         break
                     if row and a.x0 - row[-1].x1 > 1.5 * S:
+                        # an equation label "(1)" / "(I)" after a wide gap still belongs to the row
+                        rest = [b for b in its[n:] if b.x0 < right - 0.5]
+                        lab = "".join(b.val for b in rest)
+                        if a.x0 - row[-1].x1 < 5 * S and re.fullmatch(r"\(\s*(?:\d{1,2}|[IVX]{1,4}|[a-z])\s*\)\.?", lab):
+                            label = [b for b in rest if b.val != "."] if lab.endswith(".") else rest
                         break
                     if a.kind == "t" and not a.val.isascii():
+                        # the word that starts here is text after the system: give back its first letters
+                        while row and row[-1].kind == "t" and a.x0 - row[-1].x1 < 0.15 * S:
+                            a = row.pop()
                         break
                     row.append(a)
                 if stops and row and row[-1].kind == "m" and row[-1].val in RELS | {r"\Leftarrow"} and \
                         right - row[-1].x1 < 1.5 * S and len(row) > 1:
                     row.pop()
-                if row and min(a.x0 for a in row) <= d.x1 + 1.2 * S:
-                    body.append((M, row))
+                if row and not label:
+                    # a label written closer: "… ≥ 0 (2)."
+                    for k in range(len(row) - 1, 0, -1):
+                        tail = "".join(b.val for b in row[k:])
+                        if row[k].val == "(" and row[k].x0 - row[k - 1].x1 > 0.25 * S and \
+                                re.fullmatch(r"\(\s*(?:\d{1,2}|[IVX]{1,4})\s*\)\.?", tail):
+                            row, label = row[:k], [b for b in row[k:] if b.val != "."]
+                            break
+                if row:
+                    cands.append((M, row, label))
+            anchored = [c for c in cands if min(a.x0 for a in c[1]) <= d.x1 + 1.2 * S]
+            if anchored:
+                # rows centred under the widest row (MathType centres the rows of some systems)
+                wide = max(anchored, key=lambda c: max(a.x1 for a in c[1]) - min(a.x0 for a in c[1]))[1]
+                w0, w1 = min(a.x0 for a in wide), max(a.x1 for a in wide)
+                for c in cands:
+                    r0, r1 = min(a.x0 for a in c[1]), max(a.x1 for a in c[1])
+                    if c in anchored or (r1 <= w1 + 0.5 * S and abs((r0 + r1) / 2 - (w0 + w1) / 2) < 1.0 * S):
+                        body.append(c)
             if len(body) < 2:
                 continue
-            tex_rows = [math_tex(r) for _, r in body]
+            tex_rows = [math_tex(r) + (r" \quad " + math_tex(lab) if lab else "") for _, r, lab in body]
             tex = (r"\begin{cases} %s \end{cases}" if d.val == "{" else r"\left[\begin{aligned} %s \end{aligned}\right.") \
                 % r" \\ ".join(tex_rows)
-            members = [d] + [a for _, r in body for a in r]
+            members = [d] + [a for _, r, lab in body for a in r + lab]
             for M in lines:
                 M.atoms = [a for a in M.atoms if a not in members]
             centre = (d.top + d.bot) / 2 + 0.3 * S
