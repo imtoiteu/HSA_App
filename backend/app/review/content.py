@@ -273,7 +273,44 @@ def normalize_answer(qtype: str, raw: dict | None, labels: list[str], content: d
         if raw.get("value") not in (True, False):
             raise ContentError("Chọn Đúng hoặc Sai.")
         return {"kind": "boolean", "value": bool(raw["value"])}
+    if kind in ("math_expression", "formula"):
+        return normalize_math(raw)
     raise ContentError("Dạng đáp án không hỗ trợ.")
+
+
+def normalize_math(raw: dict) -> dict:
+    """A "Biểu thức / Công thức toán" key: canonical LaTeX, declared variables, tolerance, accepted alternatives;
+    every form must be understood by the equivalence checker."""
+    from ..content import mathexpr as M
+    tex = M.canonical(str(raw.get("tex") or raw.get("text") or ""))
+    if not tex:
+        raise ContentError("Đáp án biểu thức đang trống.")
+    names = raw.get("variables") or []
+    if isinstance(names, str):
+        names = re.split(r"[,;\s]+", names)
+    names = [str(x).strip() for x in names if str(x).strip()]
+    if any(not re.fullmatch(r"[A-Za-z](?:_\w+)?|\\?[A-Za-z]+", x) for x in names) or len(names) > 8:
+        raise ContentError("Biến khai báo không hợp lệ (vd: a, b, x_1).")
+    names = [x.lstrip("\\") for x in names]
+    try:
+        tol = float(raw.get("tolerance") if raw.get("tolerance") not in (None, "") else 1e-6)
+    except (TypeError, ValueError):
+        raise ContentError("Sai số không hợp lệ.") from None
+    if not 0 < tol <= 0.1:
+        raise ContentError("Sai số phải trong khoảng (0; 0,1].")
+    acc = []
+    for t in [tex] + [M.canonical(str(x)) for x in raw.get("accepted") or [] if str(x).strip()]:
+        why = M.check(t, names or None)
+        if why:
+            raise ContentError(f"Không hiểu biểu thức “{t}”: {why}.")
+        if t not in acc:
+            acc.append(t)
+    out = {"kind": "math_expression", "tex": tex, "accepted": acc}
+    if names:
+        out["variables"] = names
+    if tol != 1e-6:
+        out["tolerance"] = tol
+    return out
 
 
 def build_content(base: dict, edit: dict, known_src) -> dict:

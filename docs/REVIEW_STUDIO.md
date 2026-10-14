@@ -279,3 +279,28 @@ c)… items each have their own answer, instead of faking the items as options.
     source question with one entry in history, bookmarks and reports.
 * **Import.** Multi-part questions are authored in the Review Studio; the JSONL import format does not carry
   items yet.
+
+## Answer type "Biểu thức / Công thức toán" (math_expression)
+
+Use it for an answer that is an expression or formula, such as `a√6/6`, instead of "Chữ".
+* **Key.** The key is entered with MathLive, like the formula editor, or as LaTeX. It is stored as canonical
+  LaTeX (`\dfrac` → `\frac`, spacing removed): `{"kind": "math_expression", "tex", "accepted": [...],
+  "variables": [...], "tolerance"}`. Options:
+  * declared variables (`a, x`);
+  * a relative tolerance (default 1e-6), e.g. for π ≈ 3.14;
+  * accepted alternative forms.
+
+  When a "Chữ" key looks like an expression, the editor offers to convert it. The items of a multi-part question
+  of type "Biểu thức / Công thức toán" use the same key.
+* **Students** enter the answer with MathLive (or LaTeX).
+* **Grading.** `app/content/mathexpr.py` parses the LaTeX with a small recursive-descent parser: no eval, and
+  bounded length, nodes and exponents. Two expressions are equivalent when they agree within the tolerance at
+  several random values of their variables, so `a√6/6`, `\frac{a}{\sqrt6}` and `\sqrt6\cdot a/6` are the same
+  answer. Understood:
+  * + − × ÷ / ^, implicit multiplication, `\frac`, `\sqrt` and n-th roots, `| |`;
+  * sin, cos, tan, cot, ln, log, log_b, exp;
+  * π, and e (unless declared as a variable);
+  * "y = …" (the right-hand side).
+
+  A key form the parser does not understand is refused when saving and flagged by the validators.
+* **Migration 0007** only relabels `answer_kind`. Numeric, text, true/false and choice answers are unchanged.

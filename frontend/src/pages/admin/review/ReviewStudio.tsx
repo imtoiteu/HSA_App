@@ -11,6 +11,7 @@ import type { Answer, Block } from "../../../lib/types";
 import { StateBadge, copyText, errMsg } from "../common";
 import BlockEditor, { type EditorHandle } from "./BlockEditor";
 import { collectTex } from "./blockdom";
+import MathAnswerEditor, { type MathKey } from "./MathAnswerEditor";
 import PartsEditor, { type PartEdit } from "./PartsEditor";
 import SourceViewer from "./SourceViewer";
 import { texChecks } from "./tex";
@@ -466,7 +467,12 @@ function AnswerEditor({ edit, up, canEdit, choice }: { edit: Edit; up: (p: Parti
         <select className="input sm" value={mode} disabled={!canEdit} onChange={(e) => { setMode(e.target.value); up({ answer: null }); }} aria-label="Dạng đáp án">
           <option value="choice">Chọn phương án</option><option value="numeric">Số</option><option value="text">Chữ</option>
           <option value="tf_sequence">Đúng/Sai từng ý</option><option value="boolean">Đúng/Sai</option>
+          <option value="math_expression">Biểu thức / Công thức toán</option>
         </select>
+        {mode === "math_expression" && (
+          <MathAnswerEditor idPrefix="ans" canEdit={canEdit} value={a?.kind === "math_expression" ? (a as MathKey) : null}
+                            onChange={(k) => up({ answer: k })} />
+        )}
         {mode === "choice" && edit.options.map((o) => {
           const on = a?.kind === "choice" && a.labels.includes(o.label);
           return (
@@ -485,6 +491,13 @@ function AnswerEditor({ edit, up, canEdit, choice }: { edit: Edit; up: (p: Parti
                                       onChange={(e) => up({ answer: e.target.value.trim() ? { kind: "numeric", text: e.target.value, value: Number(e.target.value.replace(",", ".")) } : null })} />}
         {mode === "text" && <input className="input sm" style={{ flex: 1 }} disabled={!canEdit} value={a?.kind === "text" ? a.text : ""}
                                    onChange={(e) => up({ answer: e.target.value.trim() ? { kind: "text", text: e.target.value } : null })} />}
+        {mode === "text" && canEdit && a?.kind === "text" && /[√^\\]|\d[a-zA-Z]|[a-zA-Z]\d|[a-zA-Z]\s*[/*]/.test(a.text) && (
+          <button className="btn secondary sm" title="Đáp án này là một biểu thức: chấm theo tương đương đại số thay vì so chữ"
+                  onClick={() => { setMode("math_expression");
+                                   up({ answer: { kind: "math_expression", tex: a.text.replace(/√\s*(\w+)/g, "\\sqrt{$1}") } }); }}>
+            Chuyển sang Biểu thức / Công thức toán
+          </button>
+        )}
         {mode === "boolean" && ["Đúng", "Sai"].map((l, i) => (
           <label key={l} className={"chip" + (a?.kind === "boolean" && a.value === (i === 0) ? " on" : "")}>
             <input type="radio" name="ansb" disabled={!canEdit} checked={a?.kind === "boolean" && a.value === (i === 0)} onChange={() => up({ answer: { kind: "boolean", value: i === 0 } })} /> {l}

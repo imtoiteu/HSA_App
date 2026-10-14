@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@testing-library/react";
-import { AnswerInput, Passage, answerText } from "./QuestionBody";
+import { AnswerInput, AnswerValue, Passage, answerText } from "./QuestionBody";
 import { RichContent, rangeLabel, renderTex } from "./RichContent";
 import type { Block, OptionView } from "../lib/types";
 
@@ -135,5 +135,21 @@ describe("multi-part questions", () => {
     expect(container.textContent).toContain("y(0)=3");
     expect(container.textContent).toContain("0/2 điểm");
     expect(answerText({ kind: "parts", parts: {} })).toBe("Chưa có đáp án");
+  });
+});
+
+describe("math expression answers", () => {
+  it("lets the student enter an expression and shows math keys as formulas", async () => {
+    const seen: unknown[] = [];
+    const { container } = render(<AnswerInput input={{ kind: "math" }} options={[]} response={null} onChange={(r) => seen.push(r)} />);
+    const box = container.querySelector("input, math-field") as HTMLInputElement;
+    expect(box).not.toBeNull();
+    if (box.tagName === "INPUT") {
+      fireEvent.change(box, { target: { value: "\\frac{a}{\\sqrt{6}}" } });
+      expect(seen[seen.length - 1]).toEqual({ text: "\\frac{a}{\\sqrt{6}}" });
+    }
+    expect(answerText({ kind: "math_expression", tex: "\\frac{a\\sqrt{6}}{6}" })).toBe("\\frac{a\\sqrt{6}}{6}");
+    const k = render(<AnswerValue a={{ kind: "math_expression", tex: "\\frac{a\\sqrt{6}}{6}" }} />);
+    expect(k.container.querySelector(".katex")).not.toBeNull();
   });
 });

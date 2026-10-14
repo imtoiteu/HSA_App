@@ -2,6 +2,7 @@
 // key, worked solution and points. The parent question has no single answer: the keys live per item.
 import type { Answer, Block } from "../../../lib/types";
 import BlockEditor from "./BlockEditor";
+import MathAnswerEditor, { type MathKey } from "./MathAnswerEditor";
 
 export type AnswerType = "choice" | "numeric" | "text" | "formula" | "boolean";
 export interface PartEdit {
@@ -10,7 +11,7 @@ export interface PartEdit {
 }
 
 const TYPE_NAMES: Record<AnswerType, string> = {
-  choice: "Chọn phương án", numeric: "Số", text: "Chữ", formula: "Công thức", boolean: "Đúng/Sai",
+  choice: "Chọn phương án", numeric: "Số", text: "Chữ", formula: "Biểu thức / Công thức toán", boolean: "Đúng/Sai",
 };
 const LETTERS = "ABCDEFGH";
 
@@ -137,9 +138,9 @@ export default function PartsEditor({ parts, answer, canEdit, onChange }: {
                        onChange={(e) => setKey(p.key, e.target.value.trim() ? { kind: "text", text: e.target.value } : null)} />
               )}
               {p.answer_type === "formula" && (
-                <input className="input sm mono" style={{ flex: 1 }} disabled={!canEdit} placeholder="LaTeX, vd: 2x-4"
-                       value={a?.kind === "formula" ? a.tex : ""}
-                       onChange={(e) => setKey(p.key, e.target.value.trim() ? { kind: "formula", tex: e.target.value } : null)} />
+                <MathAnswerEditor idPrefix={`part-${p.key}`} canEdit={canEdit}
+                                  value={a && (a.kind === "math_expression" || a.kind === "formula") ? ({ ...a, kind: "math_expression" } as MathKey) : null}
+                                  onChange={(k) => setKey(p.key, k)} />
               )}
               {p.answer_type === "boolean" && ["Đúng", "Sai"].map((l, k) => (
                 <label key={l} className={"chip" + (a?.kind === "boolean" && a.value === (k === 0) ? " on" : "")}>

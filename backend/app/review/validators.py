@@ -181,6 +181,12 @@ def validate(q, content: dict, answer: dict | None, media_root: Path | None, fai
         elif kind == "text":
             if not (answer.get("text") or "").strip():
                 add("answer_malformed", "answer", "đáp án chữ trống")
+        elif kind in ("math_expression", "formula"):
+            from ..content import mathexpr as M
+            bad = [t for t in [answer.get("tex")] + list(answer.get("accepted") or [])
+                   if not t or M.check(t, answer.get("variables"))]
+            if bad:
+                add("answer_malformed", "answer", f"biểu thức không đọc được: {str(bad[0])[:60]}")
         elif kind == "parts":
             from ..content import parts as P
             miss = P.missing_answers(content, answer)

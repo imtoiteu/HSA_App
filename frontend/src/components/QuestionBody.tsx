@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Answer, Group, InputSpec, OptionView, PartResult, PartView, QuestionView, Response } from "../lib/types";
+import MathInput from "./MathInput";
 import { RichContent } from "./RichContent";
 
 
@@ -82,7 +83,7 @@ export function PartsInput({ parts, response, onChange, disabled, results, idPre
             {res && (
               <div className="part-result">
                 {graded && <span className={"badge " + tone}>{lbl}{res.outcome !== "ungraded" ? ` · ${res.awarded}/${res.points} điểm` : ""}</span>}
-                {res.answer ? <span className="small">Đáp án: <b>{answerText(res.answer)}</b></span>
+                {res.answer ? <span className="small">Đáp án: <b><AnswerValue a={res.answer} /></b></span>
                   : <span className="badge warn">Ý này chưa có đáp án</span>}
                 {res.solution && res.solution.length > 0 && (
                   <details className="part-solution" open><summary>Lời giải ý {p.label}</summary><RichContent blocks={res.solution} /></details>
@@ -96,18 +97,6 @@ export function PartsInput({ parts, response, onChange, disabled, results, idPre
   );
 }
 
-function FormulaInput({ value, onChange, disabled, id }: { value: string; onChange: (t: string) => void; disabled?: boolean; id: string }) {
-  return (
-    <div className="answer-box">
-      <label className="label" htmlFor={id}>Công thức:</label>
-      <input id={id} className="input mono" value={value} disabled={disabled} autoComplete="off" spellCheck={false}
-             placeholder="Ví dụ: 2x-4 hoặc \frac{1}{2}" onChange={(e) => onChange(e.target.value)} />
-      {value.trim() && <div className="formula-preview"><RichContent blocks={[{ t: "p", c: [{ t: "m", tex: value }] }]} /></div>}
-      <span className="hint">Nhập dạng LaTeX; bản xem trước hiện bên dưới.</span>
-    </div>
-  );
-}
-
 export function AnswerInput({ input, options, response, onChange, disabled, reveal, parts, partResults, idPrefix = "ans",
                              graded = true }: {
   input: InputSpec; options: OptionView[]; response: Response; onChange: (r: Response) => void; disabled?: boolean; reveal?: Reveal;
@@ -117,9 +106,14 @@ export function AnswerInput({ input, options, response, onChange, disabled, reve
     return <PartsInput parts={parts || []} response={response} onChange={onChange} disabled={disabled} results={partResults}
                        idPrefix={idPrefix} graded={graded} />;
   }
-  if (input.kind === "formula") {
-    return <FormulaInput id={`${idPrefix}-formula`} value={response?.text ?? ""} disabled={disabled}
-                         onChange={(t) => onChange(t.trim() ? { text: t } : null)} />;
+  if (input.kind === "math" || input.kind === "formula") {
+    return (
+      <div className="answer-box">
+        <MathInput id={`${idPrefix}-math`} label="Đáp án (biểu thức):" value={response?.text ?? ""} disabled={disabled}
+                   onChange={(t) => onChange(t.trim() ? { text: t } : null)} />
+        <span className="hint">Nhập biểu thức; các cách viết tương đương đều được tính đúng.</span>
+      </div>
+    );
   }
   if (input.kind === "choice") {
     const labels = response?.labels || [];
@@ -213,6 +207,14 @@ export function AnswerInput({ input, options, response, onChange, disabled, reve
   );
 }
 
+/** A key as shown to the student: expressions rendered as formulas, everything else as text. */
+export function AnswerValue({ a, display }: { a: Answer | null | undefined; display?: string[] }) {
+  if (a && (a.kind === "math_expression" || a.kind === "formula")) {
+    return <span className="inline-math"><RichContent blocks={[{ t: "p", c: [{ t: "m", tex: a.tex }] }]} /></span>;
+  }
+  return <>{answerText(a, display)}</>;
+}
+
 export function answerText(a: Answer | null | undefined, display?: string[]): string {
   if (!a) return "Chưa có đáp án";
   switch (a.kind) {
@@ -222,6 +224,7 @@ export function answerText(a: Answer | null | undefined, display?: string[]): st
     case "tf_sequence": return a.values.map((v, i) => `${String.fromCharCode(97 + i)}) ${v ? "Đúng" : "Sai"}`).join("; ");
     case "boolean": return a.value ? "Đúng" : "Sai";
     case "formula": return a.tex;
+    case "math_expression": return a.tex;
     case "parts": return Object.keys(a.parts).length ? "đáp án và lời giải ở từng ý" : "Chưa có đáp án";
   }
 }
@@ -232,7 +235,7 @@ export function Solution({ q, answer, answerDisplay }: { q: QuestionView | { sol
   if (multi && !sol && !expl) return null;   // each item shows its own key and solution
   return (
     <div className="solution">
-      {!multi && <div className="key-line">Đáp án: <span className="badge ok" style={{ fontSize: ".95rem" }}>{answerText(answer, answerDisplay)}</span></div>}
+      {!multi && <div className="key-line">Đáp án: <span className="badge ok" style={{ fontSize: ".95rem" }}><AnswerValue a={answer} display={answerDisplay} /></span></div>}
       {expl && <><h4>Phương pháp</h4><RichContent blocks={expl} /></>}
       {sol && <><h4 style={{ marginTop: expl ? 12 : 0 }}>Lời giải</h4><RichContent blocks={sol} /></>}
       {!sol && !expl && !multi && <div className="muted small">Tài liệu nguồn chưa có lời giải chi tiết cho câu này.</div>}

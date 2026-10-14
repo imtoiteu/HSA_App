@@ -23,6 +23,7 @@ export type InputSpec =
   | { kind: "tf_sequence"; n: number }
   | { kind: "boolean" }
   | { kind: "formula" }
+  | { kind: "math" }
   | { kind: "parts"; parts: ({ key: string } & InputSpec)[] }
   | { kind: "none" };
 
@@ -33,6 +34,7 @@ export type Answer =
   | { kind: "tf_sequence"; values: boolean[] }
   | { kind: "boolean"; value: boolean }
   | { kind: "formula"; tex: string; accepted?: string[] }
+  | { kind: "math_expression"; tex: string; accepted?: string[]; variables?: string[]; tolerance?: number }
   | { kind: "parts"; parts: Record<string, Answer> };
 
 export type Response = {

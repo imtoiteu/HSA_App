@@ -84,6 +84,14 @@ def fraction_correct(answer: dict, resp: dict, cfg: dict) -> float:
         if rule == "thpt2025" and len(want) == 4:
             return THPT2025_TF[n_ok]
         return 0.0
+    if k in ("math_expression", "formula"):
+        from ..content.mathexpr import equivalent
+        got = resp.get("text") or ""
+        keys = answer.get("accepted") or [answer["tex"]]
+        if answer["tex"] not in keys:
+            keys = [answer["tex"]] + keys
+        tol = float(answer.get("tolerance") or 1e-6)
+        return 1.0 if got.strip() and any(equivalent(got, k_, answer.get("variables"), tol) for k_ in keys) else 0.0
     if k == "text":
         got = norm_text(resp.get("text") or "")
         return 1.0 if any(norm_text(a) == got for a in answer.get("accepted") or [answer["text"]]) else 0.0

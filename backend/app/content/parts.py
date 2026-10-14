@@ -16,7 +16,7 @@ Answer (question_version.answer): the parent has no single answer, only one per 
   {"kind": "parts", "parts": {"p1": {"kind": "choice", "labels": ["B"]},
                               "p2": {"kind": "numeric", "value": 2.5, "text": "2,5", "unit": null},
                               "p3": {"kind": "text", "text": "...", "accepted": [...]},
-                              "p4": {"kind": "formula", "tex": "x^2+1", "accepted": [...]},
+                              "p4": {"kind": "math_expression", "tex": "x^2+1", "accepted": [...]},
                               "p5": {"kind": "boolean", "value": true}}}
 
 Input spec: {"kind": "parts", "parts": [{"key": "p1", "kind": "choice", "multi": false}, ...]}
@@ -33,7 +33,7 @@ from . import answers as A
 
 QTYPE = "multi_part"
 ANSWER_TYPES = ("choice", "numeric", "text", "formula", "boolean")
-ANSWER_TYPE_LABELS = {"choice": "Chọn phương án", "numeric": "Số", "text": "Chữ", "formula": "Công thức",
+ANSWER_TYPE_LABELS = {"choice": "Chọn phương án", "numeric": "Số", "text": "Chữ", "formula": "Biểu thức / Công thức toán",
                       "boolean": "Đúng/Sai"}
 MAX_PARTS = 12
 KEY_RE = re.compile(r"^p\d{1,3}$")
@@ -51,7 +51,9 @@ def part_input(p: dict) -> dict:
     t = p.get("answer_type")
     if t == "choice":
         return {"kind": "choice", "multi": bool(p.get("multi"))}
-    if t in ("numeric", "text", "formula", "boolean"):
+    if t == "formula":
+        return {"kind": "math"}
+    if t in ("numeric", "text", "boolean"):
         return {"kind": t}
     return {"kind": "none"}
 
@@ -125,11 +127,13 @@ def normalize_part_answer(p: dict, raw: dict | None) -> dict | None:
         acc = [str(x).strip() for x in raw.get("accepted") or [] if str(x).strip()]
         return {"kind": "text", "text": text, "accepted": acc or [text]}
     if t == "formula":
-        tex = str(raw.get("tex") or raw.get("text") or "").strip().strip("$")
-        if not tex:
+        if not str(raw.get("tex") or raw.get("text") or "").strip():
             return None
-        acc = [str(x).strip().strip("$") for x in raw.get("accepted") or [] if str(x).strip()]
-        return {"kind": "formula", "tex": tex, "accepted": acc or [tex]}
+        from ..review.content import ContentError, normalize_math
+        try:
+            return normalize_math(raw)   # graded by algebraic equivalence, like a "math_expression" key
+        except ContentError as ex:
+            raise PartError(f"Ý {lab}: {ex}") from None
     if t == "boolean":
         if raw.get("value") not in (True, False):
             return None
@@ -216,16 +220,13 @@ def validate_response(inp: dict, resp: dict, content: dict, validate_one) -> dic
         if key not in spec:
             continue
         s = spec[key]
-        one = {"kind": "text"} if s["kind"] == "formula" else s
+        one = {"kind": "math"} if s["kind"] in ("formula", "math") else s
         out[key] = validate_one(one, r, opts.get(key) or [])
     return {"parts": out}
 
 
 def fraction_one(answer: dict, resp: dict, cfg: dict, fraction_correct) -> float:
-    if answer["kind"] == "formula":
-        got = norm_tex(resp.get("text") or "")
-        return 1.0 if got and any(norm_tex(a) == got for a in answer.get("accepted") or [answer["tex"]]) else 0.0
-    return fraction_correct(answer, resp, cfg)
+    return fraction_correct(answer, resp, cfg)   # formula keys: algebraic equivalence (exam/scoring)
 
 
 def results(content: dict, answer: dict | None, resp: dict | None, cfg: dict, fraction_correct) -> list[dict]:

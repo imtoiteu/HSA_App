@@ -30,7 +30,7 @@ def mp_content():
 def mp_answer():
     return {"kind": "parts", "parts": {"p1": {"kind": "numeric", "value": 3.0, "text": "3", "unit": None},
                                         "p2": {"kind": "choice", "labels": ["A"]},
-                                        "p3": {"kind": "formula", "tex": "2x-4", "accepted": ["2x-4"]},
+                                        "p3": {"kind": "math_expression", "tex": "2x-4", "accepted": ["2x-4"]},
                                         "p4": {"kind": "boolean", "value": True}}}
 
 
@@ -51,7 +51,7 @@ def test_part_answers_are_normalised_and_checked():
 
 def test_items_are_scored_by_their_own_kind_and_weighted():
     c, a = mp_content(), mp_answer()
-    resp = {"parts": {"p1": {"value": "3"}, "p2": {"labels": ["B"]}, "p3": {"text": "2 x - 4"},
+    resp = {"parts": {"p1": {"value": "3"}, "p2": {"labels": ["B"]}, "p3": {"text": "2(x-2)"},
                       "p4": {"value": True}}}
     rs = {r["key"]: r["outcome"] for r in P.results(c, a, resp, {}, fraction_correct)}
     assert rs == {"p1": "correct", "p2": "incorrect", "p3": "correct", "p4": "correct"}

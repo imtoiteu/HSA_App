@@ -10,10 +10,12 @@ Normalised answers:
   {"kind":"text","text":"...","accepted":["..."]}     short response (self-check unless configured)
   {"kind":"tf_sequence","values":[true,false,...]}    true/false statements a) b) c) d)
   {"kind":"boolean","value":true}                    single true/false without options
+  {"kind":"math_expression","tex":"\\frac{a\\sqrt6}{6}","accepted":[...],"variables":["a"],"tolerance":1e-6}
+                                                      an expression, graded by algebraic equivalence (mathexpr)
 
 Input spec (what the student enters):
   {"kind":"choice","multi":false} | {"kind":"numeric"} | {"kind":"text"} |
-  {"kind":"tf_sequence","n":4} | {"kind":"boolean"} | {"kind":"none"}
+  {"kind":"tf_sequence","n":4} | {"kind":"boolean"} | {"kind":"math"} | {"kind":"none"}
 """
 import re
 import unicodedata
@@ -66,6 +68,8 @@ def statement_count(stem_md: str) -> int:
 
 
 def input_spec(qtype: str, options: list, answer: dict | None, stem_md: str = "") -> dict:
+    if answer and answer["kind"] == "math_expression":
+        return {"kind": "math"}
     if answer and answer["kind"] == "choice":
         return {"kind": "choice", "multi": qtype == "multiple_choice" or len(answer["labels"]) > 1}
     if qtype in CHOICE_TYPES or (qtype == "true_false" and options):

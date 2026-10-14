@@ -156,6 +156,11 @@ def validate_response(inp: dict, resp, option_labels: list[str], content: dict |
         if t is not None and not isinstance(t, str):
             raise SessionError("Giá trị không hợp lệ.")
         return {"text": (t or "")[:2000]}
+    if k in ("math", "formula"):   # LaTeX from MathLive; graded by algebraic equivalence
+        t = resp.get("text")
+        if t is not None and not isinstance(t, str):
+            raise SessionError("Giá trị không hợp lệ.")
+        return {"text": (t or "")[:400]}
     if k == "tf_sequence":
         vals = resp.get("values")
         if not isinstance(vals, list) or len(vals) > inp.get("n", 0) or \
