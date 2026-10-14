@@ -269,6 +269,8 @@ especially the no-text rendering, take its place. Their precision is measured on
 | W4 | next 10 documents of the pool (mathematics and physics) | 584 | 19 | 115 | 10 076 | 23 895 |
 | W5 | next 15 documents of the pool | 522 | 101 | 139 | 10 177 | 23 996 |
 | fix W5 | 11 promoted questions withdrawn and rebuilt (see below) | 11 | 11 | 0 | 10 177 | 23 996 |
+| W6 | next 20 documents of the pool | 488 | 55 | 89 | 10 232 | 24 051 |
+| fix W6 | 110 promoted questions withdrawn; 109 rebuilt and re-promoted, 1 back to Review Studio (see below) | 110 | 109 | 0 | 10 231 | 24 050 |
 
 W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
 unsupported_objects batch running alongside it.
@@ -298,3 +300,24 @@ is under it but is more than 0.6 em from anything above it is now an overline. I
 space between a number and a Vietnamese word when the PDF has no space glyph ("3là"), and a formula running across a
 full stop ("AD = a. SA vuông" → "a.SA"; "W = 4. W_đ" stays one product). Each fix is covered by a test. The regression
 of all 289 Word-promoted questions changed 11, all corrections. They were withdrawn, rebuilt and re-promoted.
+
+**Correction after W6.** The spot check found two faults:
+- a piecewise function whose conditions stand in a second column ("… khi x ≠ 1"), where the second row lost its
+  condition and the italic "khi" became the variables k·h·i (q34062);
+- separate short solution lines joined into one paragraph, "I₀ = 2√2A tan(…)" (q61201): the "line reaches the right
+  margin" test used the widest line of the solution itself.
+
+The regression then found a worse, older error: a single large ∫ glyph sits lower than the text, so it became a line
+of its own (moved to the end of the sentence), and its upper limit lay above the question's band and was lost
+(q17935, q25607).
+
+The fixes:
+- a column shared by two rows of a system becomes `&` in `cases`;
+- "khi" / "hay" in the equation font is `\text{}`;
+- paragraphs use the question's right margin per page;
+- a big ∫/∑/∏ is placed on the line through its middle, its limits are attached (and measured on the sign), and the
+  band reaches up to its upper limit.
+
+Each fix is covered by a test. The regression of all 344 Word-promoted questions changed 110; most are faithful line
+splits. All 110 were withdrawn and rebuilt: 109 were re-promoted and now match the engine exactly. q17935 is now held
+by the ink check and waits in Review Studio.
