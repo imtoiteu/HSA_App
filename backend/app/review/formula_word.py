@@ -735,6 +735,7 @@ def build_bar(atoms: list[Atom], s: Stroke, S: float) -> list[Atom]:
             and a.x0 >= s.x0 - 3 and a.x1 <= s.x1 + 3]
     num = [a for a in span if a.bot <= s.y + 1.0 and a.base >= s.y - 1.7 * S and a.base < s.y]
     den = [a for a in span if a.top >= s.y - 1.0 and a.base <= s.y + 2.4 * S and a.base > s.y]
+    near_above = max((a.bot for a in num if a.kind != "sp"), default=None)
     num, den = stack(num, s.y, True, S), stack(den, s.y, False, S)
 
     def formula_part(part):
@@ -746,6 +747,8 @@ def build_bar(atoms: list[Atom], s: Stroke, S: float) -> list[Atom]:
             return False   # an underlined label ("Chọn C") over the next line is no fraction
         c = (min(a.x0 for a in part) + max(a.x1 for a in part)) / 2
         return abs(c - (s.x0 + s.x1) / 2) <= 0.25 * s.w + 1.5
+    if num and den and s.y - near_above > 0.6 * S and min(a.top for a in den) - s.y < 0.3 * S:
+        return atoms   # touching what is under it, far from what is above: an overline (conjugate z̄), no fraction
     if num and den and formula_part(num) and formula_part(den):
         small = max(a.size for a in num + den) < 0.82 * S
         tex = (r"\frac{%s}{%s}" if small else r"\dfrac{%s}{%s}") % (math_tex(num), math_tex(den))
@@ -1022,9 +1025,27 @@ def words_of(L: Line, S: float) -> list[list[Atom]]:
         prev = a if main else (prev or a)
     if cur:
         out.append(cur)
+    out = [p for w in out for p in split_viet_gap(w, S)]
     for w in out:
         absorb_letters(w)
     return [p for w in out for p in split_mixed(w, L, S)]
+
+
+def split_viet_gap(w: list[Atom], S: float) -> list[list[Atom]]:
+    """A gap without a space glyph between a number/formula and a Vietnamese word ("3 là") is a space too."""
+    for i in range(1, len(w)):
+        a, b = w[i - 1], w[i]
+        if b.x0 - a.x1 <= 0.12 * S or (a.kind == "t") == (b.kind == "t"):
+            continue
+        side = w[i:] if b.kind == "t" else w[:i]
+        letters = []
+        for c in (side if b.kind == "t" else reversed(side)):
+            if c.kind != "t":
+                break
+            letters.append(c)
+        if any(not c.val.isascii() for c in letters):
+            return [w[:i]] + split_viet_gap(w[i:], S)
+    return [w]
 
 
 def absorb_letters(w: list[Atom]):
@@ -1105,6 +1126,14 @@ def word_kind(w: list[Atom], S: float | None = None) -> str:
     return "n"
 
 
+def sentence_end(ws: list[list[Atom]], kinds: list[str], j: int) -> bool:
+    """"… AD = a. SA vuông …": a formula word ending in a letter and a full stop, then a space and one capitalised
+    formula word followed by text, ends the sentence ("4. W" in "W = 4. W_đ = …" is a product)."""
+    w, nxt = ws[j], ws[j + 1]
+    return len(w) > 1 and w[-1].val == "." and w[-2].kind == "v" and bool(nxt) and nxt[0].val[:1].isupper() and \
+        (j + 2 >= len(ws) or kinds[j + 2] == "t")
+
+
 def line_nodes(L: Line, S: float) -> list[dict]:
     ws = words_of(L, S)
     kinds = [word_kind(w, S) for w in ws]
@@ -1130,7 +1159,7 @@ def line_nodes(L: Line, S: float) -> list[dict]:
             i += 1
             continue
         j = i
-        while j + 1 < len(ws) and (kinds[j + 1] == "m" or (kinds[j + 1] == "n" and j + 2 < len(ws) and kinds[j + 2] == "m"
+        while j + 1 < len(ws) and not sentence_end(ws, kinds, j) and (kinds[j + 1] == "m" or (kinds[j + 1] == "n" and j + 2 < len(ws) and kinds[j + 2] == "m"
                                                             and not re.fullmatch(r"[.,;:]", "".join(a.val for a in ws[j + 1])))):
             j += 1
         run = [a for w in ws[i:j + 1] for a in w]

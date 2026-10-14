@@ -198,3 +198,33 @@ def test_centred_system_rows_keep_their_labels():
     assert res.reason == ""
     assert any(r"\begin{cases} x>2 \quad (3) \\ x+y\ge011 \quad (7) \\ y<41 \quad (4) \end{cases}" in t
                for t in math_nodes(res)), math_nodes(res)
+
+
+def test_conjugate_bar_touching_the_letter_under_it_is_an_overline_not_a_fraction():
+    # "Cho z1 là …" on one line, "w = z̄" on the next: the bar over z must not take z1 of the line above as a numerator
+    stem, x = text("Cho ", TNR, 90, 100)
+    stem += [g("z", TNRI, x, 100), g("1", TNR, x + 6, 103, size=7)]
+    stem += text(" là số phức", TNR, x + 12, 100)[0]
+    stem += [g("w", TNRI, 90, 126), g("=", TNR, 98, 126), g("z", TNRI, x, 126), g("2", TNR, x + 6, 129, size=7)]
+    res = question(stem, strokes=[hline(x - 0.5, x + 6.5, 115.6)])
+    assert res.reason == ""
+    assert r"w=\overline{z}_2" in math_nodes(res) and not any(r"\frac" in t for t in math_nodes(res))
+
+
+def test_number_then_vietnamese_word_without_space_glyph():
+    stem, x = text("chia hết cho ", TNR, 90, 100)
+    stem += [g("3", TNR, x, 100)]
+    stem += text("là", TNR, x + 6 + 1.9, 100)[0]
+    res = question(stem)
+    assert res.reason == ""
+    assert "cho 3 là" in "".join(n.get("v", "") or n.get("tex", "") for b in res.content["stem"] for n in b["c"])
+
+
+def test_full_stop_after_a_formula_ends_it():
+    stem, x = text("Cho ", TNR, 90, 100)
+    stem += [g("A", TNRI, x, 100), g("D", TNRI, x + 7, 100), g("=", TNR, x + 15, 100), g("a", TNRI, x + 23, 100),
+             g(".", TNR, x + 29, 100), g(" ", TNR, x + 32, 100, w=3), g("S", TNRI, x + 35, 100), g("A", TNRI, x + 42, 100)]
+    stem += text(" vuông", TNR, x + 49, 100)[0]
+    res = question(stem)
+    assert res.reason == ""
+    assert math_nodes(res) == ["AD=a", "SA"]
