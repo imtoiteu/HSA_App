@@ -266,6 +266,7 @@ especially the no-text rendering, take its place. Their precision is measured on
 | W2 | Chuyên đề 18 (Hàm số mũ - logarit) + Chuyên đề 1 (Tính đơn điệu) | 389 | 40 | 23 | 9 995 | 23 814 |
 | W3 | Chuyên đề 20, 3, 2, 10, 21, 17 (bất phương trình mũ-log, GTLN-GTNN, cực trị, thể tích khối chóp, khối nón, biến đổi logarit) | 715 | 55 | 139 | 10 057 | 23 876 |
 | fix W3 | 3 promoted questions withdrawn and rebuilt (see below) | 3 | 3 | 0 | 10 057 | 23 876 |
+| W4 | next 10 documents of the pool (mathematics and physics) | 584 | 19 | 115 | 10 076 | 23 895 |
 
 W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
 unsupported_objects batch running alongside it.
@@ -284,3 +285,7 @@ its last label. The fixes: a run made only of function names is split; a word af
 rows centred under the widest row belong to the system; a label "(n)" / "(I)" ends its row as `\quad (n)`. Each
 fix is covered by a test. The regression of all 169 Word-promoted questions found these 2 plus one more (q50016,
 a stray "(1)" line). All 3 were withdrawn, rebuilt and re-promoted, and their served content now matches the engine.
+
+W4: 10 promoted questions spot-checked against the PDF, all correct. Most drafts are held back by the existing
+gates, not by the rebuild: answer evidence from a single source (60), subject unclassified (35), and one subject
+conflict.
