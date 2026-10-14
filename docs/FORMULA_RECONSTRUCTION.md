@@ -264,6 +264,8 @@ especially the no-text rendering, take its place. Their precision is measured on
 | W1 | Chuyên đề 19. Phương trình mũ - logarit (doc_8b6e30…) | 364 | 74 | 12 | 9 863 | 23 682 |
 | fix W1 | 5 promoted questions withdrawn and rebuilt (see below) | 5 | 5 | 0 | 9 863 | 23 682 |
 | W2 | Chuyên đề 18 (Hàm số mũ - logarit) + Chuyên đề 1 (Tính đơn điệu) | 389 | 40 | 23 | 9 995 | 23 814 |
+| W3 | Chuyên đề 20, 3, 2, 10, 21, 17 (bất phương trình mũ-log, GTLN-GTNN, cực trị, thể tích khối chóp, khối nón, biến đổi logarit) | 715 | 55 | 139 | 10 057 | 23 876 |
+| fix W3 | 3 promoted questions withdrawn and rebuilt (see below) | 3 | 3 | 0 | 10 057 | 23 876 |
 
 W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
 unsupported_objects batch running alongside it.
@@ -274,3 +276,11 @@ in the rebuild (fixed). With the corrected check they passed, and 47 of them wer
 system's bracket and come out as a row of its own. The fix (a nucleus is never a system's tall bracket) is
 covered by a test. The regression of all 74 promoted questions found 2 with that error and 3 with an opening
 bracket kept inside a formula before a remark ("4 (thỏa)"). All 5 were withdrawn, rebuilt and re-promoted.
+
+**Correction after W3.** The spot check found two engine errors: two function names written together ("ln sin A"
+came out as the word "lnsin"), and a word right after a system row ("với R") whose first ASCII letter went into
+the row. In a third question, a system with centred rows and equation labels (1), (2), (3) lost its first row and
+its last label. The fixes: a run made only of function names is split; a word after a row gives its letters back;
+rows centred under the widest row belong to the system; a label "(n)" / "(I)" ends its row as `\quad (n)`. Each
+fix is covered by a test. The regression of all 169 Word-promoted questions found these 2 plus one more (q50016,
+a stray "(1)" line). All 3 were withdrawn, rebuilt and re-promoted, and their served content now matches the engine.
