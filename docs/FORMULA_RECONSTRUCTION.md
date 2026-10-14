@@ -273,6 +273,7 @@ especially the no-text rendering, take its place. Their precision is measured on
 | fix W6 | 110 promoted questions withdrawn; 109 rebuilt and re-promoted, 1 back to Review Studio (see below) | 110 | 109 | 0 | 10 231 | 24 050 |
 | W7 | next 25 documents of the pool | 1 377 | 36 | 88 | 10 267 | 24 086 |
 | fix W7 | 4 promoted questions withdrawn and rebuilt (see below) | 4 | 4 | 0 | 10 267 | 24 086 |
+| W8 | next 35 documents of the pool | 2 094 | 38 | 81 | 10 305 | 24 124 |
 
 W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
 unsupported_objects batch running alongside it.
@@ -330,3 +331,6 @@ scripts: λ_max came out as a raised λ before "max" (Greek letters did not coun
 parentheses). Both fixes are covered by tests. The regression of all 379 Word-promoted questions changed 4, all
 corrections (also q64019, q28774). They were withdrawn, rebuilt and re-promoted. Four questions are refused only by
 the local ink check (11–14 px); the production check passes them, and the ones looked at match their source.
+
+W8: 10 promoted questions spot-checked against the PDF, all correct ("m_e = 9,1.10³¹ kg" without the minus sign is the
+source's own typo, kept as is).
