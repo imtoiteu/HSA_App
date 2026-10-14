@@ -274,6 +274,8 @@ especially the no-text rendering, take its place. Their precision is measured on
 | W7 | next 25 documents of the pool | 1 377 | 36 | 88 | 10 267 | 24 086 |
 | fix W7 | 4 promoted questions withdrawn and rebuilt (see below) | 4 | 4 | 0 | 10 267 | 24 086 |
 | W8 | next 35 documents of the pool | 2 094 | 38 | 81 | 10 305 | 24 124 |
+| W9 | last 53 documents of the prepared list | 1 814 | 31 | 43 | 10 336 | 24 155 |
+| fix W9 | 3 promoted questions withdrawn and rebuilt (see below) | 3 | 3 | 0 | 10 336 | 24 155 |
 
 W1 was redone after the database restore of 2026-10-14 (same result: 74 promoted). Counts after W2 include the
 unsupported_objects batch running alongside it.
@@ -334,3 +336,13 @@ the local ink check (11–14 px); the production check passes them, and the ones
 
 W8: 10 promoted questions spot-checked against the PDF, all correct ("m_e = 9,1.10³¹ kg" without the minus sign is the
 source's own typo, kept as is).
+
+**Correction after W9.** The spot check found enlarged parentheses around radicals turned into subscripts:
+x²(√(x²+16)+4) came out as x²₍ … ₎ (q5642). MathType sets such brackets about 3 pt below the row, more than the
+baseline tolerance. A bracket of at least 1.1× the row's size that spans the row's baseline is now part of the row.
+This is covered by a test. The regression of all 448 Word-promoted questions changed 3 (also q22700, q32473), all
+corrections. They were withdrawn, rebuilt and re-promoted.
+
+The examined counts of W7–W9 are larger than the candidate counts of the prepared list. That list left out questions
+carrying the accidental "not LaTeX-typeset" skip events of the LaTeX phase, but the Word batch does examine them. 32
+Word documents were left off the list entirely for the same reason and are processed in W10.
