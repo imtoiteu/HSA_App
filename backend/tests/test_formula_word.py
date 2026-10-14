@@ -298,3 +298,29 @@ def test_enlarged_brackets_around_radicals_are_not_scripts():
            at(r"\sqrt{7}", "box", 115, 100, w=10), at("+", "m", 127, 100), at("4", "n", 135, 100),
            at(")", "delim", 141, 103, size=16, w=4)]
     assert W.math_tex(row) == r"x^2(\sqrt{7}+4)"
+
+
+def test_percent_in_a_formula_is_escaped():
+    row = [at("8", "n", 100, 100), at("7", "n", 106, 100), at("%", "n", 112, 100), at("m", "v", 120, 100)]
+    assert W.math_tex(row) == r"87\%m"
+
+
+def test_repeated_shading_box_behind_a_text_line_is_not_a_header():
+    # the yellow box behind a solution's first line sits at the same place on two pages: not page furniture,
+    # and the line in it on the continuation page stays in the body
+    pages = {}
+    for n in (1, 2):
+        gl, _ = text("Đáp án D: Sai. Ion oxi hóa", TNR, 60, 96)
+        pages[n] = W.Page(n, 600, 840, gl, [W.Stroke("rect", 50, 550, 84, 106)])
+    W.furniture(pages)
+    assert all(st.role != "furniture" for p in pages.values() for st in p.strokes)
+    assert pages[2].body_top < 90
+
+
+def test_garbled_structures_are_refused():
+    import pytest
+    for t in (r"\dfrac{=}{T}", r"N=N_02^{-^1}", r"x_{(}^2", r"{}_{(}\sqrt{7}", r"a^{=0}"):
+        with pytest.raises(W.Unresolved):
+            W.garbled(t)
+    for t in (r"\dfrac{x-1}{2}", r"2^{-\frac{t}{T}}", r"x_G=\dfrac{1+(-1)}{3}", r"\lambda_{\max}"):
+        W.garbled(t)

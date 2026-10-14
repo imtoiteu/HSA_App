@@ -410,6 +410,8 @@ def grp(t: str) -> str:
 
 
 def tok_tex(a: Atom) -> str:
+    if a.val in ("%", "#", "&", "$"):
+        return "\\" + a.val   # "87,5%m₀": a bare % would start a TeX comment
     if a.kind in ("v", "t", "n"):
         return a.val
     if a.kind == "delim":
@@ -1354,20 +1356,33 @@ def furniture(pages: dict[int, Page]):
             if not 0.15 * pg.height < st.y < 0.85 * pg.height:
                 seen.setdefault((st.kind, round(st.x0), round(st.x1), round(st.top), round(st.bot)), set()).add(pno)
     for pno, pg in pages.items():
+        lines = [L for L in rough_lines([g for g in pg.glyphs if g.upright]) if sum(g.ch.isalnum() for g in L) >= 5]
         for st in pg.strokes:
             k = (st.kind, round(st.x0), round(st.x1), round(st.top), round(st.bot))
-            if len(seen.get(k, ())) >= 2:
+            # a shading box behind a line of text (a solution's first line) is not a header, even when repeated
+            shades = any(st.top - 1 <= L[0].base <= st.bot + 1 and min(g.x0 for g in L) < st.x1 and
+                         max(g.x1 for g in L) > st.x0 for L in lines)
+            if len(seen.get(k, ())) >= 2 and not shades:
                 st.used, st.role = True, "furniture"
         # the body of a continuation page starts under its header
         hdr = [st.bot for st in pg.strokes if st.role == "furniture" and st.y < 0.15 * pg.height] + \
               [g.bot for g in pg.glyphs if id(g) in pg.furniture and g.base < 0.15 * pg.height]
         pg.body_top = max(hdr) + 0.5 if hdr else MARGIN * pg.height
+        pg.above_body = [L for L in lines if MARGIN * pg.height <= L[0].base < pg.body_top]
     for key, v in list(keys.items()):
         if key[0] == "ids":
             continue
         if len(v) >= 2:   # repeated on another page (a lone line of digits may be a row of exponents)
             for pno in v:
                 pages[pno].furniture |= {id(g) for g in keys[("ids", pno, key[0], key[1])]}
+
+
+def check_above_body(pg: Page):
+    """A continuation page's body starts under its header: a real text line above that point would be lost."""
+    fur = getattr(pg, "furniture", set())
+    for L in getattr(pg, "above_body", []):
+        if not any(id(g) in fur for g in L):
+            raise Unresolved(f"text above the body of page {pg.number}: " + text_of(L)[:30])
 
 
 def body(pg: Page) -> list[Glyph]:
@@ -1405,6 +1420,7 @@ def region(pages: dict[int, Page], first: int, number: int):
             if started and not m and is_heading(L):
                 if top is None:
                     top = max(MARGIN * pages[pno].height, pages[pno].body_top)
+                    check_above_body(pages[pno])
                 bands.append((pno, top, end_of(L)))
                 return bands
             if m and any(is_bold(g.font) for g in L[:3]):
@@ -1416,6 +1432,7 @@ def region(pages: dict[int, Page], first: int, number: int):
                 if started:
                     if top is None:
                         top = max(MARGIN * pages[pno].height, pages[pno].body_top)
+                        check_above_body(pages[pno])
                     bands.append((pno, top, end_of(L)))
                     return bands
             if started and sum(1 for g in L if g.ch.isalnum() and g.size >= 0.85 * psize) >= 3:
@@ -1424,6 +1441,7 @@ def region(pages: dict[int, Page], first: int, number: int):
             raise Unresolved(f"'Câu {number}' not found on page {first}")
         if top is None:
             top = max(MARGIN * pages[pno].height, pages[pno].body_top)
+            check_above_body(pages[pno])
         bands.append((pno, top, (1 - MARGIN) * pages[pno].height))
     raise Unresolved("the question's end was not found")
 
@@ -1555,9 +1573,23 @@ def layout_question(pages: dict[int, Page], first: int, number: int) -> Result:
             raise Unresolved("no text in the question's region")
         res.content, res.answer_in_solution = structure(all_lines, number, res.stats["size"])
         res.tex = all_tex(res.content)
+        for t in res.tex:
+            garbled(t)
     except Unresolved as ex:
         res.content, res.reason = None, str(ex)
     return res
+
+
+GARBLED = re.compile(r"\\d?frac\{[=<>+\-]\}|\\d?frac\{[^{}]*\}\{[=<>]\}|\^\{-\^|[\^_]\{(?:=|\\le|\\ge|<|>)|"
+                     r"[\^_]\{[()\[\]]\}|\{\}_\{[()]")
+
+
+def garbled(tex: str):
+    """Structures no real formula has (a fraction over a lone "=", a script that is a lone bracket or starts with a
+    relation, a script on a bare minus sign): a rebuild that tore an expression apart."""
+    m = GARBLED.search(tex)
+    if m:
+        raise Unresolved(f"garbled structure {m.group(0)!r} in a rebuilt formula")
 
 
 def structure(lines: list[Line], number: int, S: float):
