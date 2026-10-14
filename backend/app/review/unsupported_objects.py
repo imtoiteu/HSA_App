@@ -534,7 +534,7 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
         if db.get(Asset, sf.sha256) is None:
             db.add(Asset(sha256=sf.sha256, ext=sf.ext, mime="image/png", bytes=sf.bytes, width=im.width,
                          height=im.height, source_ref=f"{BATCH}"[:80]))
-            db.flush()
+            db.commit()   # an asset row is harmless on its own; never keep a transaction open across renders
         w, h = im.width, im.height
         if w > 640:   # displayed at most column width; keep the aspect ratio
             w, h = 640, int(h * 640 / w)
@@ -564,15 +564,18 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
             log(f"  SKIP {q.external_id}: {reason}")
 
         doc_id = (q.provenance or {}).get("document_id")
+        base_content = copy.deepcopy(v.content)
+        ext_id, group_key = q.external_id, q.group_key
+        db.rollback()   # no transaction stays open while documents are extracted and drawings rendered
         # the question's text may come from several documents: its occurrences (a separate answer file for the
         # solution) and the document of its shared passage
-        doc_ids = [doc_id] + [o["document_id"] for o in store.up.occurrences(q.external_id)]
-        if q.group_key:
+        doc_ids = [doc_id] + [o["document_id"] for o in store.up.occurrences(ext_id)]
+        if group_key:
             con = store.up._con()
             if con is not None:
                 try:
                     doc_ids += [x[0] for x in con.execute("SELECT document_id FROM question_group WHERE group_id = ?",
-                                                         (q.group_key,))]
+                                                         (group_key,))]
                 finally:
                     con.close()
         drawings, whys = [], []
@@ -591,7 +594,7 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
         def decide_fn(d: Drawing):
             return decide(d, lambda dd: render_cached(dd))
 
-        new, actions, problems, images = resolve(v.content, drawings, decide_fn, store_image if apply else
+        new, actions, problems, images = resolve(base_content, drawings, decide_fn, store_image if apply else
                                                  (lambda data: ("00/" + "0" * 64 + ".png", 1, 1)))
         if problems:
             db.rollback()
