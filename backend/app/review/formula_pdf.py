@@ -1507,9 +1507,15 @@ def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: 
             res.bands[pno] = (top, bot)
             # every glyph inside the band belongs to the question: one left out of its lines (a raised exponent of
             # a numerator that rises above the first line, x in 9^x) would silently vanish from the rebuild
+            # (only at the top edge of the question, where that happens: lower in the band, page furniture such as a
+            # footer is on none of the lines by design)
             mine = {id(g) for L in glines for g in L}
-            left = [g for g in pg.glyphs if id(g) not in mine and not g.ch.isspace()
-                     and top + 2 <= (g.top + g.bot) / 2 <= bot - 1 and 0 < g.x0 < pg.width]
+            fams = {re.match(r"[A-Za-z-]*", g.font).group(0).upper() for g in glyphs}
+            strip = 1.5 * median([g.size for g in glyphs])
+            left = [g for g in pg.glyphs if n_part == 0 and id(g) not in mine and not g.ch.isspace()
+                     and top + 2 <= (g.top + g.bot) / 2 <= top + strip and 0 < g.x0 < pg.width
+                     and pg.body_top <= (g.top + g.bot) / 2 <= pg.body_bot
+                     and re.match(r"[A-Za-z-]*", g.font).group(0).upper() in fams]  # not a watermark's font
             if left:
                 raise Unresolved(f"glyph {left[0].ch!r} inside the question's region is on none of its lines "
                                  f"(page {pno}, y {left[0].base:.0f})")
