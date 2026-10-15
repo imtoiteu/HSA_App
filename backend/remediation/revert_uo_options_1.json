@@ -1,0 +1,32 @@
+[
+ {
+  "cq_id": "cq_7f2edf1da1837a4f",
+  "revert": true,
+  "note": "[unsupported_objects] rút lại: câu một đáp án chỉ còn 2 phương án (C, D bị mất hoặc dính vào B khi tách từ nguồn); thiếu kiểm tra cấu trúc phương án ở batch này, nay đã bổ sung"
+ },
+ {
+  "cq_id": "cq_bee40d54632ef827",
+  "revert": true,
+  "note": "[unsupported_objects] rút lại: câu một đáp án chỉ còn 2 phương án (C, D bị mất hoặc dính vào B khi tách từ nguồn); thiếu kiểm tra cấu trúc phương án ở batch này, nay đã bổ sung"
+ },
+ {
+  "cq_id": "cq_5687c923abc1aa1d",
+  "revert": true,
+  "note": "[unsupported_objects] rút lại: câu một đáp án chỉ còn 2 phương án (C, D bị mất hoặc dính vào B khi tách từ nguồn); thiếu kiểm tra cấu trúc phương án ở batch này, nay đã bổ sung"
+ },
+ {
+  "cq_id": "cq_6d39a1560d24e95f",
+  "revert": true,
+  "note": "[unsupported_objects] rút lại: câu một đáp án chỉ còn 2 phương án (C, D bị mất hoặc dính vào B khi tách từ nguồn); thiếu kiểm tra cấu trúc phương án ở batch này, nay đã bổ sung"
+ },
+ {
+  "cq_id": "cq_141957b866156f39",
+  "revert": true,
+  "note": "[unsupported_objects] rút lại: câu một đáp án chỉ còn 2 phương án (C, D bị mất hoặc dính vào B khi tách từ nguồn); thiếu kiểm tra cấu trúc phương án ở batch này, nay đã bổ sung"
+ },
+ {
+  "cq_id": "cq_e56e035f90739e61",
+  "revert": true,
+  "note": "[unsupported_objects] rút lại: câu một đáp án chỉ còn 2 phương án (C, D bị mất hoặc dính vào B khi tách từ nguồn); thiếu kiểm tra cấu trúc phương án ở batch này, nay đã bổ sung"
+ }
+]

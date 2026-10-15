@@ -24,3 +24,16 @@ def test_flag_blocks_serving():
     assert not ok and "letter_answer_without_options" in reasons
     ok, _ = evaluate(PolicyInput("READY_TO_SERVE", "short_response", "auto", [], False, None), DEFAULT_POLICY)
     assert ok
+
+
+def test_single_choice_without_four_options_is_flagged():
+    four = [{"label": l} for l in "ABCD"]
+    assert not A.option_count_suspect("single_choice", four)
+    assert A.option_count_suspect("single_choice", four[:3]) and A.option_count_suspect("single_choice", four + [{"label": "E"}])
+    assert not A.option_count_suspect("multiple_choice", four[:3]) and not A.option_count_suspect("single_choice", [])
+    content = {"type": "single_choice", "stem": [{"t": "p", "c": [{"t": "s", "v": "Đề"}]}],
+               "options": [{"label": l, "content": [{"t": "p", "c": [{"t": "s", "v": l}]}]} for l in "ABC"],
+               "input": {"kind": "choice", "multi": False}}
+    # a version approved in the Review Studio is trusted: publishing clears the upstream flag
+    assert "option_count_suspect" not in C.derived_flags(content, {"kind": "choice", "labels": ["A"]})
+    assert "option_count_suspect" in C.CONTENT_FLAGS

@@ -238,7 +238,8 @@ def apply_formula_checks(db: Session) -> dict:
     from ..content import answers as A
     rows = db.execute(select(Question, QuestionVersion.content, QuestionVersion.answer).join(
         QuestionVersion, QuestionVersion.id == Question.current_version_id).execution_options(yield_per=1000))
-    derived = ("formula_render_error", "solution_formula_render_error", "render_warning", "letter_answer_without_options")
+    derived = ("formula_render_error", "solution_formula_render_error", "render_warning", "letter_answer_without_options",
+               "option_count_suspect")
     for q, content, answer in rows:
         base = [f for f in q.content_flags if f not in derived]
         flags = set(base) | set(formula_flags(content, failing))
@@ -246,6 +247,9 @@ def apply_formula_checks(db: Session) -> dict:
             flags.add("render_warning")
         if A.letter_key_without_options(content.get("options") or [], answer):
             flags.add("letter_answer_without_options")
+        if q.review_gate != "ready" and A.option_count_suspect(content.get("type") or q.question_type,
+                                                                content.get("options") or []):
+            flags.add("option_count_suspect")
         flags = sorted(flags)
         if flags != sorted(q.content_flags):
             q.content_flags = flags

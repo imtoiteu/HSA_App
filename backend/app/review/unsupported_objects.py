@@ -528,7 +528,7 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
     from ..sync.media import MediaStore
     from . import content as C
     from . import service as S
-    from .remediate import METHOD, Verdict, actor, check_answer, check_subject, solution_contradicts
+    from .remediate import METHOD, Verdict, actor, check_answer, check_structure, check_subject, solution_contradicts
     from .sources import default_store
 
     store = default_store()
@@ -692,6 +692,11 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
         if C.images(v.content) or C.has_table(v.content):
             unresolved("objects resolved (draft in Review Studio); the question has a figure/table to check")
             continue
+        if (v.content.get("type") or q.question_type) == "single_choice":
+            st = check_structure(v.content)   # 4 clean options (the source parse may have lost C/D or glued them)
+            if not st.ok:
+                unresolved(f"objects resolved (draft in Review Studio); {st.reason}")
+                continue
         if not apply:
             stats["promoted"] += 1
             log(f"  OK   {q.external_id}: every gate passes (would be approved)")

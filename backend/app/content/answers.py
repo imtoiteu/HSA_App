@@ -174,6 +174,13 @@ def letter_key_without_options(options: list, answer: dict | None) -> bool:
     return bool(answer) and answer.get("kind") == "text" and not options and bool(LETTER_ONLY.match(answer.get("text") or ""))
 
 
+def option_count_suspect(qtype: str, options: list) -> bool:
+    """A single-choice question of the HSA bank has exactly four options A–D. Measured on the served bank
+    (2026-10-15): every one with 3 or 5 was a parse error — option D glued into C ("6,35 lít. D3,36 lít"), letters
+    of a reaction scheme read as options, a lost option."""
+    return qtype == "single_choice" and bool(options) and len(options) != 4
+
+
 def scoring_mode(inp: dict, answer: dict | None, has_solution: bool, text_auto: bool = False) -> str:
     """auto: the app can score deterministically; self_check: the student compares with the key or
     the worked solution; none: nothing to compare with."""

@@ -580,6 +580,8 @@ def build_question(src: UpstreamSource, q: dict, subject_of=lambda s: s, text_au
         reasons.append("inline_options_in_short_response")
     if A.letter_key_without_options(options, answer):
         reasons.append("letter_answer_without_options")
+    if A.option_count_suspect(q["question_type"], options):
+        reasons.append("option_count_suspect")
     if not R.plain_text(stem).strip() and not any(b["t"] in ("img", "table") for b in stem):
         reasons.append("empty_stem")
     if inp["kind"] == "choice":
