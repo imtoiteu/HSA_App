@@ -382,3 +382,21 @@ The regression of all 509 Word-promoted questions:
 
   None of these is guessed. They stay unresolved for Review Studio.
 - Counts after the phase: review READY 10 395, runtime eligible = serving 24 214 (9 789 / 23 608 before it).
+
+### Batch L1 (2026-10-15): one-edition LaTeX drafts, `formula-pdf --single-edition`
+
+The 959 drafts held only because the book has one edition were measured first: 100 random drafts against the
+page images, 98 exact, 2 had lost a raised script at the top edge of the question's region. The engine now
+refuses that case (a glyph at the region's top edge, in the question's fonts, on none of its lines). The full
+regression of the 3,473 promoted LaTeX questions then showed 4 served questions with a lost prime (t′); they were
+withdrawn.
+
+| Chunk | Examined | Promoted | Kept in Review Studio |
+|---|---|---|---|
+| L1a | 240 | 95 | 145 (141 key table only, 2 occurrences disagree, 2 subject) |
+| L1b | 240 | 79 | 161 |
+| L1c | 240 | 75 | 165 |
+| L1d | 239 | 77 | 162 |
+| **Total** | **959** | **326** | **633** (474 key table only = single answer evidence; about 12 refused by the region guard) |
+
+Spot check: 20 random promoted questions against the PDF, all exact. READY 10,928 → 11,258; serving 23,878 → 24,208.
