@@ -435,6 +435,7 @@ engine vs. fixed engine, 5,280 rebuilds including sibling solutions):
 | F1 | 150 | 43 (15 / 28) | refused or single evidence |
 | F2 | 200 | 53 (12 / 41) | q82257 source conflict (solution says 4, picks A = 5) |
 | F3 | 250 | 56 (14 / 42) | q81983 (a vector arrow of the next line in the crop) |
+| F4 | 250 | 58 (19 / 39) | no engine change needed; all 39 figures confirmed |
 
 A point's name set in the text font next to a drawing ("B" above a square) is a label: the line is cut into
 segments at 1-em gaps and a segment lying wholly beside the drawing is judged as a whole (found on q78551, whose
