@@ -1111,12 +1111,11 @@ def put_alias(body: AliasIn, db: Session = Depends(get_db), admin: User = Depend
         db.add(SubjectAlias(bank_id=bank.id, source_value=body.source_value, subject_code=body.subject_code))
     else:
         a.subject_code = body.subject_code
-    # re-map existing questions immediately
-    from sqlalchemy import update
-    db.execute(update(Question).where(Question.bank_id == bank.id,
-                                      Question.source_subject == (body.source_value or None) if body.source_value
-                                      else Question.source_subject.is_(None))
-               .values(subject_code=body.subject_code))
+    # re-map existing questions immediately, through the same resolution as a sync: an admin override and the
+    # upstream classification still win over the alias (a bulk UPDATE overwrote manual subject changes)
+    db.flush()
+    recompute_policy(db, bank.id)
+    plans_access.clear_cache()
     audit(db, admin, "subject_alias_saved", "subject_alias", f"{body.bank}:{body.source_value}", body.model_dump())
     db.commit()
     return {"ok": True}

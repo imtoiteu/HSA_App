@@ -704,3 +704,52 @@ def test_dialogue_options_split():
     assert M.split_dialogue_options(c, {"labels": ["A"]})[0] is None  # the solution states C's ordering
     bad = {**c, "options": opts[:3] + [{"label": "D", "content": P(lines[3] + " A. a-b-c-d B. a-d-c-b C. b-d-a-a D. b-a-c-d")}]}
     assert M.split_dialogue_options(bad, {"labels": ["C"]})[0] is None  # not a permutation
+
+
+def test_subject_change_is_stored_survives_approval_sync_and_alias_save(admin, refreshed, synced):
+    """Review Studio: a subject chosen for a question is written to the question (and its review row), kept by
+    approval, by a full upstream re-sync and by an alias save; a topic-only change does not touch the subject."""
+    from app.models import QuestionBank, SubjectAlias
+    from app.sync.importer import sync_hsa
+    cid = synced["ids"]["m3"]
+    qid = qid_of(cid)
+
+    def stored():
+        db = SessionLocal()
+        q, r = db.get(Question, qid), db.get(QuestionReview, qid)
+        out = (q.subject_code, q.subject_source, q.subject_override, r.subject_code)
+        db.close()
+        return out
+
+    assert stored()[:3] == ("math", stored()[1], None)
+    # topic only: the source subject stays (no admin override)
+    r = admin.post(f"/api/review/questions/{qid}/subject", {"topic": "Hàm số", "note": "chủ đề"})
+    assert r.status_code == 200 and r.json()["subject"] == "math"
+    assert stored()[2] is None and admin.get(f"/api/review/questions/{qid}").json()["topic"] == "Hàm số"
+
+    r = admin.post(f"/api/review/questions/{qid}/subject", {"subject_code": "physics", "note": "đổi môn"})
+    assert r.status_code == 200 and r.json() == {"subject": "physics", "subject_source": "admin"}
+    assert stored() == ("physics", "admin", "physics", "physics")
+    for dim in ("content", "answer", "formula", "visual", "subject", "source"):
+        admin.post(f"/api/review/questions/{qid}/confirm", {"dim": dim, "state": "ok"})
+    r = admin.post(f"/api/review/questions/{qid}/approve", {"note": "đổi môn và duyệt"})
+    assert r.status_code == 200 and r.json()["gate"] == "ready", r.text
+    d = admin.get(f"/api/review/questions/{qid}").json()  # page reload
+    assert d["subject"] == "physics" and d["subject_override"] == "physics" and d["topic"] == "Hàm số"
+    assert stored() == ("physics", "admin", "physics", "physics")
+
+    db = SessionLocal()
+    sync_hsa(db, Path(os.environ["HSA_UPSTREAM_ROOT"]), Path(os.environ["HSA_MEDIA_ROOT"]), full=True, only=[cid])
+    q = db.get(Question, qid)
+    bank = db.get(QuestionBank, q.bank_id).code
+    src = q.source_subject or ""
+    alias = db.get(SubjectAlias, (q.bank_id, src))
+    target = alias.subject_code if alias else "math"
+    db.close()
+    assert stored() == ("physics", "admin", "physics", "physics"), "a re-sync must keep the reviewer's subject"
+    # saving the alias of the question's source subject re-maps questions, but never over an admin choice
+    assert admin.put("/api/admin/subject-aliases", {"bank": bank, "source_value": src, "subject_code": target}).status_code == 200
+    assert stored()[:3] == ("physics", "admin", "physics"), "an alias save must not overwrite the reviewer's subject"
+
+    assert admin.post(f"/api/review/questions/{qid}/subject", {"subject_code": None}).json()["subject"] == "math"
+    assert stored()[2] is None

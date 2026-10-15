@@ -504,7 +504,10 @@ class SubjectIn(BaseModel):
 def subject(qid: int, body: SubjectIn, db: Session = Depends(get_db), user: User = Depends(staff)):
     need(user, "edit")
     q = _q(db, qid)
-    res = _run(S.set_subject, db, q, user, body.subject_code, body.note, _media())
+    res = {"subject": q.subject_code, "subject_source": q.subject_source}
+    if "subject_code" in body.model_fields_set or "topic" not in body.model_fields_set:
+        # only when sent: a topic-only change must not turn the upstream subject into an admin override
+        res = _run(S.set_subject, db, q, user, body.subject_code, body.note, _media())
     if "topic" in body.model_fields_set:
         res.update(S.set_topic(db, q, user, body.topic, body.note))
     db.commit()

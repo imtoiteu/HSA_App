@@ -14,6 +14,7 @@ import { collectTex } from "./blockdom";
 import MathAnswerEditor, { type MathKey } from "./MathAnswerEditor";
 import PartsEditor, { type PartEdit } from "./PartsEditor";
 import SourceViewer from "./SourceViewer";
+import { subjectChanges, subjectFields } from "./subjectEdit";
 import { texChecks } from "./tex";
 import { DIM_ICON, DIM_KEYS, DIM_TONE, STATUS_LABEL, type ContentDoc, type Detail, type DimState, type Meta, type SourceInfo } from "./rtypes";
 import { useMeta } from "./useMeta";
@@ -21,6 +22,7 @@ import { useMeta } from "./useMeta";
 type Edit = {
   type: string; stem: Block[]; options: { label: string; content: Block[] }[]; answer: Answer | null;
   solution: Block[]; explanation: Block[]; group: ContentDoc["group"]; applyGroup: boolean; parts: PartEdit[];
+  subject: string; topic: string;
 };
 const FILTER_KEYS = ["queue", "subject", "document", "page_from", "page_to", "ready", "answer", "formula", "visual", "findings",
   "assignee", "status", "modified_from", "modified_to", "q", "qtype", "served", "assignment", "sort"];
@@ -30,7 +32,7 @@ function fromDetail(d: Detail): Edit {
   const c = d.working.content;
   return { type: c.type, stem: c.stem || [], options: (c.options || []).map((o) => ({ ...o })), answer: d.working.answer,
            solution: c.solution || [], explanation: c.explanation || [], group: c.group ? { ...c.group } : null, applyGroup: true,
-           parts: (c.parts || []).map((p) => ({ ...p })) };
+           parts: (c.parts || []).map((p) => ({ ...p })), ...subjectFields(d) };
 }
 
 function isTyping(t: EventTarget | null) {
@@ -99,7 +101,10 @@ export default function ReviewStudio() {
     }
     return out;
   }, [edit, d]); // eslint-disable-line react-hooks/exhaustive-deps
-  const dirty = Object.keys(changed).length > 0;
+  // subject/topic are saved through their own endpoint but belong to the same Save / Approve
+  const subjChanged = edit && base ? subjectChanges(edit, base) : null;
+  const contentDirty = Object.keys(changed).length > 0;
+  const dirty = contentDirty || subjChanged !== null;
 
   useEffect(() => {
     const onBefore = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
@@ -112,6 +117,16 @@ export default function ReviewStudio() {
     if (!canEdit) { toast("Vai trò của bạn không được sửa nội dung.", "error"); return false; }
     setBusy(true);
     try {
+      const done: string[] = [];
+      if (subjChanged) {
+        await post(`/api/review/questions/${qid}/subject`, { ...subjChanged, note: note.trim() || undefined });
+        done.push(...("subject_code" in subjChanged ? ["môn"] : []), ...("topic" in subjChanged ? ["chủ đề"] : []));
+      }
+      if (!contentDirty) {
+        toast(`Đã lưu (${done.join(", ")})`, "ok");
+        await load();
+        return true;
+      }
       const texs = collectTex([changed.stem, changed.options, changed.solution, changed.explanation, changed.group].filter(Boolean)
         .map((x) => (Array.isArray(x) ? x : [x])));
       // options are {label, content}: walk their content too
@@ -124,7 +139,8 @@ export default function ReviewStudio() {
       });
       const r = await put<{ changed: boolean; changes?: string[]; group_updated?: number }>(`/api/review/questions/${qid}`,
         { ...changed, note: note.trim() || undefined, source_ref: sourceRef || undefined, tex_checks: texChecks(texs) });
-      toast(r.changed ? `Đã lưu bản nháp (${(r.changes || []).join(", ")})${r.group_updated ? ` · cập nhật ${r.group_updated} câu cùng nhóm` : ""}` : "Không có thay đổi.", "ok");
+      const all = [...done, ...(r.changes || [])];
+      toast(all.length ? `Đã lưu${r.changed ? " bản nháp" : ""} (${all.join(", ")})${r.group_updated ? ` · cập nhật ${r.group_updated} câu cùng nhóm` : ""}` : "Không có thay đổi.", "ok");
       await load();
       return true;
     } catch (e) {
@@ -148,9 +164,14 @@ export default function ReviewStudio() {
   };
   const saveNext = async () => { if (await save()) await next(); };
   const approveNext = async () => {
+    const pickedSubject = subjChanged && "subject_code" in subjChanged ? (subjChanged.subject_code || "theo nguồn") : null;
     if (!(await save())) return;
     setBusy(true);
     try {
+      // the approver chose the subject in this same action: that choice is the subject check (a changed subject
+      // otherwise leaves the check stale and the approval is refused)
+      if (pickedSubject && canConfirm)
+        await post(`/api/review/questions/${qid}/confirm`, { dim: "subject", state: "ok", note: `chọn môn ${pickedSubject} khi phê duyệt` });
       const r = await post<{ gate: string | null; served: boolean; reasons: string[] }>(`/api/review/questions/${qid}/approve`, { note: note.trim() || undefined });
       toast(r.served ? "Đã phê duyệt — câu hỏi READY và đang được phục vụ." : `Đã phê duyệt. Chưa phục vụ: ${r.reasons.join(", ")}`, r.served ? "ok" : "info");
       await next();
@@ -206,7 +227,9 @@ export default function ReviewStudio() {
     setSourceRef(r.source_ref);
   };
   const dimsOrder = ["content", "answer", "formula", "visual", "subject", "source"];
-  const blockers = dimsOrder.filter((k) => !["ok", "na"].includes(d.dims[k].state));
+  // a subject picked in the dropdown by someone who may confirm QA is confirmed on approval (approveNext)
+  const subjectPicked = !!subjChanged && "subject_code" in subjChanged && canConfirm;
+  const blockers = dimsOrder.filter((k) => !["ok", "na"].includes(d.dims[k].state) && !(k === "subject" && subjectPicked));
 
   return (
     <div className="studio">
@@ -276,8 +299,7 @@ export default function ReviewStudio() {
           </div>
 
           {tab === "edit" && (
-            <Editor d={d} edit={edit} up={up} meta={meta} canEdit={canEdit} focused={focused} stemRef={stemRef}
-                    onSubject={async (code, topic, n) => action(`/api/review/questions/${qid}/subject`, { subject_code: code || null, topic, note: n }, "Đã cập nhật môn/chủ đề.")} />
+            <Editor d={d} edit={edit} up={up} meta={meta} canEdit={canEdit} focused={focused} stemRef={stemRef} />
           )}
           {tab === "preview" && <StudentPreview d={d} edit={edit} dirty={dirty} />}
           {tab === "history" && <History d={d} canEdit={canEdit} onRestore={(vid, n) => action(`/api/review/questions/${qid}/restore`, { version_id: vid, note: n }, "Đã khôi phục thành bản nháp.")} />}
@@ -336,16 +358,12 @@ function FailDialog({ label, onClose, onSave }: { label: string; onClose: () => 
 }
 
 // ------------------------------------------------------------------------------------------------
-function Editor({ d, edit, up, meta, canEdit, focused, stemRef, onSubject }: {
+function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
   d: Detail; edit: Edit; up: (p: Partial<Edit>) => void; meta: Meta; canEdit: boolean;
   focused: React.MutableRefObject<EditorHandle | null>; stemRef: React.MutableRefObject<EditorHandle | null>;
-  onSubject: (code: string, topic: string | null, note: string) => void;
 }) {
-  const [subj, setSubj] = useState(d.subject_override || d.subject || "");
-  const [topic, setTopic] = useState(d.topic || "");
   const optRefs = useRef<Record<string, EditorHandle | null>>({});
   const solRef = useRef<EditorHandle | null>(null);
-  useEffect(() => { setSubj(d.subject_override || d.subject || ""); setTopic(d.topic || ""); }, [d.id, d.subject, d.subject_override, d.topic]);
 
   const relabel = (opts: Edit["options"]) => opts.map((o, i) => ({ ...o, label: LETTERS[i] }));
   const removeOpt = (i: number) => {
@@ -372,18 +390,14 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef, onSubject }: {
         </div>
         <div className="field">
           <label htmlFor="ed-subj">Môn {d.subject_source === "admin" ? "(đã ghi đè)" : `(nguồn: ${d.upstream_subject || "chưa phân loại"})`}</label>
-          <select id="ed-subj" className="input" value={subj} disabled={!canEdit} onChange={(e) => setSubj(e.target.value)}>
+          <select id="ed-subj" className="input" value={edit.subject} disabled={!canEdit} onChange={(e) => up({ subject: e.target.value })}>
             <option value="">Theo nguồn ({d.upstream_subject || "chưa phân loại"})</option>
             {meta.subjects.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
           </select>
         </div>
         <div className="field">
           <label htmlFor="ed-topic">Chủ đề</label>
-          <div className="row" style={{ gap: 6 }}>
-            <input id="ed-topic" className="input" value={topic} disabled={!canEdit} onChange={(e) => setTopic(e.target.value)} />
-            <button className="btn secondary sm" disabled={!canEdit || (subj === (d.subject_override || d.subject || "") && topic === (d.topic || ""))}
-                    onClick={() => onSubject(subj, topic || null, "")}>Áp dụng</button>
-          </div>
+          <input id="ed-topic" className="input" value={edit.topic} disabled={!canEdit} onChange={(e) => up({ topic: e.target.value })} />
         </div>
       </div>
       {d.classification_review && <div className="small muted">Nguồn đánh dấu cần xem lại môn ({d.classification_review}).</div>}
