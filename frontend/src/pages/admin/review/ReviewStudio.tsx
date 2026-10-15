@@ -19,6 +19,7 @@ import { texChecks } from "./tex";
 import { DIM_ICON, DIM_KEYS, DIM_TONE, STATUS_LABEL, type ContentDoc, type Detail, type DimState, type Meta, type SourceInfo } from "./rtypes";
 import { useMeta } from "./useMeta";
 
+type Patch = Partial<Edit> | ((e: Edit) => Partial<Edit>);
 type Edit = {
   type: string; stem: Block[]; options: { label: string; content: Block[] }[]; answer: Answer | null;
   solution: Block[]; explanation: Block[]; group: ContentDoc["group"]; applyGroup: boolean; parts: PartEdit[];
@@ -222,7 +223,8 @@ export default function ReviewStudio() {
   if (!d || !edit || !meta) return <Spinner />;
 
   const stemText = (d.preview.stem || []).map((b) => (b.t === "p" ? b.c.map((n) => (n.t === "s" ? n.v : n.t === "m" ? ` ${n.tex} ` : " ")).join("") : "")).join(" ");
-  const up = (patch: Partial<Edit>) => setEdit((e) => (e ? { ...e, ...patch } : e));
+  // a patch, or a function of the latest state (editors emit on a timer: several may report before a re-render)
+  const up = (patch: Patch) => setEdit((e) => (e ? { ...e, ...(typeof patch === "function" ? patch(e) : patch) } : e));
   const onCrop = (r: { src: string; w: number; h: number; source_ref: Record<string, unknown> }) => {
     (focused.current || stemRef.current)?.insertImage({ src: r.src, w: r.w, h: r.h });
     setSourceRef(r.source_ref);
@@ -382,7 +384,7 @@ function FailDialog({ label, onClose, onSave }: { label: string; onClose: () => 
 
 // ------------------------------------------------------------------------------------------------
 function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
-  d: Detail; edit: Edit; up: (p: Partial<Edit>) => void; meta: Meta; canEdit: boolean;
+  d: Detail; edit: Edit; up: (p: Patch) => void; meta: Meta; canEdit: boolean;
   focused: React.MutableRefObject<EditorHandle | null>; stemRef: React.MutableRefObject<EditorHandle | null>;
 }) {
   const optRefs = useRef<Record<string, EditorHandle | null>>({});
@@ -447,9 +449,9 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
         <fieldset className="ed-group">
           <legend>Đoạn dữ liệu chung <span className="mono small">{edit.group.key}</span></legend>
           <BlockEditor label="Tiêu đề đoạn" compact value={edit.group.header} readOnly={!canEdit}
-                       onChange={(b) => up({ group: { ...edit.group!, header: b } })} />
+                       onChange={(b) => up((e) => ({ group: { ...e.group!, header: b } }))} />
           <BlockEditor label="Đoạn dữ liệu" value={edit.group.passage} readOnly={!canEdit}
-                       onChange={(b) => up({ group: { ...edit.group!, passage: b } })} />
+                       onChange={(b) => up((e) => ({ group: { ...e.group!, passage: b } }))} />
           <div className="row" style={{ gap: 10 }}>
             <label className="small"><input type="checkbox" checked={edit.applyGroup} disabled={!canEdit} onChange={(e) => up({ applyGroup: e.target.checked })} /> Áp dụng sửa đoạn cho mọi câu cùng nhóm</label>
             {canEdit && <button className="btn ghost sm" onClick={() => { if (window.confirm("Tách câu này khỏi đoạn dữ liệu chung?")) up({ group: null }); }}>Tách khỏi nhóm</button>}
@@ -465,7 +467,7 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
 
       {edit.type === "multi_part" ? (
         <PartsEditor parts={edit.parts} answer={edit.answer} canEdit={canEdit}
-                     onChange={(parts, answer) => up({ parts, answer })} />
+                     onUpdate={(f) => up((e) => f(e.parts, e.answer))} />
       ) : <>
       <div className="field">
         <div className="row between"><span className="label">Phương án</span>
@@ -477,7 +479,7 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
             <span className="opt-label">{o.label}</span>
             <BlockEditor ref={(h) => { optRefs.current[o.label] = h; }} label={`Phương án ${o.label}`} compact value={o.content} readOnly={!canEdit}
                          onFocusEditor={() => { focused.current = optRefs.current[o.label]; }}
-                         onChange={(b) => up({ options: edit.options.map((x, j) => (j === i ? { ...x, content: b } : x)) })} />
+                         onChange={(b) => up((e) => ({ options: e.options.map((x, j) => (j === i ? { ...x, content: b } : x)) }))} />
             {canEdit && <span className="row nowrap" style={{ gap: 2 }}>
               <button className="btn ghost sm" title="Đưa lên" aria-label={`Đưa phương án ${o.label} lên`} disabled={i === 0} onClick={() => moveOpt(i, -1)}>↑</button>
               <button className="btn ghost sm" title="Đưa xuống" aria-label={`Đưa phương án ${o.label} xuống`} disabled={i === edit.options.length - 1} onClick={() => moveOpt(i, 1)}>↓</button>
@@ -526,7 +528,7 @@ function statementCount(stem: Block[]): number {
   return lines.filter((l) => /^\s*[a-h]\s*[).]/i.test(l)).length;
 }
 
-function AnswerEditor({ edit, up, canEdit, choice }: { edit: Edit; up: (p: Partial<Edit>) => void; canEdit: boolean; choice: boolean }) {
+function AnswerEditor({ edit, up, canEdit, choice }: { edit: Edit; up: (p: Patch) => void; canEdit: boolean; choice: boolean }) {
   const a = edit.answer;
   const kind = a?.kind || (choice ? "choice" : edit.type === "numeric_response" ? "numeric" : edit.type === "true_false_statements" ? "tf_sequence"
     : edit.type === "true_false" ? "boolean" : "text");

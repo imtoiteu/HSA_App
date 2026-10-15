@@ -28,35 +28,39 @@ export function newPart(parts: PartEdit[]): PartEdit {
 
 type Keys = Record<string, Answer>;
 
-export default function PartsEditor({ parts, answer, canEdit, onChange }: {
+export type PartsUpdate = (parts: PartEdit[], answer: Answer | null) => { parts: PartEdit[]; answer: Answer | null };
+
+export default function PartsEditor({ parts, answer, canEdit, onUpdate }: {
   parts: PartEdit[]; answer: Answer | null; canEdit: boolean;
-  onChange: (parts: PartEdit[], answer: Answer | null) => void;
+  /** changes are computed from the latest items/keys (rich editors emit on a timer, several before a re-render) */
+  onUpdate: (f: PartsUpdate) => void;
 }) {
   const keys: Keys = answer && answer.kind === "parts" ? answer.parts : {};
-  const emit = (ps: PartEdit[], ks: Keys) => onChange(ps, Object.keys(ks).length ? { kind: "parts", parts: ks } : null);
-  const setPart = (i: number, p: Partial<PartEdit>, resetKey = false) => {
-    const ps = parts.map((x, j) => (j === i ? { ...x, ...p } : x));
-    const ks = { ...keys };
-    if (resetKey) delete ks[parts[i].key];
-    emit(ps, ks);
-  };
-  const setKey = (key: string, a: Answer | null) => {
-    const ks = { ...keys };
-    if (a) ks[key] = a; else delete ks[key];
-    emit(parts, ks);
-  };
-  const remove = (i: number) => {
-    const ks = { ...keys };
-    delete ks[parts[i].key];
-    emit(parts.filter((_, j) => j !== i), ks);
-  };
-  const move = (i: number, d: number) => {
+  const keysOf = (a: Answer | null): Keys => ({ ...(a && a.kind === "parts" ? a.parts : {}) });
+  const pack = (ps: PartEdit[], ks: Keys) => ({ parts: ps, answer: Object.keys(ks).length ? { kind: "parts" as const, parts: ks } : null });
+  const setPartWith = (i: number, f: (x: PartEdit) => Partial<PartEdit>, resetKey = false) => onUpdate((ps, a) => {
+    const ks = keysOf(a);
+    if (resetKey && ps[i]) delete ks[ps[i].key];
+    return pack(ps.map((x, j) => (j === i ? { ...x, ...f(x) } : x)), ks);
+  });
+  const setPart = (i: number, p: Partial<PartEdit>, resetKey = false) => setPartWith(i, () => p, resetKey);
+  const setKey = (key: string, v: Answer | null) => onUpdate((ps, a) => {
+    const ks = keysOf(a);
+    if (v) ks[key] = v; else delete ks[key];
+    return pack(ps, ks);
+  });
+  const remove = (i: number) => onUpdate((ps, a) => {
+    const ks = keysOf(a);
+    if (ps[i]) delete ks[ps[i].key];
+    return pack(ps.filter((_, j) => j !== i), ks);
+  });
+  const move = (i: number, d: number) => onUpdate((ps, a) => {
     const j = i + d;
-    if (j < 0 || j >= parts.length) return;
-    const ps = [...parts];
-    [ps[i], ps[j]] = [ps[j], ps[i]];
-    emit(ps, keys);
-  };
+    if (j < 0 || j >= ps.length) return { parts: ps, answer: a };
+    const out = [...ps];
+    [out[i], out[j]] = [out[j], out[i]];
+    return { parts: out, answer: a };
+  });
 
   return (
     <fieldset className="ed-parts">
@@ -108,7 +112,7 @@ export default function PartsEditor({ parts, answer, canEdit, onChange }: {
                                }} /> {o.label}
                       </label>
                       <BlockEditor label={`Ý ${p.label} – phương án ${o.label}`} compact value={o.content} readOnly={!canEdit}
-                                   onChange={(b) => setPart(i, { options: (p.options || []).map((x, m) => (m === k ? { ...x, content: b } : x)) })} />
+                                   onChange={(b) => setPartWith(i, (x) => ({ options: (x.options || []).map((o, m) => (m === k ? { ...o, content: b } : o)) }))} />
                       {canEdit && (p.options || []).length > 2 && (
                         <button className="btn ghost sm" title="Xoá phương án" onClick={() => {
                           const opts = (p.options || []).filter((_, m) => m !== k).map((x, m) => ({ ...x, label: LETTERS[m] }));
@@ -156,7 +160,7 @@ export default function PartsEditor({ parts, answer, canEdit, onChange }: {
         );
       })}
       {canEdit && parts.length < 12 && (
-        <button className="btn secondary sm" onClick={() => emit([...parts, newPart(parts)], keys)}>+ Thêm ý</button>
+        <button className="btn secondary sm" onClick={() => onUpdate((ps, a) => ({ parts: [...ps, newPart(ps)], answer: a }))}>+ Thêm ý</button>
       )}
     </fieldset>
   );
