@@ -210,3 +210,64 @@ def test_figure_box_leaves_out_the_end_of_solution_mark():
     figs = F.find_figures(pg, [[lab], [qed]], 110, 240, S)
     assert len(figs) == 1 and figs[0]["labels"] == [lab]
     assert figs[0]["box"][2] < qed.x0 and figs[0]["box"][3] < qed.bot
+
+
+def test_a_table_rule_near_the_top_is_no_page_header():
+    pg = F.Page(1, 600, 840, [], [F.Rule(40, 560, 26), F.Rule(90, 500, 65), F.Rule(90, 500, 85)], [])
+    F.frame(pg)
+    assert pg.body_top == 26  # the book's header rule (0.87 of the page), not the table's rules (0.68)
+
+
+def test_figure_box_stops_short_of_the_line_below():
+    gl = figure_question(120, 220)
+    opt_top = min(x.top for x in gl if x.ch == "A" and x.font == "VNBX12")
+    pages = drawn_page(gl, [(200, 320, 120, opt_top + 2)])  # the drawing's axis reaches into the options line
+    res = F.layout_question(pages, 1, 1, figures=True)
+    assert res.reason == "" and res.figures[0]["box"][3] < opt_top
+
+
+def test_text_words_are_no_figure_labels():
+    words = word("trên khoảng", "VNR12", 210, 222)[0]  # the end of a sentence inside the drawing's box
+    gl = figure_question(120, 220, extra=words)
+    pages = drawn_page(gl, [(200, 320, 120, 220)])
+    res = F.layout_question(pages, 1, 1, figures=True)
+    assert res.content is None and "text inside a figure" in res.reason
+
+
+def bracket_system(rows, x=150, top_base=228.0):
+    """A '[' assembled from cmex pieces (top, extensions, bottom) like pdfTeX sets it, rows of math after it."""
+    n = len(rows)
+    bases = [top_base] + [top_base + 21 + 7 * k for k in range(2 * n - 4)] + [top_base + 35 + 7 * (2 * n - 6)]
+    codes = [0x32] + [0x36] * (len(bases) - 2) + [0x34]
+    gl = [g("", "CMEX10", x, b, code=c, w=8) for b, c in zip(bases, codes)]
+    for k, row in enumerate(rows):  # rows 21 pt apart, the first one level with the bracket's top serif + 1 ex
+        xx = x + 12
+        for ch in row:
+            gl.append(g(ch, "CMMI12" if ch.isalpha() else "CMR12", xx, top_base + 11 + 21 * k))
+            xx += 7
+    return gl
+
+
+def test_three_row_bracket_keeps_its_last_row():
+    stem, x = word("Ta có", "VNR12", 90, 249)
+    sysg = bracket_system(["x<1", "x=2", "x>4"], x=x + 10, top_base=228)
+    gl, _ = word("Câu 1.", "VNBX12", 40, 100)
+    gl += word("Giải", "VNR12", 90, 100)[0] + stem + sysg
+    ob = 320
+    for k, lab in enumerate("ABCD"):
+        gl += [g(lab, "VNBX12", 50 + 120 * k, ob), g(".", "VNR12", 56 + 120 * k, ob)]
+        gl += word(str(k + 1), "CMR12", 66 + 120 * k, ob)[0]
+    gl += word("Câu 2.", "VNBX12", 40, ob + 60)[0]
+    res = F.layout_question(page(gl), 1, 1)
+    assert res.reason == "", res.reason
+    tex = [n["tex"] for b in res.content["stem"] for n in b["c"] if n["t"] == "m"]
+    assert r"\left[\begin{aligned} x<1 \\ x=2 \\ x>4 \end{aligned}\right." in tex
+
+
+def test_rotated_label_beside_a_drawing_is_in_its_box():
+    five = F.Glyph("5", -1, "VNR10", 10, 182, 192, 160, 172, 170, upright=False)  # "5 cm" along the side
+    stamp = F.Glyph("T", -1, "Times-Roman", 10, 330, 339, 150, 160, 158, upright=False)  # the page's watermark
+    pg = drawn_page([], [(200, 320, 120, 220)])[1]
+    pg.glyphs += [five, stamp]
+    figs = F.find_figures(pg, [], 110, 240, S)
+    assert figs[0]["box"][0] <= five.x0 and figs[0]["box"][2] < stamp.x0

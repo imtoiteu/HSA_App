@@ -341,6 +341,14 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
             log(f"  SKIP {q.external_id}: {reason}")
 
         if b["content"] is None:
+            if apply and figures and not b.get("transient") and r.draft_version_id and \
+                    (v.note or "").startswith(f"[{BATCH}]"):
+                # an earlier rebuild of this batch that the engine now refuses (e.g. a figure that took in a line of
+                # text): its draft must not wait in Review Studio as if it were a candidate
+                S.set_status(db, q, who, "discard_draft", f"[{BATCH}] bản dựng lại trước bị bộ dựng hiện tại từ chối: "
+                             f"{b['reason']}", media_root=media_root)
+                db.commit()
+                stats["drafts_discarded"] = stats.get("drafts_discarded", 0) + 1
             unresolved(b["reason"] or "not rebuilt", record=not b.get("transient"))
             continue
         stats["rebuilt"] += 1

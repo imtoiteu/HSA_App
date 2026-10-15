@@ -332,8 +332,9 @@ def read_pages(pdf_path, pages: set[int]) -> dict[int, Page]:
 
 
 def frame(pg: Page):
-    """Body area: between the full-width header and footer rules the book class draws on every page."""
-    long_ = [r for r in pg.rules if r.x1 - r.x0 > 0.6 * pg.width]
+    """Body area: between the full-width header and footer rules the book class draws on every page (a table near
+    the top of a page has rules two thirds of the page wide: those are no header)."""
+    long_ = [r for r in pg.rules if r.x1 - r.x0 > 0.8 * pg.width]
     tops = [r.y for r in long_ if r.y < 0.15 * pg.height]
     bots = [r.y for r in long_ if r.y > 0.85 * pg.height]
     pg.body_top = max(tops) if tops else 0.06 * pg.height
@@ -705,6 +706,9 @@ def attach_delims(items: list[Item], size: float) -> list[Item]:
     return items
 
 
+ARROWS_AFTER = (r"\Leftrightarrow", r"\Rightarrow", r"\Longleftrightarrow", r"\Longrightarrow")
+
+
 def build_pieces(items: list[Item]) -> list[Item]:
     """Stacked pieces of an extensible delimiter (top/extension/middle/bottom) → one delimiter."""
     pieces = sorted([i for i in items if i.kind == "piece"], key=lambda i: (i.top, i.x0))
@@ -729,8 +733,10 @@ def build_pieces(items: list[Item]) -> list[Item]:
         elif parts[0] != "tp" or parts[-1] != "bt":
             raise Unresolved(f"incomplete extensible delimiter {val}")
         emit(*col)
-        # cmex pieces hang from their baseline: the drawn brace runs from the first baseline down
-        top, bot = col[0].base, col[-1].base + 0.9 * col[-1].size
+        # cmex pieces hang from their baseline: the drawn delimiter runs from the first baseline down to the bottom
+        # piece's depth (cmex10: 0.9 em for brace pieces, 1.8 em for bracket and parenthesis pieces; the bracket's
+        # ink measured on a page ends 1.7 em below the bottom piece's baseline)
+        top, bot = col[0].base, col[-1].base + (1.7 if val in "()[]" else 0.9) * col[-1].size
         d = Item(min(c.x0 for c in col), max(c.x1 for c in col), top, bot, (top + bot) / 2, col[0].size,
                  "delim", val)
         d.extra["built"] = True
@@ -1177,6 +1183,8 @@ def systems(lines: list[Line], size: float) -> list[Line]:
                             break  # the sentence continues after the system (no other row holds words)
                         if inside and i.x0 >= mx - 0.3 * size and i.x0 - max(j.x1 for j in inside) >= 0.5 * size:
                             break  # set apart by a wide space: "(t ∈ ℝ)" written after the system
+                        if inside and i.x0 >= mx - 0.3 * size and i.val in ARROWS_AFTER:
+                            break  # "⇔" past the other rows on the axis line leads to what follows the system
                         inside.append(i)
                 else:
                     inside = list(its)  # a row of its own: everything up to the next system/label belongs to it
@@ -1674,6 +1682,16 @@ def find_figures(pg: Page, glines: list, top: float, bot: float, size: float) ->
         # a clipped path (a graph cut to its axes) has a bounding box far beyond what is drawn: keep the box inside
         # the question's band and shrink it to the ink of the rendered page
         y0, y1 = max(y0, top), min(y1, bot)
+        # a stroke reaching into a line of text (an axis ending at the options) must not take that line's ink along
+        cy = (y0 + y1) / 2
+        for L in glines:
+            for g in L:
+                if not g.ch.isspace() and g.x1 > x0 and g.x0 < x1 and g.bot > y0 and g.top < y1 and \
+                        not (y0 <= (g.top + g.bot) / 2 <= y1):
+                    if g.top >= cy:
+                        y1 = min(y1, g.top - 0.5)
+                    else:
+                        y0 = max(y0, g.bot + 0.5)
         ink = ink_box(pg, x0, y0, x1, y1)
         if ink is None:
             continue
@@ -1693,14 +1711,23 @@ def find_figures(pg: Page, glines: list, top: float, bot: float, size: float) ->
                     near = [g for g in L if not g.ch.isspace() and not is_qed(g) and x0 - 1.6 * size <= (g.x0 + g.x1) / 2 <= x1 + 1.6 * size
                             and y0 - 1.6 * size <= (g.top + g.bot) / 2 <= y1 + 1.6 * size]
                     rest = [g for g in L if not g.ch.isspace() and g not in near]
-                    if near and (not rest or min(g.x0 for g in near) - max((g.x1 for g in rest if g.x1 <= min(n.x0 for n in near) + 1),
-                                                                            default=-1e9) >= 1.0 * size and
-                                 all(g.x1 <= min(n.x0 for n in near) + 1 or g.x0 >= max(n.x1 for n in near) - 1 for g in rest)):
+                    # labels are math: a segment with words of the text font is text (an option, a wrapped sentence)
+                    if near and not any(g.ch.isalpha() and not MATH_FONT.match(g.font) for g in near) and \
+                            (not rest or min(g.x0 for g in near) - max((g.x1 for g in rest if g.x1 <= min(n.x0 for n in near) + 1),
+                                                                       default=-1e9) >= 1.0 * size and
+                             min((g.x0 for g in rest if g.x0 >= max(n.x1 for n in near) - 1), default=1e9) -
+                             max(g.x1 for g in near) >= 1.0 * size and
+                             all(g.x1 <= min(n.x0 for n in near) + 1 or g.x0 >= max(n.x1 for n in near) - 1 for g in rest)):
                         ins = near
                 out = [g for g in L if g not in ins and not g.ch.isspace()]
                 if ins and out and not (all(g.x1 <= x0 + 1 for g in out) or all(g.x0 >= x1 - 1 for g in out)):
                     raise Unresolved("a figure cuts through a line of text")
                 found += ins
+            # rotated labels ("5 cm" along a cylinder's side) are left out of the text lines: inside or next to the
+            # drawing they belong to it (a rotated stamp font is the page's watermark)
+            found += [g for g in pg.glyphs if not g.upright and not STAMP_FONT.match(g.font) and not g.ch.isspace()
+                      and x0 - 1.6 * size <= (g.x0 + g.x1) / 2 <= x1 + 1.6 * size
+                      and y0 - 1.6 * size <= (g.top + g.bot) / 2 <= y1 + 1.6 * size]
             bx = [min([x0] + [g.x0 for g in found]), min([y0] + [g.top for g in found]),
                   max([x1] + [g.x1 for g in found]), max([y1] + [g.bot for g in found])]
             x0, y0, x1, y1 = bx
@@ -1708,6 +1735,24 @@ def find_figures(pg: Page, glines: list, top: float, bot: float, size: float) ->
                 labels = found
                 break
             labels = found
+        # labels of a drawing are math (points, axes, values); words of the text font next to or inside it are a line
+        # of the question's text (the end of a wrapped sentence, a paragraph between two drawings)
+        for L in glines:
+            if sum(1 for g in L if g in labels and g.ch.isalpha() and not MATH_FONT.match(g.font)) >= 4:
+                raise Unresolved("text inside a figure")
+        # a drawing reaching down (or up) to a line of text (an axis ending at the options) must not take the tops of
+        # that line's glyphs into the crop: the box stops short of every glyph that is no label of it
+        cy = (bx[1] + bx[3]) / 2
+        for L in glines:
+            for g in L:
+                if g.ch.isspace() or g in labels or not (g.x1 > bx[0] and g.x0 < bx[2] and g.bot > bx[1] and g.top < bx[3]):
+                    continue
+                if g.top >= cy:
+                    bx[3] = min(bx[3], g.top - 0.5)
+                elif g.bot <= cy:
+                    bx[1] = max(bx[1], g.bot + 0.5)
+        if bx[3] - bx[1] < 2.5 * size:
+            raise Unresolved("a figure overlaps a line of text")
         figs.append({"box": bx, "labels": labels, "cluster": cluster})
     for f in figs:
         b = f["cluster"]
