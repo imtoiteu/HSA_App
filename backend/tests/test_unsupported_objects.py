@@ -108,3 +108,18 @@ def test_an_unmatched_placeholder_is_left_for_a_reviewer():
                                          {"t": "s", "v": "không có trong tài liệu"}]}]}
     new, actions, problems, images = U.resolve(content, ds, U.decide, lambda data: ("x", 1, 1))
     assert problems and U.has_placeholder(new)
+
+
+def test_a_question_is_resolved_partly_when_one_placeholder_has_no_match():
+    """The matched placeholders are replaced, the unmatched one stays (the draft still has a placeholder: it is
+    never served), instead of leaving every placeholder in place."""
+    docx, normalized = make_doc()
+    ds, _ = U.read_document(docx, normalized)
+    content = {"stem": [{"t": "p", "c": [{"t": "s", "v": "Quan sát đồ thị sau đây"}, ph(),
+                                         {"t": "s", "v": "rồi trả lời câu hỏi."}]},
+                        {"t": "p", "c": [{"t": "s", "v": "Một đoạn văn hoàn toàn khác"}, ph(),
+                                         {"t": "s", "v": "không có trong tài liệu"}]}]}
+    new, actions, problems, images = U.resolve(content, ds, U.decide, lambda data: ("ab/" + "a" * 64 + ".png", 4, 2))
+    assert U.outcome(actions, problems) == "partial"
+    assert new["stem"][0]["c"][1]["t"] == "img" and U.has_placeholder(new) and images == 1
+    assert U.outcome([], problems) == "skip" and U.outcome(actions, []) == "full"

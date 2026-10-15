@@ -428,6 +428,15 @@ def _drop_empty(c: dict):
         g["passage"] = clean(g.get("passage"))
 
 
+def outcome(actions: list[str], problems: list[str]) -> str:
+    """What to do with a question after resolve(): "full" (every placeholder replaced), "partial" (some replaced, the
+    others stay as placeholders in the draft: fewer for the reviewer, still never served — a placeholder is a
+    critical finding) or "skip" (nothing could be replaced)."""
+    if not problems:
+        return "full"
+    return "partial" if actions else "skip"
+
+
 def has_placeholder(content: dict) -> bool:
     return PLACEHOLDER in json.dumps(content, ensure_ascii=False)
 
@@ -596,11 +605,12 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
 
         new, actions, problems, images = resolve(base_content, drawings, decide_fn, store_image if apply else
                                                  (lambda data: ("00/" + "0" * 64 + ".png", 1, 1)))
-        if problems:
+        what = outcome(actions, problems)
+        if what == "skip":
             db.rollback()
             unresolved("; ".join(sorted(set(problems)))[:300])
             continue
-        if has_placeholder(new):
+        if what == "full" and has_placeholder(new):
             db.rollback()
             unresolved("placeholder left after the rebuild")
             continue
@@ -609,7 +619,10 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
         stats["texts"] += sum(1 for a in actions if "mũi tên" in a)
         stats["images"] += images
         if not apply:
-            log(f"  OK   {q.external_id}: {len(actions)} object(s), {images} image(s)")
+            log(f"  {'OK  ' if what == 'full' else 'PART'} {q.external_id}: {len(actions)} object(s), {images} image(s)"
+                + (f"; left: {'; '.join(sorted(set(problems)))[:120]}" if problems else ""))
+            if what == "partial":
+                stats["partial"] = stats.get("partial", 0) + 1
             continue
         edit = {k: new.get(k) for k in ("stem", "solution", "explanation", "options", "group") if k in new}
         note = (f"[{BATCH}] thay {len(actions)} ô “{PLACEHOLDER}” theo tài liệu Word gốc ({doc_id}): "
@@ -623,6 +636,11 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
             continue
         db.commit()
         stats["drafts"] += 1
+        if what == "partial":
+            stats["partial"] = stats.get("partial", 0) + 1
+            unresolved(f"partly resolved (draft in Review Studio): {len(actions)} object(s) replaced; still left: "
+                       + "; ".join(sorted(set(problems)))[:250])
+            continue
         if images:
             unresolved(f"objects resolved (draft in Review Studio): {images} image(s) inserted from the source need "
                        "a reviewer's visual check")
