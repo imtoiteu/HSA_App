@@ -1715,19 +1715,23 @@ def find_figures(pg: Page, glines: list, top: float, bot: float, size: float) ->
             for L in glines:
                 ins = [g for g in L if inside(g) and not is_qed(g)]
                 if not ins:
-                    # a label segment just above/below the drawing (dimensions, axis names): within its width and apart
-                    # from the text of the line by a gap
-                    near = [g for g in L if not g.ch.isspace() and not is_qed(g) and x0 - 1.6 * size <= (g.x0 + g.x1) / 2 <= x1 + 1.6 * size
-                            and y0 - 1.6 * size <= (g.top + g.bot) / 2 <= y1 + 1.6 * size]
-                    rest = [g for g in L if not g.ch.isspace() and g not in near]
-                    # labels are math: a segment with words of the text font is text (an option, a wrapped sentence)
-                    if near and not any(g.ch.isalpha() and not MATH_FONT.match(g.font) for g in near) and \
-                            (not rest or min(g.x0 for g in near) - max((g.x1 for g in rest if g.x1 <= min(n.x0 for n in near) + 1),
-                                                                       default=-1e9) >= 1.0 * size and
-                             min((g.x0 for g in rest if g.x0 >= max(n.x1 for n in near) - 1), default=1e9) -
-                             max(g.x1 for g in near) >= 1.0 * size and
-                             all(g.x1 <= min(n.x0 for n in near) + 1 or g.x0 >= max(n.x1 for n in near) - 1 for g in rest)):
-                        ins = near
+                    # a label segment just above/below/beside the drawing (dimensions, axis names, a point's name):
+                    # the line is cut into segments at gaps of 1 em; a segment lying wholly next to the drawing is a
+                    # label when it is math, or one short name (a point "B" set in the text font, not "C." of an
+                    # option); a segment with words of the text font is text (an option, a wrapped sentence)
+                    segs: list = []
+                    for g in sorted((g for g in L if not g.ch.isspace()), key=lambda g: g.x0):
+                        if segs and g.x0 - max(h.x1 for h in segs[-1]) < 1.0 * size:
+                            segs[-1].append(g)
+                        else:
+                            segs.append([g])
+                    for seg in segs:
+                        if not all(not is_qed(g) and x0 - 1.6 * size <= (g.x0 + g.x1) / 2 <= x1 + 1.6 * size and
+                                   y0 - 1.6 * size <= (g.top + g.bot) / 2 <= y1 + 1.6 * size for g in seg):
+                            continue
+                        short = len(seg) <= 2 and not any(g.ch == "." or g.font.upper().startswith("VNBX") for g in seg)
+                        if short or not any(g.ch.isalpha() and not MATH_FONT.match(g.font) for g in seg):
+                            ins += seg
                 out = [g for g in L if g not in ins and not g.ch.isspace()]
                 if ins and out and not (all(g.x1 <= x0 + 1 for g in out) or all(g.x0 >= x1 - 1 for g in out)):
                     raise Unresolved("a figure cuts through a line of text")

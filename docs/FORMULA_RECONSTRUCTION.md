@@ -400,3 +400,42 @@ withdrawn.
 | **Total** | **959** | **326** | **633** (474 key table only = single answer evidence; about 12 refused by the region guard) |
 
 Spot check: 20 random promoted questions against the PDF, all exact. READY 10,928 → 11,258; serving 23,878 → 24,208.
+
+### Figure mode (2026-10-15): `formula-pdf --figures`
+
+Pool: 1,596 single-choice questions of the LaTeX books that upstream marked `NEEDS_VISUAL_REVIEW` (the text
+layer lost a figure: a graph, a variation table, a solid). The question is rebuilt as before, and the drawing is
+cut from the source page and stored as a media asset (an `img` block in the stem or solution):
+
+- a figure is a cluster of shapes/strokes at least 2.5 em large, plus its labels: math glyphs inside or next to it
+  (set apart from the line's text by 1 em), and rotated labels ("5 cm" along a side; the rotated watermark font is
+  excluded);
+- refused: a figure among the option lines; drawings side by side (captions "Hình 1…4" would be detached); text-font
+  words inside a figure or running on into it (text set around a figure); a figure that cuts through a line;
+- the crop stops 2.5 pt short of any text line a stroke reaches into (an axis ending at the options), and the
+  end-of-solution box (MSAM 0x03) is no label;
+- a draft with figures is promoted only after a visual confirmation (`confirm_visual` decision): every figure was
+  checked on a contact sheet (source page region next to the stored draft) by the reviewer; a draft whose rebuild
+  the engine later refuses is discarded by the batch.
+
+Engine bugs found through the figure contact sheets, with the regression of every promoted LaTeX rebuild (HEAD
+engine vs. fixed engine, 5,280 rebuilds including sibling solutions):
+
+- cmex bracket/parenthesis pieces hang 1.7 em below the bottom piece's baseline (0.9 em is the brace's): the last
+  row of a 3-row `[` fell out of the system; `⇔` after a system was appended to its middle row. 29 served
+  questions changed, all corrections: withdrawn and rebuilt, 29 re-promoted.
+- a radical of the line below (option D under option B) was taken into a denominator: 4 served questions with
+  wrong fractions, withdrawn and rebuilt, 4 re-promoted.
+- page frame: only rules wider than 0.8 of the page are the header/footer (a table at the top of a page lost its
+  first rows).
+
+| Batch | Examined | Promoted (no figure / figures confirmed) | Kept / refused |
+|---|---|---|---|
+| F0 (sample) | 30 | 7 (1 / 6) | 6 single answer evidence, 17 refused |
+| F1 | 150 | 43 (15 / 28) | refused or single evidence |
+| F2 | 200 | 53 (12 / 41) | q82257 source conflict (solution says 4, picks A = 5) |
+| F3 | 250 | 56 (14 / 42) | q81983 (a vector arrow of the next line in the crop) |
+
+A point's name set in the text font next to a drawing ("B" above a square) is a label: the line is cut into
+segments at 1-em gaps and a segment lying wholly beside the drawing is judged as a whole (found on q78551, whose
+"B" had joined the stem's text; the regression of the 75 promoted figure questions showed no other change).

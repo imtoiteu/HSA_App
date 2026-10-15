@@ -309,3 +309,14 @@ def test_radical_of_the_fraction_below_is_no_part_of_a_denominator():
     assert res.reason == "", res.reason
     tex = [n["tex"] for b in res.content["stem"] for n in b["c"] if n["t"] == "m"]
     assert r"\dfrac{1}{6}" in " ".join(tex) and r"\dfrac{\sqrt{3}}{2}" in " ".join(tex)
+
+
+def test_point_name_beside_the_end_of_a_text_line_is_a_label():
+    # "… cạnh bằng" ends 1.3 em left of the drawing; the point "B" above the square is on the same baseline
+    words, _ = word("có cạnh bằng", "VNR12", 110, 112)
+    b = g("B", "CMMI12", 255, 112)
+    gl = figure_question(120, 220, extra=words + [b])
+    pages = drawn_page(gl, [(200, 320, 120, 220)])
+    res = F.layout_question(pages, 1, 1, figures=True)
+    assert res.reason == "" and res.figures[0]["box"][1] <= b.top
+    assert "B" not in json.dumps(res.content["stem"][0], ensure_ascii=False)
