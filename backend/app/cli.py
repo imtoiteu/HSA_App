@@ -188,7 +188,7 @@ def cmd_unsupported_objects(a):
     from .review.unsupported_objects import run
     db = SessionLocal()
     r = run(db, limit=a.limit, apply=a.apply, media_root=get_settings().media_root, documents=a.document or None,
-            retry=a.retry, questions=a.question or None, workdir=a.workdir,
+            retry=a.retry, questions=a.question or None, workdir=a.workdir, gates_only=a.gates_only,
             log=(lambda *x: None) if a.quiet else print)
     print(json.dumps(r, ensure_ascii=False))
 
@@ -355,6 +355,7 @@ def main(argv=None):
     s.add_argument("--retry", action="store_true", help="also re-examine questions this batch handled before")
     s.add_argument("--workdir", help="scratch directory for extracted documents and renders")
     s.add_argument("--apply", action="store_true", help="save drafts/approvals (default: dry run)")
+    s.add_argument("--gates-only", action="store_true", help="re-run only the QA gates on this batch's resolved drafts")
     s.add_argument("--quiet", action="store_true")
     s.set_defaults(fn=cmd_unsupported_objects)
     s = sub.add_parser("worker", help="scheduler loop (source documents, maintenance, review refresh)")

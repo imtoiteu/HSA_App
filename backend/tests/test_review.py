@@ -868,3 +868,32 @@ def test_new_question_guards(admin, student):
     a = admin.post("/api/review/questions", {"type": "single_choice"}).json()["external_id"]
     b = admin.post("/api/review/questions", {"type": "single_choice"}).json()["external_id"]
     assert a != b
+
+
+def test_unsupported_objects_gates_only_dry_run_writes_nothing(refreshed, synced):
+    """A dry run of `unsupported-objects --gates-only` evaluates the QA gates of the batch's resolved drafts but must
+    not confirm, publish or approve anything (2026-10-15: it did, before the checks were moved ahead of every write)."""
+    from sqlalchemy import func
+    from app.review import service as S
+    from app.review import unsupported_objects as U
+    from app.review.remediate import actor
+    db = SessionLocal()
+    qid = qid_of(synced["ids"]["m5"])
+    q = db.get(Question, qid)
+    who = actor(db)
+    v = S.working_version(db, q, S.get_review(db, q))
+    stem = (v.content.get("stem") or []) + plain("(đã bỏ hình mờ)")
+    S.save_edit(db, q, who, {"stem": stem}, note=f"[{U.BATCH}] thay 1 ô: hình mờ/nhãn phát hành (watermark) lặp 3 lần")
+    db.commit()
+    assert U.gated_candidates(db, [qid]) == [qid]
+    before = db.scalar(select(func.count()).select_from(ReviewEvent).where(ReviewEvent.question_id == qid))
+    gate_before = db.get(Question, qid).review_gate
+    stats = U.run(db, apply=False, gates_only=True, questions=[qid], log=lambda *a: None)
+    db.expire_all()
+    after = db.scalar(select(func.count()).select_from(ReviewEvent).where(ReviewEvent.question_id == qid))
+    assert stats["examined"] == 1 and after == before and db.get(Question, qid).review_gate == gate_before, stats
+    # a draft into which a picture was inserted is never a gates-only candidate (its picture needs a reviewer)
+    S.save_edit(db, q, who, {"stem": stem + plain("x")}, note=f"[{U.BATCH}] thay 1 ô: hình gốc trong tài liệu")
+    db.commit()
+    assert U.gated_candidates(db, [qid]) == []
+    db.close()

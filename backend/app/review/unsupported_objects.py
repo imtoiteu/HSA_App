@@ -468,6 +468,25 @@ def candidates(db, limit=None, documents=None, retry=False, questions=None) -> l
     return list(db.scalars(text(sql), {"docs": documents} if documents else {}))
 
 
+def gated_candidates(db, questions=None) -> list[int]:
+    from sqlalchemy import text
+    from .remediate import ACTOR_EMAIL
+    sql = f"""SELECT q.id FROM question q JOIN question_review r ON r.question_id = q.id
+              JOIN question_version v ON v.id = r.draft_version_id
+              WHERE q.removed_upstream = false AND q.review_gate IS NULL AND r.status = 'draft' AND r.dirty = false
+                AND (SELECT u.email FROM question_version dv JOIN app_user u ON u.id = dv.created_by
+                     WHERE dv.id = r.draft_version_id) = '{ACTOR_EMAIL}'
+                AND v.content::text NOT LIKE '%{PLACEHOLDER}%'
+                AND EXISTS (SELECT 1 FROM review_event e WHERE e.question_id = q.id AND e.action = 'edit'
+                            AND e.note LIKE '[{BATCH}]%')
+                AND NOT EXISTS (SELECT 1 FROM review_event e WHERE e.question_id = q.id AND e.action = 'edit'
+                                AND e.note LIKE '[{BATCH}]%' AND (e.note LIKE '%hình gốc trong tài liệu%'
+                                                                   OR e.note LIKE '%dựng lại từ tài liệu gốc%'))"""
+    if questions:
+        sql += f" AND q.id IN ({','.join(str(int(x)) for x in questions)})"
+    return list(db.scalars(text(sql + " ORDER BY q.id")))
+
+
 def _document(store, document_id: str, workdir: Path) -> tuple[bytes | None, dict | None, str]:
     """(docx bytes, normalised document, why not)."""
     doc = store.up.document(document_id)
@@ -500,7 +519,9 @@ def _document(store, document_id: str, workdir: Path) -> tuple[bytes | None, dic
 
 
 def run(db, limit=None, apply=False, media_root=None, documents=None, retry=False, questions=None,
-        workdir: str | None = None, log=print) -> dict:
+        workdir: str | None = None, gates_only: bool = False, log=print) -> dict:
+    """gates_only: this batch's own drafts whose placeholders are all resolved and into which no picture was inserted
+    (decoration removed / arrows only): re-run only the QA gates (after a reviewer decision, e.g. the subject)."""
     from sqlalchemy import select
 
     from ..models import Asset, Question, ReviewEvent
@@ -515,7 +536,7 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
     work = Path(workdir or tempfile.gettempdir())
     stats = {"examined": 0, "resolved": 0, "drafts": 0, "promoted": 0, "unresolved": 0, "removed": 0, "texts": 0,
              "images": 0, "reasons": {}}
-    qids = candidates(db, limit, documents, retry, questions)
+    qids = gated_candidates(db, questions) if gates_only else candidates(db, limit, documents, retry, questions)
     docs: dict[str, tuple] = {}
 
     def doc_for(doc_id):
@@ -578,81 +599,76 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
         db.rollback()   # no transaction stays open while documents are extracted and drawings rendered
         # the question's text may come from several documents: its occurrences (a separate answer file for the
         # solution) and the document of its shared passage
-        doc_ids = [doc_id] + [o["document_id"] for o in store.up.occurrences(ext_id)]
-        if group_key:
-            con = store.up._con()
-            if con is not None:
-                try:
-                    doc_ids += [x[0] for x in con.execute("SELECT document_id FROM question_group WHERE group_id = ?",
-                                                         (group_key,))]
-                finally:
-                    con.close()
-        drawings, whys = [], []
-        for d_id in dict.fromkeys(x for x in doc_ids if x):
-            docx, ds, why = doc_for(d_id)
-            if docx is None:
-                whys.append(f"{d_id}: {why}")
+        if not gates_only:
+            doc_ids = [doc_id] + [o["document_id"] for o in store.up.occurrences(ext_id)]
+            if group_key:
+                con = store.up._con()
+                if con is not None:
+                    try:
+                        doc_ids += [x[0] for x in con.execute("SELECT document_id FROM question_group WHERE group_id = ?",
+                                                             (group_key,))]
+                    finally:
+                        con.close()
+            drawings, whys = [], []
+            for d_id in dict.fromkeys(x for x in doc_ids if x):
+                docx, ds, why = doc_for(d_id)
+                if docx is None:
+                    whys.append(f"{d_id}: {why}")
+                    continue
+                for dr in ds:
+                    dr.doc = d_id
+                drawings += ds
+            if not drawings:
+                unresolved("; ".join(whys) or "no drawing found in the question's documents")
                 continue
-            for dr in ds:
-                dr.doc = d_id
-            drawings += ds
-        if not drawings:
-            unresolved("; ".join(whys) or "no drawing found in the question's documents")
-            continue
 
-        def decide_fn(d: Drawing):
-            return decide(d, lambda dd: render_cached(dd))
+            def decide_fn(d: Drawing):
+                return decide(d, lambda dd: render_cached(dd))
 
-        new, actions, problems, images = resolve(base_content, drawings, decide_fn, store_image if apply else
-                                                 (lambda data: ("00/" + "0" * 64 + ".png", 1, 1)))
-        what = outcome(actions, problems)
-        if what == "skip":
-            db.rollback()
-            unresolved("; ".join(sorted(set(problems)))[:300])
-            continue
-        if what == "full" and has_placeholder(new):
-            db.rollback()
-            unresolved("placeholder left after the rebuild")
-            continue
-        stats["resolved"] += 1
-        stats["removed"] += sum(1 for a in actions if "watermark" in a)
-        stats["texts"] += sum(1 for a in actions if "mũi tên" in a)
-        stats["images"] += images
-        if not apply:
-            log(f"  {'OK  ' if what == 'full' else 'PART'} {q.external_id}: {len(actions)} object(s), {images} image(s)"
-                + (f"; left: {'; '.join(sorted(set(problems)))[:120]}" if problems else ""))
+            new, actions, problems, images = resolve(base_content, drawings, decide_fn, store_image if apply else
+                                                     (lambda data: ("00/" + "0" * 64 + ".png", 1, 1)))
+            what = outcome(actions, problems)
+            if what == "skip":
+                db.rollback()
+                unresolved("; ".join(sorted(set(problems)))[:300])
+                continue
+            if what == "full" and has_placeholder(new):
+                db.rollback()
+                unresolved("placeholder left after the rebuild")
+                continue
+            stats["resolved"] += 1
+            stats["removed"] += sum(1 for a in actions if "watermark" in a)
+            stats["texts"] += sum(1 for a in actions if "mũi tên" in a)
+            stats["images"] += images
+            if not apply:
+                log(f"  {'OK  ' if what == 'full' else 'PART'} {q.external_id}: {len(actions)} object(s), {images} image(s)"
+                    + (f"; left: {'; '.join(sorted(set(problems)))[:120]}" if problems else ""))
+                if what == "partial":
+                    stats["partial"] = stats.get("partial", 0) + 1
+                continue
+            edit = {k: new.get(k) for k in ("stem", "solution", "explanation", "options", "group") if k in new}
+            note = (f"[{BATCH}] thay {len(actions)} ô “{PLACEHOLDER}” theo tài liệu Word gốc ({doc_id}): "
+                    + "; ".join(sorted(set(actions)))[:600])
+            try:
+                S.save_edit(db, q, who, edit, note=note, source_ref={"document_id": doc_id, "batch": BATCH},
+                            media_root=media_root)
+            except S.ReviewError as ex:
+                db.rollback()
+                unresolved(f"draft refused: {ex}")
+                continue
+            db.commit()
+            stats["drafts"] += 1
             if what == "partial":
                 stats["partial"] = stats.get("partial", 0) + 1
-            continue
-        edit = {k: new.get(k) for k in ("stem", "solution", "explanation", "options", "group") if k in new}
-        note = (f"[{BATCH}] thay {len(actions)} ô “{PLACEHOLDER}” theo tài liệu Word gốc ({doc_id}): "
-                + "; ".join(sorted(set(actions)))[:600])
-        try:
-            S.save_edit(db, q, who, edit, note=note, source_ref={"document_id": doc_id, "batch": BATCH},
-                        media_root=media_root)
-        except S.ReviewError as ex:
-            db.rollback()
-            unresolved(f"draft refused: {ex}")
-            continue
-        db.commit()
-        stats["drafts"] += 1
-        if what == "partial":
-            stats["partial"] = stats.get("partial", 0) + 1
-            unresolved(f"partly resolved (draft in Review Studio): {len(actions)} object(s) replaced; still left: "
-                       + "; ".join(sorted(set(problems)))[:250])
-            continue
-        if images:
-            unresolved(f"objects resolved (draft in Review Studio): {images} image(s) inserted from the source need "
-                       "a reviewer's visual check")
-            continue
-        # placeholders that were decoration or simple shapes only: the usual checks decide
-        r = S.get_review(db, q)
-        v = S.working_version(db, q, r)
-        dims = S.dim_view(q, r, v)["status"]
-        if dims.get("content") != "ok":
-            S.confirm(db, q, who, "content", "ok", f"[{BATCH}] các ô không hiển thị được là hình mờ trang trí hoặc "
-                      f"mũi tên đơn, đã xử lý theo tài liệu gốc {doc_id}", media_root=media_root, method=METHOD)
-        db.commit()
+                unresolved(f"partly resolved (draft in Review Studio): {len(actions)} object(s) replaced; still left: "
+                           + "; ".join(sorted(set(problems)))[:250])
+                continue
+            if images:
+                unresolved(f"objects resolved (draft in Review Studio): {images} image(s) inserted from the source need "
+                           "a reviewer's visual check")
+                continue
+        # placeholders that were decoration or simple shapes only: the usual checks decide (every check first,
+        # nothing is written before all pass, and nothing at all in a dry run)
         r = S.get_review(db, q)
         v = S.working_version(db, q, r)
         dims = S.dim_view(q, r, v)["status"]
@@ -676,6 +692,13 @@ def run(db, limit=None, apply=False, media_root=None, documents=None, retry=Fals
         if C.images(v.content) or C.has_table(v.content):
             unresolved("objects resolved (draft in Review Studio); the question has a figure/table to check")
             continue
+        if not apply:
+            stats["promoted"] += 1
+            log(f"  OK   {q.external_id}: every gate passes (would be approved)")
+            continue
+        if dims.get("content") != "ok":
+            S.confirm(db, q, who, "content", "ok", f"[{BATCH}] các ô không hiển thị được là hình mờ trang trí hoặc "
+                      f"mũi tên đơn, đã xử lý theo tài liệu gốc {doc_id}", media_root=media_root, method=METHOD)
         if dims.get("answer") != "ok":
             S.confirm(db, q, who, "answer", "ok", f"[{BATCH}] {av.reason}", media_root=media_root, method=METHOD)
         if dims.get("subject") != "ok":
