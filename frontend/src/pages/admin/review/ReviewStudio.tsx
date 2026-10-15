@@ -512,6 +512,20 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
   );
 }
 
+/** Statements a), b), c)… of a true/false-per-statement stem: lines (paragraphs or line breaks) starting so. */
+function statementCount(stem: Block[]): number {
+  const lines: string[] = [];
+  for (const b of stem) {
+    if (b.t !== "p") continue;
+    let cur = "";
+    for (const n of b.c) {
+      if (n.t === "br") { lines.push(cur); cur = ""; } else cur += n.t === "s" ? n.v : n.t === "m" ? "x" : "";
+    }
+    lines.push(cur);
+  }
+  return lines.filter((l) => /^\s*[a-h]\s*[).]/i.test(l)).length;
+}
+
 function AnswerEditor({ edit, up, canEdit, choice }: { edit: Edit; up: (p: Partial<Edit>) => void; canEdit: boolean; choice: boolean }) {
   const a = edit.answer;
   const kind = a?.kind || (choice ? "choice" : edit.type === "numeric_response" ? "numeric" : edit.type === "true_false_statements" ? "tf_sequence"
@@ -564,7 +578,8 @@ function AnswerEditor({ edit, up, canEdit, choice }: { edit: Edit; up: (p: Parti
         ))}
         {mode === "tf_sequence" && (() => {
           const vals = a?.kind === "tf_sequence" ? a.values : [];
-          const n = Math.max(vals.length, (edit.answer?.kind === "tf_sequence" ? 0 : 4));
+          // one value per statement a), b), c)… of the stem (4 when the stem has none yet)
+          const n = Math.max(vals.length, edit.answer?.kind === "tf_sequence" ? 0 : statementCount(edit.stem) || 4);
           return (
             <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
               {Array.from({ length: n }).map((_, i) => (
@@ -573,7 +588,8 @@ function AnswerEditor({ edit, up, canEdit, choice }: { edit: Edit; up: (p: Parti
                   {String.fromCharCode(97 + i)}) {vals[i] === undefined ? "?" : vals[i] ? "Đúng" : "Sai"}
                 </button>
               ))}
-              {canEdit && <button className="btn ghost sm" onClick={() => up({ answer: { kind: "tf_sequence", values: [...vals, false] } })}>+ ý</button>}
+              {canEdit && <button className="btn ghost sm" onClick={() => { const v = [...vals]; while (v.length < n) v.push(false); up({ answer: { kind: "tf_sequence", values: [...v, false] } }); }}>+ ý</button>}
+              {canEdit && n > 1 && <button className="btn ghost sm" title="Bớt ý cuối" onClick={() => { const v = [...vals]; while (v.length < n) v.push(false); up({ answer: { kind: "tf_sequence", values: v.slice(0, n - 1) } }); }}>− ý</button>}
             </div>
           );
         })()}
