@@ -5,8 +5,13 @@ changes (Admin → Ngân hàng & đồng bộ → Tạo ngân hàng: code, name,
 fill them by
 
 * uploading JSONL (Admin → Nhập JSONL, or `hsa-app import-jsonl <bank_code> <file>`), or
-* entering questions one by one (bank row → *Thêm câu*; `POST /api/admin/banks/<code>/questions` with one
-  record of the format below). Saving the same `external_id` again creates a new immutable version.
+* entering questions one by one (Admin → Câu hỏi → *+ Thêm câu hỏi*, or bank row → *Thêm câu*;
+  `POST /api/admin/banks/<code>/questions` with one record of the format below). The form saves with
+  `?mode=create`: a missing `external_id` is generated (`manual-…`) and an existing one is refused (409), never
+  overwritten; `?dry_run=true` returns the rendered content and the serving decision without saving. Without
+  `mode=create` the call is an upsert: saving the same `external_id` again creates a new immutable version.
+  The synced HSA bank does not accept hand-entered questions; the form offers to create a manual bank
+  (`thu_cong`) when none exists. Figures, tables and complex formulas are added afterwards in Review Studio.
 
 Each bank keeps its version label, source, sync/import history, served-subject counts and the list of exam
 blueprints that can draw from it. Deactivating a bank removes all its questions from serving and exam

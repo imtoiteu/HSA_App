@@ -1216,9 +1216,11 @@ def bank_sync_runs(code: str, db: Session = Depends(get_db)):
 
 
 @router.post("/banks/{code}/questions")
-def upsert_manual_question(code: str, record: dict, db: Session = Depends(get_db),
-                           admin: User = Depends(auth.require_admin)):
-    """Create/update one question in a manual or imported bank (same record format as JSONL import)."""
+def upsert_manual_question(code: str, record: dict, mode: Literal["upsert", "create"] = "upsert", dry_run: bool = False,
+                           db: Session = Depends(get_db), admin: User = Depends(auth.require_admin)):
+    """Create/update one question in a manual or imported bank (same record format as JSONL import).
+    mode=create: a new question only — an existing code is refused (never overwritten), a missing code is generated.
+    dry_run: build and evaluate the record (rendered content, serving decision) without saving anything."""
     from ..sync.importer import apply_built, bank_alias
     from ..sync.jsonl_import import ImportError_, build_record
     from ..sync.media import MediaStore
@@ -1231,6 +1233,15 @@ def upsert_manual_question(code: str, record: dict, db: Session = Depends(get_db
         raise err(422, "invalid", "Môn học không tồn tại.")
     import hashlib as _h
     import json as _json
+    import secrets as _secrets
+    record = dict(record)
+    record["external_id"] = str(record.get("external_id") or "").strip()
+    if mode == "create" and not record["external_id"]:
+        record["external_id"] = f"manual-{dt.datetime.now(dt.timezone.utc):%Y%m%d-%H%M%S}-{_secrets.token_hex(2)}"
+    if mode == "create" and db.scalar(select(Question.id).where(Question.bank_id == b.id,
+                                                                Question.external_id == record["external_id"])):
+        raise err(409, "exists", f"Mã câu “{record['external_id']}” đã có trong ngân hàng {code}; "
+                                 "hãy dùng mã khác (hoặc sửa câu đó trong Review Studio).")
     try:
         built = build_record(record, get_settings().media_root, MediaStore(get_settings().media_root))
     except (ImportError_, KeyError, ValueError) as e:
@@ -1239,13 +1250,23 @@ def upsert_manual_question(code: str, record: dict, db: Session = Depends(get_db
     alias.update(bank_alias(db, b.id))
     alias.setdefault("", "general")
     stats = collections.Counter()
+    sp = db.begin_nested() if dry_run else None
     apply_built(db, b.id, built, _h.sha256(_json.dumps(record, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
                 alias, get_setting(db, "serving_policy"), None, "manual", stats)
+    db.flush()
     q = db.scalar(select(Question).where(Question.bank_id == b.id, Question.external_id == built.external_id))
+    v = db.get(QuestionVersion, q.current_version_id) if q.current_version_id else None
+    out = {"id": None if dry_run else q.id, "external_id": q.external_id, "served": q.is_served,
+           "reasons": q.policy_reasons, "editorial_state": q.editorial_state, "subject": q.subject_code,
+           "created": bool(stats["created"]), "new_version": bool(stats["versions_created"]), "dry_run": dry_run,
+           "content": v.content if v else None, "answer": v.answer if v else None}
+    if sp is not None:
+        sp.rollback()   # preview only: nothing is kept
+        db.rollback()
+        return out
     audit(db, admin, "manual_question_saved", "question", built.external_id, {"bank": code, **dict(stats)})
     db.commit()
-    return {"id": q.id, "external_id": q.external_id, "served": q.is_served, "reasons": q.policy_reasons,
-            "created": bool(stats["created"]), "new_version": bool(stats["versions_created"])}
+    return out
 
 
 @router.get("/audit/question-bank")

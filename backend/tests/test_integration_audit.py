@@ -283,3 +283,41 @@ def test_mixed_section_fixed_items_then_pool(admin, student, synced):
     assert ext[:2] == [ids["m1"], ids["m2"]] and len(ext) == 5 and len(set(ext)) == 5
     bad = dict(cfg, sections=[dict(cfg["sections"][0], items=[{"external_id": ids["m1"]}, {"external_id": ids["m1"]}])])
     assert admin.post("/api/admin/blueprints/validate", {"config": bad}).json()["valid"] is False
+
+
+def test_manual_question_create_mode_and_preview(admin):
+    code = f"manual_{uuid.uuid4().hex[:5]}"
+    assert admin.post("/api/admin/banks", {"code": code, "name": "Câu hỏi nhập thủ công"}).status_code == 200
+    rec = {"type": "single_choice", "subject": "math", "status": "READY_TO_SERVE",
+           "stem_md": "Tính {{tex:\\frac{1}{2}+\\frac{1}{3}}}", "options": [{"label": "A", "md": "{{tex:\\frac{5}{6}}}"},
+                                                                         {"label": "B", "md": "{{tex:\\frac{2}{5}}}"}],
+           "answer": {"kind": "labels", "labels": ["A"]}}
+    # preview: rendered content and the serving decision, nothing saved
+    r = admin.post(f"/api/admin/banks/{code}/questions?mode=create&dry_run=true", rec)
+    assert r.status_code == 200, r.text
+    p = r.json()
+    assert p["dry_run"] and p["id"] is None and p["served"] and p["answer"] == {"kind": "choice", "labels": ["A"]}
+    assert any(n.get("t") == "m" for b in p["content"]["stem"] for n in b["c"])
+    db = SessionLocal()
+    bank_id = db.scalar(select(QuestionBank.id).where(QuestionBank.code == code))
+    assert db.scalar(select(func.count()).select_from(Question).where(Question.bank_id == bank_id)) == 0
+    db.close()
+    # create without a code: one is generated; the question is stored and served
+    r = admin.post(f"/api/admin/banks/{code}/questions?mode=create", rec)
+    assert r.status_code == 200 and r.json()["created"] and r.json()["id"] and r.json()["external_id"].startswith("manual-")
+    ext = r.json()["external_id"]
+    assert admin.get(f"/api/admin/questions/{r.json()['id']}").status_code == 200
+    # create never overwrites an existing question; upsert (edit) still updates it
+    r = admin.post(f"/api/admin/banks/{code}/questions?mode=create", dict(rec, external_id=ext, stem_md="khác"))
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "exists"
+    assert admin.post(f"/api/admin/banks/{code}/questions", dict(rec, external_id=ext, stem_md="Tính tổng")).json()["new_version"]
+    # an answer outside the options is reported, not served
+    bad = admin.post(f"/api/admin/banks/{code}/questions?mode=create&dry_run=true",
+                     dict(rec, answer={"kind": "labels", "labels": ["D"]})).json()
+    assert not bad["served"] and "answer_not_in_options" in bad["reasons"]
+    # true/false statements: statements in the stem, key as text
+    tf = {"type": "true_false_statements", "subject": "math", "status": "READY_TO_SERVE",
+          "stem_md": "Xét các mệnh đề:\n\na) 2 là số nguyên tố.\n\nb) 9 là số nguyên tố.",
+          "answer": {"kind": "text", "text": "a) Đúng b) Sai"}}
+    t = admin.post(f"/api/admin/banks/{code}/questions?mode=create&dry_run=true", tf).json()
+    assert t["answer"] == {"kind": "tf_sequence", "values": [True, False]} and t["served"], t

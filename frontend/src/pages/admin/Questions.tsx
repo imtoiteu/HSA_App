@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { get, qs } from "../../lib/api";
 import { STATE_LABELS, TYPE_LABELS } from "../../lib/format";
 import { Empty, ErrorBox, Pager, Spinner, useAsync } from "../../components/ui";
+import { ManualQuestion } from "./BankTools";
 import { PageHead, ServedBadge, StateBadge, useUrlState } from "./common";
 
 interface QRow {
@@ -32,6 +33,7 @@ export default function Questions() {
   const nav = useNavigate();
   const page = Number(u.get("page") || 1);
   const [q, setQ] = useState(u.get("q"));
+  const [adding, setAdding] = useState(false);
   const subjects = useAsync(() => get<{ items: { code: string; name: string }[] }>("/api/admin/subjects"), []);
   const banks = useAsync(() => get<{ items: { code: string; name: string }[] }>("/api/admin/banks"), []);
   const params = {
@@ -64,7 +66,10 @@ export default function Questions() {
 
   return (
     <div>
-      <PageHead title="Câu hỏi" />
+      <PageHead title="Câu hỏi">
+        <button className="btn" onClick={() => setAdding(true)}>+ Thêm câu hỏi</button>
+      </PageHead>
+      {adding && <ManualQuestion onClose={() => setAdding(false)} onSaved={() => { list.reload(); banks.reload(); }} />}
       <form className="toolbar" onSubmit={(e) => { e.preventDefault(); u.set({ q }); }}>
         <div className="field" style={{ minWidth: 260, flex: 1 }}>
           <label htmlFor="q-search">Tìm theo mã cq_… hoặc nội dung</label>
