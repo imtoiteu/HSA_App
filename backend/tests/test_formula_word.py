@@ -319,8 +319,20 @@ def test_repeated_shading_box_behind_a_text_line_is_not_a_header():
 
 def test_garbled_structures_are_refused():
     import pytest
-    for t in (r"\dfrac{=}{T}", r"N=N_02^{-^1}", r"x_{(}^2", r"{}_{(}\sqrt{7}", r"a^{=0}"):
+    for t in (r"\dfrac{=}{T}", r"N=N_02^{-^1}", r"x_{(}^2", r"{}_{(}\sqrt{7}", r"a^{=0}", r"{}^a,^b",
+              r"{}^{a\ne1},\log_{a^2}b"):
         with pytest.raises(W.Unresolved):
             W.garbled(t)
-    for t in (r"\dfrac{x-1}{2}", r"2^{-\frac{t}{T}}", r"x_G=\dfrac{1+(-1)}{3}", r"\lambda_{\max}"):
+    for t in (r"\dfrac{x-1}{2}", r"2^{-\frac{t}{T}}", r"x_G=\dfrac{1+(-1)}{3}", r"\lambda_{\max}",
+              r"{}_{92}^{235}U", r"{}^{4}_{2}He+n", r"{}_{1}^{1}H,{}_{1}^{2}H"):
         W.garbled(t)
+
+
+def test_collection_subject():
+    from app.review.formula_batch import collection_subject
+    base = "ĐGNL-HCM.zip ▸ Tài liệu ôn tập/"
+    assert collection_subject(base + "Toán (ĐGNL+THPT)/Chuyên đề THPTQG/Chuyên đề 22. Khối trụ.pdf") == "math"
+    assert collection_subject(base + "Lý (ĐGNL+THPT)/Live C/Dap An Chi Tiet/Dang 58.pdf") == "physics"
+    assert collection_subject(base + "Hóa/FULL TÀI LIỆU HOÁ HỌC LỚP 12.pdf") == "chemistry"  # decomposed accent
+    assert collection_subject(base + "Sử + Địa/x.pdf") is None
+    assert collection_subject("Bộ đề/3. Toán Thường/a.pdf") == "math"

@@ -23,6 +23,7 @@ import collections
 import hashlib
 import json
 import re
+import unicodedata
 from pathlib import Path
 
 from sqlalchemy import select, text
@@ -37,8 +38,17 @@ from .remediate import (BASE, METHOD, Verdict, actor, check_answer, check_subjec
 from .sources import default_store
 
 BATCH = "pdf_formula_latex"
-# folders of the bank's source collections that hold one subject only ("…/3. Toán Thường/…")
-COLLECTION_SUBJECT = [(re.compile(r"(?:^|/)\d+\.\s*Toán\b"), "math")]
+# folders of the bank's source collections that hold one subject only ("…/3. Toán Thường/…", the ĐGNL-HCM
+# study folders: every classified question under them carries that subject, apart from a few upstream mislabels)
+COLLECTION_SUBJECT = [(re.compile(r"(?:^|/)\d+\.\s*Toán\b"), "math"),
+                      (re.compile(r"Tài liệu ôn tập/Toán \(ĐGNL\+THPT\)/"), "math"),
+                      (re.compile(r"Tài liệu ôn tập/Lý \(ĐGNL\+THPT\)/"), "physics"),
+                      (re.compile(r"Tài liệu ôn tập/Hóa/"), "chemistry")]
+
+
+def collection_subject(path: str) -> str | None:
+    path = unicodedata.normalize("NFC", path or "")
+    return next((subj for rx, subj in COLLECTION_SUBJECT if rx.search(path)), None)
 ENGINE = "formula_pdf/1"
 # upstream flagged the question only because it comes from a PDF text layer (formulas flattened); the other
 # flags listed here are consequences of the flattening that the rebuild resolves (options lost into the stem)
@@ -367,7 +377,7 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
             # unclassified upstream: the subject of the single-subject collection the book belongs to, when the
             # question's own content agrees
             path = (q.provenance or {}).get("document_path") or ""
-            coll = next((subj for rx, subj in COLLECTION_SUBJECT if rx.search(path)), None)
+            coll = collection_subject(path)
             if coll:
                 txt = " ".join(plain_text(v.content.get(k) or []) for k in ("stem", "solution")) + " " + " ".join(
                     plain_text(o.get("content") or []) for o in v.content.get("options") or [])

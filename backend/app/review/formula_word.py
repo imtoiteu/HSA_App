@@ -1524,13 +1524,23 @@ def layout_question(pages: dict[int, Page], first: int, number: int) -> Result:
                 if st.kind != "hline":
                     continue
                 # (only glyphs that straddle the band's edge: everything well inside the band is this question's)
-                if bot < st.y <= bot + 1.2 * S:
+                # (and only for a real fraction: its other part lies outside the band — a bar with nothing beyond
+                # it is an overline over our own first/last line, e.g. a raised exponent with a bar over it)
+                out = [g for g in pg.glyphs if g not in gl and not g.ch.isspace() and st.x0 - 1 <= g.xc <= st.x1 + 1]
+                if bot < st.y <= bot + 1.2 * S and any(st.y < g.base <= st.y + 2.4 * S for g in out):
                     foreign += [g for g in gl if st.x0 - 1 <= g.xc <= st.x1 + 1 and st.y - 1.8 * S <= g.base < st.y
                                 and g.base > bot - 0.6 * S]
-                if top - 1.2 * S <= st.y < top:
+                if top - 1.2 * S <= st.y < top and any(st.y - 1.8 * S <= g.base < st.y for g in out):
                     foreign += [g for g in gl if st.x0 - 1 <= g.xc <= st.x1 + 1 and st.y < g.top and g.base <= st.y + 2.4 * S
                                 and g.base < top + 0.6 * S]
             if foreign:
+                # a part of a neighbour's fraction cannot sit on our own first/last line: one that does is a small
+                # fraction of ours (an exponent a^{3/2}) whose other part the band missed — refuse, never drop it
+                main = [g for g in gl if g not in foreign and not g.ch.isspace() and g.size >= 0.82 * S]
+                if main:
+                    first, last = min(g.base for g in main), max(g.base for g in main)
+                    if any(abs(g.base - first) < 0.6 * S or abs(g.base - last) < 0.6 * S for g in foreign):
+                        raise Unresolved(f"a fraction straddles the edge of the question's region on page {pno}")
                 gl = [g for g in gl if g not in foreign]
                 res.boxes += [(pno, g.x0, g.top, g.x1, g.bot) for g in foreign]
             atoms = [atom_of(g) for g in gl]
@@ -1581,12 +1591,15 @@ def layout_question(pages: dict[int, Page], first: int, number: int) -> Result:
 
 
 GARBLED = re.compile(r"\\d?frac\{[=<>+\-]\}|\\d?frac\{[^{}]*\}\{[=<>]\}|\^\{-\^|[\^_]\{(?:=|\\le|\\ge|<|>)|"
-                     r"[\^_]\{[()\[\]]\}|\{\}_\{[()]")
+                     r"[\^_]\{[()\[\]]\}|\{\}_\{[()]|"
+                     # a pre-script with no base after it, a script after a comma: letters that merely sit raised
+                     # (a MathType object on a shifted baseline) read as superscripts — "{}^a,^b", "{}^{a\ne1},"
+                     r"\{\}(?:[\^_](?:\{[^{}]*\}|[^{}\\\s]))+(?=\s*(?:,|;|$))|(?:^|,)\s*[\^_]")
 
 
 def garbled(tex: str):
     """Structures no real formula has (a fraction over a lone "=", a script that is a lone bracket or starts with a
-    relation, a script on a bare minus sign): a rebuild that tore an expression apart."""
+    relation, a script on a bare minus sign, a pre-script without a base): a rebuild that tore an expression apart."""
     m = GARBLED.search(tex)
     if m:
         raise Unresolved(f"garbled structure {m.group(0)!r} in a rebuilt formula")

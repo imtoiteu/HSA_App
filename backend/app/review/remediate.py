@@ -78,6 +78,12 @@ def check_structure(content: dict) -> Verdict:
     """Single-choice HSA items have exactly four options, none of which carries its own A./B./C. list (arrangement
     questions whose real options were glued into the last option are not repairable by trimming)."""
     opts = content.get("options") or []
+    if content.get("type") == "numeric_response":  # a value to type in: no options, none hidden in the stem
+        if opts:
+            return Verdict(False, f"option structure suspect: numeric answer with {len(opts)} options")
+        if OPTION_LIST.search(plain_text(content.get("stem") or [])):
+            return Verdict(False, "option structure suspect: numeric answer whose stem carries an A./B./C. list")
+        return Verdict(True)
     if len(opts) != 4:
         return Verdict(False, f"option structure suspect: {len(opts)} options")
     for o in opts:
@@ -549,6 +555,8 @@ def trim_options(content: dict, pages: list[str]) -> tuple[dict, list[str]]:
 
 
 def check_answer(q: Question, answer: dict | None, content: dict, up: Upstream) -> Verdict:
+    if answer and answer.get("kind") == "numeric":
+        return check_numeric_answer(q, answer, up)
     if not answer or answer.get("kind") != "choice":
         return Verdict(False, "no choice answer")
     if q.answer_source_type not in ("SOURCE_PROVIDED_ANSWER", "SOURCE_PROVIDED_SOLUTION"):
@@ -578,6 +586,26 @@ def check_answer(q: Question, answer: dict | None, content: dict, up: Upstream) 
     kinds = sorted({e.get("type", "?") for e in ev})
     return Verdict(True, f"source answer key {labels} ({', '.join(kinds)}; {len(occs)} occurrence(s) agree)"
                    + ("; solution agrees" if said else ""), details={"evidence": kinds})
+
+
+def check_numeric_answer(q: Question, answer: dict, up: Upstream) -> Verdict:
+    """A numeric answer: every source occurrence gives the same value, with the same evidence rule as choices
+    (positional evidence alone — an answer-key table — needs a second signal)."""
+    if q.answer_source_type not in ("SOURCE_PROVIDED_ANSWER", "SOURCE_PROVIDED_SOLUTION"):
+        return Verdict(False, f"answer not source-provided ({q.answer_source_type})")
+    if not isinstance(answer.get("value"), (int, float)):
+        return Verdict(False, "numeric answer without a value")
+    occs = [o for o in up.occurrences_answers(q.external_id) if o.get("kind") == "numeric"]
+    vals = [o["value"] for o in occs if isinstance(o.get("value"), (int, float))]
+    if not vals:
+        return Verdict(False, "no answer evidence in the source occurrences")
+    if any(abs(x - answer["value"]) > 1e-9 * max(1.0, abs(x)) for x in vals):
+        return Verdict(False, f"source occurrences disagree on the value: {sorted(set(vals))} vs {answer['value']}")
+    kinds_ = {e.get("type") for o in occs for e in o["evidence"]}
+    if len(kinds_) < 2 and not kinds_ & {"answer_statement", "solution_conclusion"}:
+        return Verdict(False, f"single answer evidence ({', '.join(sorted(k for k in kinds_ if k))}): needs independent check")
+    return Verdict(True, f"đáp số {answer.get('text') or answer['value']} theo tài liệu gốc "
+                         f"({', '.join(sorted(k for k in kinds_ if k))}; {len(occs)} lần xuất hiện khớp nhau)")
 
 
 # Content-based subject signal (cross-check only: it never assigns a subject by itself)
@@ -1092,6 +1120,9 @@ BATCHES["group_instruction_only"] = BASE.replace(  # the missing-passage finding
 # the same with formulas: the formulas are the bank's READY version (unchanged here), KaTeX-checked by the policy
 BATCHES["group_instruction_only_math"] = BATCHES["group_instruction_only"].replace(
     "AND NOT q.has_formula ", "AND q.has_formula ")
+# the same for numeric answers (no options: the source check covers the stem, the answer check the value)
+BATCHES["group_instruction_only_numeric"] = BATCHES["group_instruction_only"].replace(
+    "q.question_type = 'single_choice' AND NOT q.has_formula", "q.question_type = 'numeric_response'")
 # upstream READY, attached to a passage whose range does not include it (group_membership_suspect)
 BATCHES["group_detach_wrong_passage"] = BASE + """
       AND q.editorial_states = '{READY_TO_SERVE}' AND q.policy_reasons = '{group_membership_suspect}'
@@ -1191,7 +1222,7 @@ def missing_exhibit(content: dict) -> str | None:
     if m and not (C.images(content) or C.has_table(content)):
         return f"stem cites “{m.group(0)}” but no table/figure survived the text layer"
     return None
-GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math"}
+GROUP_BATCHES = {"group_instruction_only", "group_instruction_only_math", "group_instruction_only_numeric"}
 # the same with formulas (the formulas are the bank's version; only the figure was flagged)
 BATCHES["visual_lowres_formula"] = BATCHES["visual_lowres"].replace(
     "AND q.question_type = 'single_choice' AND NOT q.has_formula", "AND q.question_type = 'single_choice' AND q.has_formula")

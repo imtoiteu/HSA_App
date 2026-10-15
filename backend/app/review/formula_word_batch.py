@@ -32,7 +32,7 @@ from ..models import FormulaCheck, Question, ReviewEvent, SourceCache
 from . import content as C
 from . import formula_word as W
 from . import service as S
-from .formula_batch import CANDIDATES, COLLECTION_SUBJECT, is_pdftex, tex_sha
+from .formula_batch import CANDIDATES, collection_subject, is_pdftex, tex_sha
 from .remediate import (METHOD, Verdict, actor, check_answer, check_subject, nfc_content, plain_text,
                         solution_contradicts, subject_scores)
 from .sources import default_store
@@ -289,7 +289,7 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
                 continue
         if dims.get("subject") != "ok" and (q.subject_source == "unclassified" or q.subject_code in (None, "general")):
             path = (q.provenance or {}).get("document_path") or ""
-            coll = next((subj for rx, subj in COLLECTION_SUBJECT if rx.search(path)), None)
+            coll = collection_subject(path)
             if coll:
                 txt = " ".join(plain_text(v.content.get(k) or []) for k in ("stem", "solution")) + " " + " ".join(
                     plain_text(o.get("content") or []) for o in v.content.get("options") or [])

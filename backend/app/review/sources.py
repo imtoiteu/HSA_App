@@ -101,7 +101,7 @@ class Upstream:
                 continue
             a = json.loads(ans or "null") or {}
             out.append({"occurrence_id": qid, "labels": sorted(a.get("labels") or []), "source": src,
-                        "evidence": json.loads(ev or "[]")})
+                        "kind": a.get("kind"), "value": a.get("value"), "evidence": json.loads(ev or "[]")})
         return out
 
     def page_map(self) -> dict:
