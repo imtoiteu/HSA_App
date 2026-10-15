@@ -325,3 +325,35 @@ Run of 2026-10-14:
   subject, answer or formula decisions.
 * 241 still hold a placeholder that could not be matched to exactly one drawing.
 * No served question shows the placeholder (it is a critical validator finding).
+
+## Review 2026-10-15: "đối tượng không hiển thị được" and multi-item / mis-split questions
+
+**Placeholders.** The ⚠ "đối tượng không hiển thị được" node is written by the importer for a
+`{{unsupported:drawing_shape}}` token of the source bank: a Word drawing (shape, text box, connector such as
+the arrows of a variation table, a picture in a frame) that the source converter could not keep. Equations
+(OMML / MathType OLE objects) never produce it: no placeholder block contains `w:object`, `OLEObject` or `oMath`.
+It is a critical finding, so no served question shows it (checked in production). The editor keeps it as a
+protected node and the server sanitises it back, so editing never turns it into plain text.
+* The `unsupported_objects` batch now resolves a question **partly**: matched placeholders are replaced in
+  the draft, unmatched ones stay (71 questions; 537 → 445 placeholders in the 234 unresolved questions).
+* The rest cannot be matched by the text around them: the stored text differs from the source (flattened
+  formulas, PDF→Word conversions with Symbol-font characters lost, headings removed) or the drawing is part of
+  a text-box layout. They stay for a reviewer: insert the picture from the source (image tool) or retype.
+
+**Formulas in solutions.** 39 formulas in 22 served solutions showed as red raw LaTeX: double scripts from the
+Word-equation conversion (`C_{1}^{3}_{5}` for C³₁₅, chained subscripts, `\int^{\,}` before limits,
+`B^{'}^{2}`). `repairTex` (frontend/src/lib/tex.ts, mirrored in scripts/katex-check.mjs) repairs them when a
+formula fails as it is; 100 of the 101 formulas recorded as failing render.
+
+**Mis-split / merged questions** (checked on served data):
+* 48 served solutions contained the page header of the HSA reference exams, the end-of-part footer, or the
+  title and preamble of the next test: such lines are now furniture (`strip_furniture`), cleaned with
+  `clean_furniture` (backend/remediation/clean_solution_furniture_1.json).
+* 838 served short-answer questions had no options and a single letter A–D as key (a worked solution parsed
+  as a question, essays, drag-and-drop and true/false tables carrying another question's key letter). New app
+  reason `letter_answer_without_options` (blocking): 1,792 questions flagged, none served. They need a reviewer:
+  rebuild the question (type, items, key) from the source, or leave it out.
+* No served stem or option contains another question's label or a "Chọn X" verdict.
+* The multi-part type (`multi_part`) works end to end (checked in production with an inactive test bank), but no
+  source question has been converted to it automatically: a question whose a), b) items need their own answers
+  is converted in the Review Studio by a reviewer.
