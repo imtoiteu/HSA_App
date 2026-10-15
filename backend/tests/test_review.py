@@ -753,3 +753,118 @@ def test_subject_change_is_stored_survives_approval_sync_and_alias_save(admin, r
 
     assert admin.post(f"/api/review/questions/{qid}/subject", {"subject_code": None}).json()["subject"] == "math"
     assert stored()[2] is None
+
+
+# ---------------------------------------------------------------------------------------------- "Thêm câu hỏi"
+def _p(*nodes):   # as the editor sends it: a paragraph that is one formula says whether it is a display one
+    p = {"t": "p", "c": list(nodes)}
+    if len(nodes) == 1 and nodes[0]["t"] == "m":
+        p["display"] = False
+    return [p]
+
+
+def _s(v):
+    return {"t": "s", "v": v}
+
+
+def _m(tex):
+    return {"t": "m", "tex": tex}
+
+
+def test_new_question_lifecycle_in_review_studio(admin, student):
+    """A hand-entered question is an ordinary Review Studio question: created empty in the manual bank, saved as
+    drafts, reloaded intact (formulas), not served before QA + approval, served after."""
+    r = admin.post("/api/review/questions", {"type": "single_choice", "subject": "math", "topic": "Phân số"})
+    assert r.status_code == 200, r.text
+    qid, ext = r.json()["id"], r.json()["external_id"]
+    assert ext.startswith("manual-") and r.json()["served"] is False
+    d = admin.get(f"/api/review/questions/{qid}").json()
+    assert d["manual"] and d["provenance"]["origin"] == "manual" and d["provenance"]["created_by_email"]
+    assert d["subject"] == "math" and d["topic"] == "Phân số" and d["served"] is False and d["ready"] is False
+    assert [o["label"] for o in d["working"]["content"]["options"]] == ["A", "B", "C", "D"]
+    assert d["dims"]["source"]["state"] == "na" and any(h["action"] == "create" for h in d["history"])
+    db = SessionLocal()
+    q = db.get(Question, qid)
+    assert q.editorial_state == "NEEDS_REVIEW" and not q.is_served
+    from app.models import QuestionBank
+    assert db.get(QuestionBank, q.bank_id).code == "thu_cong"
+    db.close()
+
+    # save a draft: formulas in the stem and in the options, answer B, solution
+    stem = _p(_s("Giá trị của "), _m("\\dfrac{1}{2}+\\dfrac{1}{3}"), _s(" bằng"))
+    opts = [{"label": "A", "content": _p(_m("\\dfrac{2}{5}"))}, {"label": "B", "content": _p(_m("\\dfrac{5}{6}"))},
+            {"label": "C", "content": _p(_m("1"))}]
+    texs = ["\\dfrac{1}{2}+\\dfrac{1}{3}", "\\dfrac{2}{5}", "\\dfrac{5}{6}", "1"]
+    r = admin.put(f"/api/review/questions/{qid}", {"stem": stem, "options": opts, "answer": {"kind": "choice", "labels": ["B"]},
+                                                   "solution": _p(_s("Quy đồng: "), _m("\\dfrac{5}{6}")),
+                                                   "tex_checks": {t: {"ok": True} for t in texs}})
+    assert r.status_code == 200 and r.json()["changed"], r.text
+    d = admin.get(f"/api/review/questions/{qid}").json()   # reload
+    w = d["working"]
+    assert w["content"]["stem"] == stem and [o["content"] for o in w["content"]["options"]] == [o["content"] for o in opts]
+    assert w["answer"] == {"kind": "choice", "labels": ["B"]} and d["review"]["draft_version_id"]
+    assert d["dims"]["formula"]["required"] and d["served"] is False
+    # QA: approval is refused until every dimension is confirmed
+    assert admin.post(f"/api/review/questions/{qid}/approve", {}).json()["detail"]["code"] == "qa_incomplete"
+    for dim in ("content", "answer", "formula", "subject"):
+        assert admin.post(f"/api/review/questions/{qid}/confirm", {"dim": dim, "state": "ok"}).status_code == 200
+    r = admin.post(f"/api/review/questions/{qid}/approve", {"note": "duyệt câu tự soạn"})
+    assert r.status_code == 200 and r.json()["gate"] == "ready" and r.json()["served"] is True, r.text
+    db = SessionLocal()
+    q = db.get(Question, qid)
+    v = db.get(QuestionVersion, q.current_version_id)
+    assert q.is_served and v.content["stem"] == stem and q.has_formula and q.subject_code == "math"
+    db.close()
+    # edit after approval: a new draft, the approved version keeps serving
+    assert admin.put(f"/api/review/questions/{qid}", {"stem": _p(_s("Tính "), _m("\\dfrac{1}{2}+\\dfrac{1}{3}")),
+                                                      "tex_checks": {texs[0]: {"ok": True}}}).json()["changed"]
+    d = admin.get(f"/api/review/questions/{qid}").json()
+    assert d["review"]["draft_version_id"] and d["served"] is True
+
+
+def test_new_question_answer_types_and_image(admin):
+    # math expression answer
+    qid = admin.post("/api/review/questions", {"type": "short_response", "subject": "math"}).json()["id"]
+    assert admin.get(f"/api/review/questions/{qid}").json()["working"]["content"]["options"] == []
+    r = admin.put(f"/api/review/questions/{qid}", {"stem": _p(_s("Rút gọn "), _m("(x+1)^2-2x")),
+                                                   "answer": {"kind": "math_expression", "tex": "x^2+1", "variables": ["x"]},
+                                                   "tex_checks": {"(x+1)^2-2x": {"ok": True}}})
+    assert r.status_code == 200, r.text
+    w = admin.get(f"/api/review/questions/{qid}").json()["working"]
+    assert w["answer"]["kind"] == "math_expression" and w["answer"]["tex"] == "x^2+1" and w["content"]["input"]["kind"] == "math"
+    # true/false per statement: one answer per statement
+    qid = admin.post("/api/review/questions", {"type": "true_false_statements", "subject": "math"}).json()["id"]
+    stem = _p(_s("Xét các mệnh đề sau:")) + _p(_s("a) 2 là số nguyên tố.")) + _p(_s("b) 9 là số nguyên tố.")) + \
+        _p(_s("c) "), _m("\\sqrt{4}=2"), _s("."))
+    r = admin.put(f"/api/review/questions/{qid}", {"stem": stem, "answer": {"kind": "tf_sequence", "values": [True, False, True]},
+                                                   "tex_checks": {"\\sqrt{4}=2": {"ok": True}}})
+    assert r.status_code == 200, r.text
+    w = admin.get(f"/api/review/questions/{qid}").json()["working"]
+    assert w["answer"] == {"kind": "tf_sequence", "values": [True, False, True]} and w["content"]["input"] == {"kind": "tf_sequence", "n": 3}
+    # an uploaded figure in the stem; the visual check becomes required
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (60, 40), "blue").save(buf, "PNG")
+    img = admin.c.post("/api/review/assets", files={"file": ("h.png", buf.getvalue(), "image/png")},
+                       headers={"X-CSRF-Token": admin.csrf}).json()
+    qid = admin.post("/api/review/questions", {"type": "single_choice", "subject": "physics"}).json()["id"]
+    stem = _p(_s("Quan sát hình:")) + [{"t": "img", "src": img["src"], "w": 60, "h": 40, "alt": "hình"}]
+    r = admin.put(f"/api/review/questions/{qid}", {"stem": stem, "options": [{"label": "A", "content": _p(_s("Có"))},
+                                                                             {"label": "B", "content": _p(_s("Không"))}],
+                                                   "answer": {"kind": "choice", "labels": ["A"]}})
+    assert r.status_code == 200, r.text
+    d = admin.get(f"/api/review/questions/{qid}").json()
+    assert d["working"]["content"]["stem"][1]["src"] == img["src"] and d["dims"]["visual"]["required"]
+
+
+def test_new_question_guards(admin, student):
+    assert admin.post("/api/review/questions", {"type": "nope"}).status_code == 422
+    assert admin.post("/api/review/questions", {"type": "single_choice", "subject": "nope"}).status_code == 422
+    assert admin.post("/api/review/questions", {"type": "single_choice", "bank": "hsa"}).status_code == 422
+    assert student.post("/api/review/questions", {"type": "single_choice"}).status_code == 403
+    rev = staff_api("reviewer")   # a reviewer without the edit permission cannot create
+    if "edit" not in (rev.get("/api/review/meta").json().get("me", {}).get("perms") or []):
+        assert rev.post("/api/review/questions", {"type": "single_choice"}).status_code == 403
+    a = admin.post("/api/review/questions", {"type": "single_choice"}).json()["external_id"]
+    b = admin.post("/api/review/questions", {"type": "single_choice"}).json()["external_id"]
+    assert a != b

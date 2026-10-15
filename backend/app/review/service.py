@@ -703,3 +703,88 @@ def revert_publication(db: Session, q: Question, user: User, note: str, media_ro
     apply_policy(db, q)
     refresh(db, q, r, media_root=media_root, force=True)
     return {"served": q.is_served, "current_version_id": q.current_version_id}
+
+
+# ------------------------------------------------------------------------------------------------
+# questions entered by hand (Review Studio "Thêm câu hỏi")
+# ------------------------------------------------------------------------------------------------
+MANUAL_BANK = {"code": "thu_cong", "name": "Câu hỏi nhập thủ công",
+               "description": "Câu hỏi do quản trị viên/biên tập viên soạn trực tiếp trong Review Studio."}
+CHOICE_SKELETON = {"single_choice", "multiple_choice", "error_identification"}
+
+
+def manual_bank(db: Session, code: str | None = None) -> QuestionBank:
+    """The bank hand-entered questions go to (the default manual bank is created on first use). The synced HSA
+    bank never takes hand-entered questions: a sync would not know them."""
+    from ..models import SubjectAlias
+    code = code or MANUAL_BANK["code"]
+    b = db.scalar(select(QuestionBank).where(QuestionBank.code == code))
+    if b is None:
+        if code != MANUAL_BANK["code"]:
+            raise ReviewError("Không tìm thấy ngân hàng.", 404, "not_found")
+        b = QuestionBank(code=code, name=MANUAL_BANK["name"], description=MANUAL_BANK["description"],
+                         source_kind="manual", is_active=True, settings={})
+        db.add(b)
+        db.flush()
+        db.add(SubjectAlias(bank_id=b.id, source_value="", subject_code="general"))
+    if b.source_kind == "hsa_upstream":
+        raise ReviewError("Ngân hàng HSA được đồng bộ từ nguồn, không nhận câu nhập thủ công.", 422, "invalid")
+    return b
+
+
+def skeleton(qtype: str) -> dict:
+    """Empty content of a new question: the editor fills it (four empty options for choice questions)."""
+    c = {"type": qtype, "language": "vi", "group": None, "stem": [], "solution": None, "explanation": None,
+         "options": [{"label": l, "content": []} for l in "ABCD"] if qtype in CHOICE_SKELETON else []}
+    if qtype == "multi_part":
+        c["parts"] = []
+    return C.finalize(c, None)
+
+
+def create_question(db: Session, user: User, qtype: str, subject: str | None = None, topic: str | None = None,
+                    note: str | None = None, bank: str | None = None, media_root: Path | None = None) -> Question:
+    """A new question entered by hand: an ordinary Question + first version, edited and approved in Review Studio.
+    It starts as NEEDS_REVIEW and is served only once every QA dimension is confirmed and it is approved."""
+    import secrets
+    from ..models import Subject
+    from ..sync.subjects import resolve_subject
+    if qtype not in C.QTYPES or qtype == "open_or_unknown":
+        raise ReviewError("Dạng câu hỏi không hợp lệ.", 422, "invalid")
+    if subject and db.get(Subject, subject) is None:
+        raise ReviewError("Môn học không tồn tại.", 422, "invalid")
+    b = manual_bank(db, bank)
+    t = now()
+    while True:
+        ext = f"manual-{t:%Y%m%d-%H%M%S}-{secrets.token_hex(3)}"
+        if not db.scalar(select(Question.id).where(Question.bank_id == b.id, Question.external_id == ext)):
+            break
+    why = (note or "").strip() or None
+    q = Question(bank_id=b.id, external_id=ext, question_type=qtype, language="vi", subject_override=subject or None,
+                 subject_override_note=("chọn khi tạo câu hỏi" if subject else None), topic=(topic or "").strip()[:200] or None,
+                 editorial_state="NEEDS_REVIEW", editorial_states=["NEEDS_REVIEW"], state_source="manual",
+                 state_notes=[], review_flags=[], content_flags=[], exam_systems=[], policy_reasons=[],
+                 answer_source_type="EDITORIAL_TRANSCRIBED", first_synced_at=t, last_synced_at=t,
+                 provenance={"origin": "manual", "document_path": "Nhập thủ công", "created_by": user.id,
+                             "created_by_email": user.email, "created_at": t.isoformat(), "bank": b.code})
+    q.subject_code, q.subject_source = resolve_subject(None, None, None, q.subject_override, bank_alias(db, b.id),
+                                                       get_setting(db, "serving_policy"), None)
+    db.add(q)
+    db.flush()
+    content = skeleton(qtype)
+    v = QuestionVersion(question_id=q.id, version_no=1, content_hash=C.version_hash(content, None), content=content,
+                        answer=None, source_revision=f"manual:{user.id}", origin="manual", created_by=user.id,
+                        note=why or "tạo câu hỏi nhập thủ công")
+    db.add(v)
+    db.flush()
+    q.current_version_id = v.id
+    derive_fields(db, q, v)
+    r = get_review(db, q, lock=True)
+    r.updated_by, r.updated_at = user.id, t
+    event(db, q, user, "create", [{"field": "question", "old": None, "new": ext}],
+          why or f"tạo câu hỏi nhập thủ công ({b.code})", None, None, v.id)
+    apply_policy(db, q)
+    # there is no source document: the source check is not applicable (recorded with who entered it)
+    confirm(db, q, user, "source", "na", f"câu hỏi nhập thủ công bởi {user.email}, không có tài liệu nguồn",
+            media_root=media_root, method="manual_entry")
+    refresh(db, q, r, media_root=media_root, force=True)
+    return q

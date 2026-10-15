@@ -27,6 +27,7 @@ type Edit = {
 const FILTER_KEYS = ["queue", "subject", "document", "page_from", "page_to", "ready", "answer", "formula", "visual", "findings",
   "assignee", "status", "modified_from", "modified_to", "q", "qtype", "served", "assignment", "sort"];
 const LETTERS = "ABCDEFGH";
+const CHOICE_TYPES = ["single_choice", "multiple_choice", "error_identification"];
 
 function fromDetail(d: Detail): Edit {
   const c = d.working.content;
@@ -238,6 +239,7 @@ export default function ReviewStudio() {
           <Link to={`/admin/review/queue${filterQs}`} className="btn ghost sm">← Hàng đợi</Link>
           <span className="mono" title="Mã câu hỏi">{d.external_id}</span>
           <button className="btn ghost sm" onClick={() => copyText(d.external_id)} title="Sao chép cq_id">⧉</button>
+          {d.manual && <span className="badge brand" title={`Tạo bởi ${String(d.provenance.created_by_email || "")} lúc ${String(d.provenance.created_at || "").slice(0, 16).replace("T", " ")}`}>Nhập thủ công</span>}
           <StateBadge state={d.editorial_state} />
           <span className={"badge " + (d.ready ? "ok" : "")}>{d.ready ? "READY" : "Chưa READY"}</span>
           <span className={"badge " + (d.served ? "ok" : "")}>{d.served ? "Đang phục vụ" : "Không phục vụ"}</span>
@@ -260,7 +262,7 @@ export default function ReviewStudio() {
       </div>
 
       <div className="studio-split">
-        <SourceViewer qid={qid} info={src} stemText={stemText} onCrop={onCrop} canEdit={canEdit} />
+        {d.manual ? <ManualSource d={d} /> : <SourceViewer qid={qid} info={src} stemText={stemText} onCrop={onCrop} canEdit={canEdit} />}
 
         <div className="studio-right">
           <section className="qa-panel" aria-label="Kiểm tra chất lượng">
@@ -344,6 +346,27 @@ export default function ReviewStudio() {
 
 function confirmBox(t: string) { return window.confirm(t); }
 
+/** Left pane of a hand-entered question: there is no PDF/DOCX source, only who entered it and when. */
+function ManualSource({ d }: { d: Detail }) {
+  const p = d.provenance;
+  return (
+    <div className="src-pane">
+      <div className="src-head">
+        <div className="src-title"><strong>Nguồn</strong> <span className="badge brand">Nhập thủ công</span></div>
+        <dl className="src-meta small">
+          <dt>Mã câu</dt><dd className="mono">{d.external_id}</dd>
+          <dt>Ngân hàng</dt><dd className="mono">{String(p.bank || "thu_cong")}</dd>
+          <dt>Người tạo</dt><dd>{String(p.created_by_email || "—")}</dd>
+          <dt>Tạo lúc</dt><dd>{String(p.created_at || "—").slice(0, 19).replace("T", " ")}</dd>
+        </dl>
+      </div>
+      <div className="alert">Câu hỏi được soạn trực tiếp trong Review Studio, không có tài liệu nguồn PDF/DOCX. Hình ảnh: dùng nút chèn
+        hình của trình soạn (tải lên, dán hoặc kéo thả). Câu hỏi chỉ được phục vụ học sinh sau khi mọi tiêu chí QA được xác nhận
+        và câu được phê duyệt.</div>
+    </div>
+  );
+}
+
 function FailDialog({ label, onClose, onSave }: { label: string; onClose: () => void; onSave: (n: string) => void }) {
   const [n, setN] = useState("");
   return (
@@ -377,6 +400,24 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
     }
     up({ options: opts, answer });
   };
+  const moveOpt = (i: number, d: number) => {
+    const j = i + d;
+    if (j < 0 || j >= edit.options.length) return;
+    const moved = [...edit.options];
+    [moved[i], moved[j]] = [moved[j], moved[i]];
+    const opts = relabel(moved);
+    let answer = edit.answer;
+    if (answer?.kind === "choice") {   // the correct option keeps being correct at its new place
+      const map = Object.fromEntries(moved.map((o, k) => [o.label, LETTERS[k]]));
+      answer = { kind: "choice", labels: answer.labels.map((l) => map[l]).filter(Boolean).sort() };
+    }
+    up({ options: opts, answer });
+  };
+  const changeType = (t: string) => {
+    // a choice type needs options: an empty question of that type starts with four empty ones
+    const opts = CHOICE_TYPES.includes(t) && edit.options.length === 0 ? [..."ABCD"].map((l) => ({ label: l, content: [] as Block[] })) : edit.options;
+    up({ type: t, options: opts });
+  };
   const choice = ["single_choice", "multiple_choice", "error_identification", "true_false"].includes(edit.type) && edit.options.length > 0;
 
   return (
@@ -384,7 +425,7 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
       <div className="grid cols-3">
         <div className="field">
           <label htmlFor="ed-type">Dạng câu</label>
-          <select id="ed-type" className="input" value={edit.type} disabled={!canEdit} onChange={(e) => up({ type: e.target.value })}>
+          <select id="ed-type" className="input" value={edit.type} disabled={!canEdit} onChange={(e) => changeType(e.target.value)}>
             {meta.types.map((t) => <option key={t} value={t}>{TYPE_LABELS[t] || t}</option>)}
           </select>
         </div>
@@ -437,7 +478,11 @@ function Editor({ d, edit, up, meta, canEdit, focused, stemRef }: {
             <BlockEditor ref={(h) => { optRefs.current[o.label] = h; }} label={`Phương án ${o.label}`} compact value={o.content} readOnly={!canEdit}
                          onFocusEditor={() => { focused.current = optRefs.current[o.label]; }}
                          onChange={(b) => up({ options: edit.options.map((x, j) => (j === i ? { ...x, content: b } : x)) })} />
-            {canEdit && <button className="btn ghost sm" title="Xoá phương án" onClick={() => removeOpt(i)}>✕</button>}
+            {canEdit && <span className="row nowrap" style={{ gap: 2 }}>
+              <button className="btn ghost sm" title="Đưa lên" aria-label={`Đưa phương án ${o.label} lên`} disabled={i === 0} onClick={() => moveOpt(i, -1)}>↑</button>
+              <button className="btn ghost sm" title="Đưa xuống" aria-label={`Đưa phương án ${o.label} xuống`} disabled={i === edit.options.length - 1} onClick={() => moveOpt(i, 1)}>↓</button>
+              <button className="btn ghost sm" title="Xoá phương án" aria-label={`Xoá phương án ${o.label}`} onClick={() => removeOpt(i)}>✕</button>
+            </span>}
           </div>
         ))}
       </div>
@@ -593,7 +638,7 @@ function History({ d, canEdit, onRestore }: { d: Detail; canEdit: boolean; onRes
     } catch (e) { setCmpErr(e); }
   };
   const ACTIONS: Record<string, string> = { edit: "Sửa nội dung", confirm: "Xác nhận QA", approve: "Phê duyệt", publish: "Xuất bản",
-    subject: "Đổi môn", topic: "Đổi chủ đề", restore: "Khôi phục phiên bản", return: "Trả lại", reopen: "Rút phê duyệt",
+    create: "Tạo câu hỏi", subject: "Đổi môn", topic: "Đổi chủ đề", restore: "Khôi phục phiên bản", return: "Trả lại", reopen: "Rút phê duyệt",
     discard_draft: "Bỏ bản nháp", finding: "Xử lý phát hiện", assign: "Giao việc", ai_suggestion: "Gợi ý AI",
     asset_from_source: "Cắt hình từ nguồn", upstream_changed: "Nguồn thay đổi" };
   const show = (v: unknown) => (v === null || v === undefined ? "∅" : typeof v === "string" ? v : JSON.stringify(v));

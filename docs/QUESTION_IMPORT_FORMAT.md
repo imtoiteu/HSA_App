@@ -5,13 +5,17 @@ changes (Admin → Ngân hàng & đồng bộ → Tạo ngân hàng: code, name,
 fill them by
 
 * uploading JSONL (Admin → Nhập JSONL, or `hsa-app import-jsonl <bank_code> <file>`), or
-* entering questions one by one (Admin → Câu hỏi → *+ Thêm câu hỏi*, or bank row → *Thêm câu*;
-  `POST /api/admin/banks/<code>/questions` with one record of the format below). The form saves with
-  `?mode=create`: a missing `external_id` is generated (`manual-…`) and an existing one is refused (409), never
-  overwritten; `?dry_run=true` returns the rendered content and the serving decision without saving. Without
-  `mode=create` the call is an upsert: saving the same `external_id` again creates a new immutable version.
-  The synced HSA bank does not accept hand-entered questions; the form offers to create a manual bank
-  (`thu_cong`) when none exists. Figures, tables and complex formulas are added afterwards in Review Studio.
+* writing questions one by one in the Review Studio: *+ Thêm câu hỏi* (Admin → Câu hỏi, Review Studio, Hàng đợi
+  duyệt, or a manual bank's row) asks for the type, subject and topic, creates an empty question in the manual
+  bank (`thu_cong` by default, created on first use; `POST /api/review/questions`) with a unique code
+  `manual-<date>-<time>-<hex>` and `provenance.origin = "manual"` (who, when), and opens it in the Review
+  Studio. It is then edited with the Studio's editors (formulas, images, tables, every answer kind, multi-part
+  items), saved as drafts, previewed as a student and taken through QA; it starts as `NEEDS_REVIEW` and is
+  served only once every QA dimension is confirmed and it is approved (the source check is "not applicable").
+* `POST /api/admin/banks/<code>/questions` with one record of the format below (scripts/API). `?mode=create`
+  refuses an existing `external_id` (409) and generates one when missing; `?dry_run=true` returns the
+  rendered content and serving decision without saving; otherwise saving the same `external_id` again
+  creates a new immutable version.
 
 Each bank keeps its version label, source, sync/import history, served-subject counts and the list of exam
 blueprints that can draw from it. Deactivating a bank removes all its questions from serving and exam

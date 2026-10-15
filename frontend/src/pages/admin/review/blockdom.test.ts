@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Block } from "../../../lib/types";
-import { blocksToHtml, collectTex, domToBlocks, hasTexDelims, pasteTextToBlocks, textWithTex } from "./blockdom";
+import { blocksToHtml, collectTex, domToBlocks, hasTexDelims, mathHtml, pasteTextToBlocks, textWithTex } from "./blockdom";
 
 const roundtrip = (b: Block[]) => {
   const el = document.createElement("div");
@@ -106,5 +106,14 @@ describe("pasteTextToBlocks (ChatGPT/Claude solution)", () => {
       { t: "p", c: [{ t: "s", v: "Ta có " }, { t: "m", tex: "x^2" }, { t: "s", v: " nên" }] },
       { t: "p", c: [{ t: "m", tex: "\\int_0^1 x\\,dx" }], display: true },
     ]);
+  });
+});
+
+describe("a paragraph that is one formula", () => {
+  const parse = (html: string) => { const el = document.createElement("div"); el.innerHTML = html; return domToBlocks(el); };
+  it("stays inline unless marked as a display formula (the server reads a missing flag as display)", () => {
+    expect(parse(mathHtml("\\dfrac{5}{6}"))).toEqual([{ t: "p", c: [{ t: "m", tex: "\\dfrac{5}{6}" }], display: false }]);
+    expect(parse(`<p>${mathHtml("x^2")}</p>`)).toEqual([{ t: "p", c: [{ t: "m", tex: "x^2" }], display: false }]);
+    expect(parse(`<p data-display="1">${mathHtml("x^2", false, true)}</p>`)).toEqual([{ t: "p", c: [{ t: "m", tex: "x^2" }], display: true }]);
   });
 });

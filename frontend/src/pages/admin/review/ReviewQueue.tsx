@@ -5,6 +5,7 @@ import { Empty, ErrorBox, Modal, Pager, Spinner, useAsync, useToast } from "../.
 import { get, post, qs } from "../../../lib/api";
 import { TYPE_LABELS } from "../../../lib/format";
 import { PageHead, StateBadge, errMsg, useUrlState } from "../common";
+import { NewQuestionButton } from "./NewQuestion";
 import { DIM_ICON, DIM_TONE, STATUS_LABEL, type QueueItem } from "./rtypes";
 import { useMeta } from "./useMeta";
 
@@ -44,6 +45,7 @@ export default function ReviewQueue() {
   return (
     <div>
       <PageHead title="Hàng đợi duyệt">
+        <NewQuestionButton className="btn secondary sm" />
         <Link className="btn ghost sm" to="/admin/review">Tổng quan duyệt</Link>
       </PageHead>
       {counts.data && (

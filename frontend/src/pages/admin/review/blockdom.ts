@@ -161,7 +161,9 @@ function para(c: Inline[], el?: HTMLElement): Block | null {
   c = trimInl(c);
   if (!c.length || isBlank(c)) return null;
   const p: Block = { t: "p", c };
-  if (c.length === 1 && c[0].t === "m" && (el?.dataset.display === "1" || el === undefined)) p.display = true;
+  // a paragraph that is one formula: say explicitly whether it is a display formula (the server takes a missing
+  // flag as display, which would turn an inline formula typed alone into an option into a centred display one)
+  if (c.length === 1 && c[0].t === "m") p.display = el?.dataset.display === "1" || el === undefined;
   return p;
 }
 
@@ -187,7 +189,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
   const flush = () => {
     const p = para(pending);
     if (p) {
-      if (p.t === "p" && p.display && pending.length) delete p.display;
+      if (p.t === "p" && p.display && pending.length) p.display = false;
       out.push(p);
     }
     pending = [];

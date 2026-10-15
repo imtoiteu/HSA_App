@@ -386,6 +386,25 @@ def _version(v: QuestionVersion | None, users: dict) -> dict | None:
             "created_by": users.get(v.created_by)}
 
 
+class CreateIn(BaseModel):
+    type: str = Field(max_length=40)
+    subject: str | None = Field(default=None, max_length=40)
+    topic: str | None = Field(default=None, max_length=200)
+    bank: str | None = Field(default=None, max_length=40)
+    note: str | None = Field(default=None, max_length=1000)
+
+
+@router.post("/questions")
+def create_question(body: CreateIn, db: Session = Depends(get_db), user: User = Depends(staff)):
+    """"Thêm câu hỏi": a new hand-entered question, then edited in the Review Studio like any other question
+    (draft → QA → approval). It is not served before approval."""
+    need(user, "edit")
+    q = _run(S.create_question, db, user, body.type, body.subject, body.topic, body.note, body.bank, _media())
+    db.commit()
+    return {"id": q.id, "external_id": q.external_id, "bank": S.MANUAL_BANK["code"] if not body.bank else body.bank,
+            "served": q.is_served}
+
+
 @router.get("/questions/{qid}")
 def detail(qid: int, db: Session = Depends(get_db), user: User = Depends(staff)):
     q = _q(db, qid)
@@ -415,6 +434,7 @@ def detail(qid: int, db: Session = Depends(get_db), user: User = Depends(staff))
                    "label": C.DIM_LABELS[d]}
     return {
         "id": q.id, "external_id": q.external_id, "bank_id": q.bank_id, "type": q.question_type,
+        "manual": (q.provenance or {}).get("origin") == "manual",
         "subject": q.subject_code, "subject_source": q.subject_source, "subject_override": q.subject_override,
         "upstream_subject": q.upstream_effective_subject, "classification_review": q.classification_review,
         "classification_confidence": q.classification_confidence, "topic": q.topic, "subtopic": q.subtopic,

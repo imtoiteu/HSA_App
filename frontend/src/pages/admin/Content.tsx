@@ -4,7 +4,8 @@ import { api, get, post, put, qs } from "../../lib/api";
 import { dateTime, num } from "../../lib/format";
 import { Confirm, Empty, ErrorBox, Pager, Spinner, useAsync, useToast } from "../../components/ui";
 import { errMsg, Json, PageHead, useUrlState } from "./common";
-import { AuditPanel, BankEditor, type BankFull, DeferredDocs, ManualQuestion } from "./BankTools";
+import { AuditPanel, BankEditor, type BankFull, DeferredDocs } from "./BankTools";
+import { NewQuestionDialog } from "./review/NewQuestion";
 
 // ------------------------------------------------------------------------------------------ corrections
 interface Correction {
@@ -144,7 +145,7 @@ export function Banks() {
       {editBank && <BankEditor bank={editBank === "new" ? null : editBank} onClose={() => setEditBank(null)}
                                onSaved={() => { setEditBank(null); banks.reload(); }} />}
       {docs && <DeferredDocs code={docs} onClose={() => setDocs(null)} />}
-      {manual && <ManualQuestion code={manual} onClose={() => setManual(null)} onSaved={() => banks.reload()} />}
+      {manual && <NewQuestionDialog bank={manual} onClose={() => setManual(null)} />}
       {banks.loading ? <Spinner /> : banks.error ? <ErrorBox error={banks.error} /> : (
         <div className="table-wrap"><table className="data">
           <thead><tr><th>Mã</th><th>Tên</th><th>Nguồn / phiên bản</th><th>Số câu</th><th>Đang phục vụ</th><th>Đề tương thích</th><th></th></tr></thead>

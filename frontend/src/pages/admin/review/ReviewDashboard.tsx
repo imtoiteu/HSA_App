@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ErrorBox, Spinner, useAsync } from "../../../components/ui";
 import { get } from "../../../lib/api";
 import { PageHead } from "../common";
+import { NewQuestionButton } from "./NewQuestion";
 import { useMeta } from "./useMeta";
 
 interface Stats {
@@ -30,6 +31,7 @@ export default function ReviewDashboard() {
   return (
     <div>
       <PageHead title="Review Studio">
+        <NewQuestionButton className="btn secondary" />
         <Link className="btn" to="/admin/review/queue">Mở hàng đợi duyệt</Link>
       </PageHead>
       <div className="grid cols-4 mb">

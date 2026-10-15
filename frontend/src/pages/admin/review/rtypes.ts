@@ -34,6 +34,7 @@ export interface VersionInfo {
 
 export interface Detail {
   id: number; external_id: string; type: string; subject: string | null; subject_source: string; subject_override: string | null;
+  manual: boolean;
   upstream_subject: string | null; classification_review: string | null; topic: string | null; group_key: string | null;
   editorial_state: string; editorial_states: string[]; state_notes: string[]; review_flags: string[]; content_flags: string[];
   content_flag_labels: Record<string, string>; policy_eligible: boolean; policy_reasons: string[]; served: boolean;
