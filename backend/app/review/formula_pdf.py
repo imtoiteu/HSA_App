@@ -1318,6 +1318,7 @@ class Result:
     shapes_used: int = 0
     bands: dict = field(default_factory=dict)  # page → (top, bottom) of the region checked
     stats: dict = field(default_factory=dict)
+    figures: list = field(default_factory=list)  # {"page", "box"} of the figures cut out (layout_question figures=True)
 
 
 LABEL_RE = re.compile(r"^Câu\s*(\d+)\s*[.:]")
@@ -1475,7 +1476,8 @@ def region(pages: dict[int, Page], first: int, number: int, size_hint=None):
     return parts
 
 
-def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: bool = False) -> Result:
+def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: bool = False,
+                    figures: bool = False) -> Result:
     """Rebuild question `number` starting on page `first`. stem_only: rebuild the stem and options only and read
     the worked solution's verdict ("Chọn đáp án X") from its text (used for another edition of the question,
     whose solution may hold a figure)."""
@@ -1523,6 +1525,15 @@ def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: 
                 txt = [g.size for g in glyphs if g.is_text]
                 size = median(txt) if txt else median([g.size for g in glyphs])
                 _CTX["size"] = size
+            figs = find_figures(pg, glines, top, bot, size) if figures else []
+            if figs:   # the figure's labels are part of its picture, not of the text
+                lab = {id(g) for f in figs for g in f["labels"]}
+                glyphs = [g for g in glyphs if id(g) not in lab]
+                for f in figs:
+                    for g in f["labels"]:
+                        g.used = True
+                    res.boxes.append((pno, *f["box"]))
+                    res.figures.append({"page": pno, "box": f["box"]})
             items = [glyph_item(g) for g in glyphs]
             glyph_items.extend(items)
             for it in items:
@@ -1536,7 +1547,7 @@ def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: 
                 g.used = True
                 res.boxes.append((pno, g.x0, g.top, g.x1, g.bot))
             rules = [r for r in pg.rules if not r.used and top <= r.y <= bot and r.x1 > 0 and r.x0 < pg.width]
-            shapes = [s for s in pg.shapes if overlap(s.top, s.bot, top, bot) > 0]
+            shapes = [s for s in pg.shapes if not s.used and overlap(s.top, s.bot, top, bot) > 0]
             items = build_structures(items, rules, size)
             loose = [r for r in rules if not r.used]
             if loose:
@@ -1553,6 +1564,11 @@ def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: 
                     res.boxes.append((pno, s.x0, s.top, s.x1, s.bot))
                 res.shapes_used += len(circ)
             lines = systems(make_lines(items, size), size)
+            for f in figs:   # a figure is a line of its own at its bottom edge: what is beside it comes first
+                b = f["box"]
+                fi = Item(b[0], b[2], b[1], b[3], b[3], size, "figure", extra={"page": pno, "box": b})
+                lines.append(Line(b[3], [fi], b[1], b[3], b[0], b[2]))
+            lines.sort(key=lambda L: L.base)
             # no symbol of one line may sit inside a structure placed on another line (a misread layout)
             for L1 in lines:
                 for a_ in L1.items:
@@ -1613,6 +1629,111 @@ def _cut_at_solution(parts):
     return out, found.pop()
 
 
+QED_MARKS = {"□", "■", "∎", "◻"}   # the end-of-solution box next to a figure is no label of it
+
+
+def is_qed(g) -> bool:
+    return g.ch in QED_MARKS or (g.font.startswith("MSAM") and g.code == 0x03)
+
+
+def find_figures(pg: Page, glines: list, top: float, bot: float, size: float) -> list[dict]:
+    """Drawings of the question that form a figure (a graph, a solid, a table drawn with lines): clusters of shapes
+    and strokes at least 2.5 em large, with the glyphs inside (labels). Refused when a figure's box cuts through a
+    line of text (text on both sides of it in one line)."""
+    shapes = [x for x in pg.shapes if not x.used and top <= (x.top + x.bot) / 2 <= bot]   # this question's only
+    seeds = [x for x in shapes if x.kind == "image" or max(x.x1 - x.x0, x.bot - x.top) >= 2.5 * size]
+    boxes = [[x.x0, x.top, x.x1, x.bot] for x in seeds]
+    pad = 0.5 * size
+    grown = True
+    while grown:   # merge overlapping boxes and swallow the strokes/shapes touching them
+        grown = False
+        for b in boxes:
+            for x in shapes:
+                if x.x1 >= b[0] - pad and x.x0 <= b[2] + pad and x.bot >= b[1] - pad and x.top <= b[3] + pad and \
+                        not (b[0] <= x.x0 and x.x1 <= b[2] and b[1] <= x.top and x.bot <= b[3]):
+                    b[:] = [min(b[0], x.x0), min(b[1], x.top), max(b[2], x.x1), max(b[3], x.bot)]
+                    grown = True
+            for r in pg.rules:
+                if not r.used and top <= r.y <= bot and r.x1 >= b[0] - pad and r.x0 <= b[2] + pad and b[1] - pad <= r.y <= b[3] + pad and \
+                        not (b[0] <= r.x0 and r.x1 <= b[2] and b[1] <= r.y <= b[3]):
+                    b[:] = [min(b[0], r.x0), min(b[1], r.y), max(b[2], r.x1), max(b[3], r.y)]
+                    grown = True
+        merged = []
+        for b in boxes:
+            m = next((c for c in merged if b[2] >= c[0] - pad and b[0] <= c[2] + pad and b[3] >= c[1] - pad and
+                      b[1] <= c[3] + pad), None)
+            if m is None:
+                merged.append(list(b))
+            else:
+                m[:] = [min(m[0], b[0]), min(m[1], b[1]), max(m[2], b[2]), max(m[3], b[3])]
+                grown = True
+        boxes = merged
+    figs = []
+    for cluster in boxes:
+        x0, y0, x1, y1 = cluster
+        # a clipped path (a graph cut to its axes) has a bounding box far beyond what is drawn: keep the box inside
+        # the question's band and shrink it to the ink of the rendered page
+        y0, y1 = max(y0, top), min(y1, bot)
+        ink = ink_box(pg, x0, y0, x1, y1)
+        if ink is None:
+            continue
+        x0, y0, x1, y1 = ink
+        if x1 - x0 < 2.5 * size and y1 - y0 < 2.5 * size:
+            continue
+        m = 0.3 * size
+        labels: list = []
+        while True:   # a label next to a label (y = x^β beside the curve) is a label too
+            found: list = []
+            inside = lambda g: x0 - m <= (g.x0 + g.x1) / 2 <= x1 + m and y0 - m <= (g.top + g.bot) / 2 <= y1 + m  # noqa: E731
+            for L in glines:
+                ins = [g for g in L if inside(g) and not is_qed(g)]
+                if not ins:
+                    # a label segment just above/below the drawing (dimensions, axis names): within its width and apart
+                    # from the text of the line by a gap
+                    near = [g for g in L if not g.ch.isspace() and not is_qed(g) and x0 - 1.6 * size <= (g.x0 + g.x1) / 2 <= x1 + 1.6 * size
+                            and y0 - 1.6 * size <= (g.top + g.bot) / 2 <= y1 + 1.6 * size]
+                    rest = [g for g in L if not g.ch.isspace() and g not in near]
+                    if near and (not rest or min(g.x0 for g in near) - max((g.x1 for g in rest if g.x1 <= min(n.x0 for n in near) + 1),
+                                                                            default=-1e9) >= 1.0 * size and
+                                 all(g.x1 <= min(n.x0 for n in near) + 1 or g.x0 >= max(n.x1 for n in near) - 1 for g in rest)):
+                        ins = near
+                out = [g for g in L if g not in ins and not g.ch.isspace()]
+                if ins and out and not (all(g.x1 <= x0 + 1 for g in out) or all(g.x0 >= x1 - 1 for g in out)):
+                    raise Unresolved("a figure cuts through a line of text")
+                found += ins
+            bx = [min([x0] + [g.x0 for g in found]), min([y0] + [g.top for g in found]),
+                  max([x1] + [g.x1 for g in found]), max([y1] + [g.bot for g in found])]
+            x0, y0, x1, y1 = bx
+            if len(found) == len(labels):
+                labels = found
+                break
+            labels = found
+        figs.append({"box": bx, "labels": labels, "cluster": cluster})
+    for f in figs:
+        b = f["cluster"]
+        for x in shapes:
+            if b[0] - 1 <= x.x0 and x.x1 <= b[2] + 1 and b[1] - 1 <= x.top and x.bot <= b[3] + 1:
+                x.used = True
+        for r in pg.rules:
+            if b[0] - 1 <= r.x0 and r.x1 <= b[2] + 1 and b[1] - 1 <= r.y <= b[3] + 1:
+                r.used = True
+    return figs
+
+
+def ink_box(pg: Page, x0: float, y0: float, x1: float, y1: float):
+    """Tight box of the dark pixels of the rendered page inside (x0, y0, x1, y1), in PDF points (None: no ink)."""
+    im, s = pg.image()
+    w, h = im.size
+    a0, a1 = max(0, int(x0 * s) - 1), min(w, int(x1 * s) + 2)
+    b0, b1 = max(0, int(y0 * s) - 1), min(h, int(y1 * s) + 2)
+    if a1 <= a0 or b1 <= b0:
+        return None
+    box = im.crop((a0, b0, a1, b1)).point(lambda v: 255 if v < 160 else 0).getbbox()
+    if box is None:
+        return None
+    return (a0 + box[0]) / s, (b0 + box[1]) / s, (a0 + box[2]) / s, (b0 + box[3]) / s
+
+
 def answer_circles(shapes, items, size):
     """The books circle the answer letter in 'Chọn đáp án X': a small closed curve around one glyph."""
     out = []
@@ -1634,8 +1755,10 @@ def structure(lines: list[tuple[int, Line]], number: int, size: float):
     cur_opt = None
     answer_said = None
     first = True
-    body_x0 = min(L.x0 for _, L in lines)
-    body_x1 = max(L.x1 for _, L in lines)
+    text_lines = [(p, L) for p, L in lines if not (len(L.items) == 1 and L.items[0].kind == "figure")]
+    body_x0 = min(L.x0 for _, L in text_lines)
+    body_x1 = max(L.x1 for _, L in text_lines)
+    figs = [(p, L.items[0].extra["box"]) for p, L in lines if len(L.items) == 1 and L.items[0].kind == "figure"]
     para: list | None = None
 
     def flush(target):
@@ -1645,8 +1768,23 @@ def structure(lines: list[tuple[int, Line]], number: int, size: float):
         para = None
 
     pending_opts = []
+    opt_top = None   # top of the first option line
     for pno, L in lines:
         items = sorted(L.items, key=lambda i: i.x0)
+        if len(items) == 1 and items[0].kind == "figure":
+            if first:
+                raise Unresolved("figure before the question")
+            if state == "options":
+                # a figure beside the stem that reaches down past the options ("hình vẽ bên"): it belongs to the
+                # stem when it starts above the first option line; one that starts among the options is refused
+                if opt_top is None or items[0].top >= opt_top - 0.3 * size:
+                    raise Unresolved("figure among the options")
+                stem.append({"t": "img", "fig": items[0].extra})
+                continue
+            target = stem if state == "stem" else sol
+            flush(target)
+            target.append({"t": "img", "fig": items[0].extra})
+            continue
         if first:
             # drop the 'Câu N.' label
             lab = [i for i in items if i.kind == "text" and i.bold]
@@ -1687,6 +1825,8 @@ def structure(lines: list[tuple[int, Line]], number: int, size: float):
                 if pre:
                     raise Unresolved("text before the first option label on its line")
             state = "options"
+            if opt_top is None:
+                opt_top = min(i.top for i in items)
             bounds = labels + [len(items)]
             for a, b in zip(bounds, bounds[1:]):
                 lab = items[a].val
@@ -1740,8 +1880,11 @@ def structure(lines: list[tuple[int, Line]], number: int, size: float):
         else:
             para.append({"t": "s", "v": " "})
             para.extend(nodes)
-        # a line that stops well before the right margin ends its paragraph
-        if L.x1 < body_x1 - 4 * size:
+        # a line that stops well before the right margin ends its paragraph (beside a figure, the figure's left edge
+        # is the margin)
+        right = min([body_x1] + [b[0] for p, b in figs if p == pno and b[1] < L.bot and b[3] > L.top
+                                  and b[0] >= L.x1 - 1])
+        if L.x1 < right - 4 * size:
             flush(target)
     flush(stem if state == "stem" else sol)
     if sorted(options) != list(OPT_LABELS):
@@ -1751,7 +1894,8 @@ def structure(lines: list[tuple[int, Line]], number: int, size: float):
             raise Unresolved("empty option")
     for blocks in [stem, sol] + list(options.values()):
         for b in blocks:
-            b["c"] = tidy(b["c"])
+            if b.get("t") == "p":
+                b["c"] = tidy(b["c"])
     if not stem:
         raise Unresolved("empty stem")
     content = {"stem": stem, "options": [{"label": k, "content": options[k]} for k in OPT_LABELS],

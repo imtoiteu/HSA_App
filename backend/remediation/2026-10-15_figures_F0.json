@@ -1,0 +1,32 @@
+[
+ {
+  "cq_id": "cq_0a68eb4ed0570f37",
+  "confirm_visual": true,
+  "note": "[F0] Hình cắt từ trang PDF nguồn (formula-pdf --figures), đối chiếu với ảnh trang gốc: đúng hình, đủ nhãn, đọc được, không lộ đáp án trong đề"
+ },
+ {
+  "cq_id": "cq_3baa82d83168bf12",
+  "confirm_visual": true,
+  "note": "[F0] Hình cắt từ trang PDF nguồn (formula-pdf --figures), đối chiếu với ảnh trang gốc: đúng hình, đủ nhãn, đọc được, không lộ đáp án trong đề"
+ },
+ {
+  "cq_id": "cq_446c832284ebef30",
+  "confirm_visual": true,
+  "note": "[F0] Hình cắt từ trang PDF nguồn (formula-pdf --figures), đối chiếu với ảnh trang gốc: đúng hình, đủ nhãn, đọc được, không lộ đáp án trong đề"
+ },
+ {
+  "cq_id": "cq_453e3093cbab85e3",
+  "confirm_visual": true,
+  "note": "[F0] Hình cắt từ trang PDF nguồn (formula-pdf --figures), đối chiếu với ảnh trang gốc: đúng hình, đủ nhãn, đọc được, không lộ đáp án trong đề"
+ },
+ {
+  "cq_id": "cq_8a5666de700b0a0a",
+  "confirm_visual": true,
+  "note": "[F0] Hình cắt từ trang PDF nguồn (formula-pdf --figures), đối chiếu với ảnh trang gốc: đúng hình, đủ nhãn, đọc được, không lộ đáp án trong đề"
+ },
+ {
+  "cq_id": "cq_b39b8173e4eed0ea",
+  "confirm_visual": true,
+  "note": "[F0] Hình cắt từ trang PDF nguồn (formula-pdf --figures), đối chiếu với ảnh trang gốc: đúng hình, đủ nhãn, đọc được, không lộ đáp án trong đề"
+ }
+]

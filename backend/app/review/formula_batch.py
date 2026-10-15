@@ -67,9 +67,22 @@ def tex_sha(t: str) -> str:
     return hashlib.sha256(t.encode("utf-8")).hexdigest()
 
 
+# figure mode: questions whose text layer lost a figure (NEEDS_VISUAL_REVIEW) — the figure is cut from the page.
+# A draft of this remediation whose figure has since been confirmed is "reviewed" (every dimension confirmed): it is
+# rebuilt again (unchanged content keeps the confirmations), re-checked and promoted
+CANDIDATES_FIG = BASE.replace("OR r.status = 'draft' AND", "OR r.status IN ('draft', 'reviewed') AND") + f"""
+      AND q.provenance->>'extraction_method' = 'pdf_text_layer'
+      AND q.editorial_states && '{{NEEDS_VISUAL_REVIEW}}'
+      AND q.editorial_states <@ '{{NEEDS_FORMULA_REVIEW,NEEDS_VISUAL_REVIEW,NEEDS_REVIEW}}'
+      AND q.question_type = 'single_choice'
+      AND q.review_flags <@ ARRAY{list(FLAGS_OK)}::varchar[]
+"""
+
+
 def candidates(db: Session, limit: int | None, documents: list[str] | None = None, retry: bool = False,
-               questions: list[int] | None = None) -> list[int]:
-    sql = f"SELECT q.id FROM question q JOIN question_review r ON r.question_id = q.id WHERE {CANDIDATES}"
+               questions: list[int] | None = None, figures: bool = False) -> list[int]:
+    sql = f"SELECT q.id FROM question q JOIN question_review r ON r.question_id = q.id WHERE " \
+          f"{CANDIDATES_FIG if figures else CANDIDATES}"
     if questions:
         sql += f" AND q.id IN ({','.join(str(int(x)) for x in questions)})"
     if not retry:  # handled before (refused with a reason, or rebuilt into a draft): only --retry looks again
@@ -104,7 +117,59 @@ def _reset(pages):
         F.frame(pg)
 
 
-def _layout_jobs(jobs: list[tuple], store, log=print, stem_fallback: bool = False) -> dict:
+def store_figures(db: Session, content: dict, media_root, ref: dict) -> int:
+    """Store the cropped figure PNGs of a rebuild in the media store (asset rows) and point the nodes at them."""
+    import io
+    from PIL import Image
+    from ..models import Asset
+    from ..sync.media import MediaStore
+    n = 0
+    for part in ("stem", "solution"):
+        for b in content.get(part) or []:
+            if b.get("t") == "img" and "png" in b:
+                data = b.pop("png")
+                box = b.pop("box", None)
+                im = Image.open(io.BytesIO(data))
+                sf = MediaStore(media_root).put_bytes(data, "png")
+                if db.get(Asset, sf.sha256) is None:
+                    db.add(Asset(sha256=sf.sha256, ext=sf.ext, mime="image/png", bytes=sf.bytes, width=im.width,
+                                 height=im.height, source_ref=f"{ref['document_id']}:p{box[0] if box else ref['page']}"[:80]))
+                    db.flush()
+                b.update({"src": f"{sf.sha256[:2]}/{sf.sha256}.{sf.ext}", "w": im.width, "h": im.height})
+                n += 1
+    return n
+
+
+def crop_figure(pdf, page: int, box: list, dpi: int = 200) -> bytes:
+    """PNG of a figure's box on the source page (a 2-point margin)."""
+    import subprocess
+    import tempfile
+    s = dpi / 72.0
+    x0, y0, x1, y1 = box
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(["pdftoppm", "-f", str(page), "-l", str(page), "-r", str(dpi), "-png", "-singlefile",
+                        "-x", str(int((x0 - 2) * s)), "-y", str(int((y0 - 2) * s)), "-W", str(int((x1 - x0 + 4) * s)),
+                        "-H", str(int((y1 - y0 + 4) * s)), str(pdf), f"{tmp}/f"], capture_output=True, timeout=120,
+                       check=True)
+        return Path(f"{tmp}/f.png").read_bytes()
+
+
+def _attach_figures(pdf, content: dict) -> int:
+    """Figure placeholders of a rebuild (layout_question figures=True) → image nodes carrying the cropped PNG
+    (stored in the media store when the draft is saved)."""
+    n = 0
+    for part in ("stem", "solution"):
+        for b in content.get(part) or []:
+            if b.get("t") == "img" and "fig" in b:
+                f = b.pop("fig")
+                b["png"] = crop_figure(pdf, f["page"], f["box"])
+                b["src"] = "__figure__"
+                b["box"] = [f["page"]] + [round(v, 1) for v in f["box"]]
+                n += 1
+    return n
+
+
+def _layout_jobs(jobs: list[tuple], store, log=print, stem_fallback: bool = False, figures: bool = False) -> dict:
     """jobs: [(key, sha, page, number, doc)] → {key: rebuild result}. Each PDF is parsed once per chunk."""
     out: dict = {}
     by_sha = collections.defaultdict(list)
@@ -136,18 +201,21 @@ def _layout_jobs(jobs: list[tuple], store, log=print, stem_fallback: bool = Fals
                 continue
             for key, _, page, number, doc in chunk:
                 _reset(pages)
-                res = F.layout_question(pages, page, number)
+                res = F.layout_question(pages, page, number, figures=figures)
                 if res.content is not None:
                     why = F.ink_check(pdf, res, pages)
                     if why:
                         res.content, res.reason = None, why
+                if res.content is not None and res.figures:
+                    _attach_figures(pdf, res.content)
                 if res.content is None and stem_fallback:
                     # another edition: its stem/options and the solution's verdict are enough to confirm
                     _reset(pages)
-                    res2 = F.layout_question(pages, page, number, stem_only=True)
+                    res2 = F.layout_question(pages, page, number, stem_only=True, figures=figures)
                     if res2.content is not None and not F.ink_check(pdf, res2, pages):
                         res = res2
                 out[key] = {"content": res.content, "reason": res.reason, "answer_said": res.answer_in_solution,
+                            "figures": len(res.figures) if res.content is not None else 0,
                             "ref": {"document_id": doc, "page": page, "pages": res.pages, "blob_sha256": sha,
                                     "question_number": number, "method": "pdf_layout", "engine": ENGINE,
                                     "batch": BATCH}}
@@ -164,7 +232,7 @@ def _same_rebuild(a: dict, b: dict) -> bool:
         [norm(o["content"]) for o in a["options"]] == [norm(o["content"]) for o in b["options"]]
 
 
-def rebuild(db: Session, qids: list[int], store, log=print) -> dict[int, dict]:
+def rebuild(db: Session, qids: list[int], store, log=print, figures: bool = False) -> dict[int, dict]:
     """Rebuild every question (no writes) from its representative occurrence; then rebuild its occurrences in
     the other editions of the book: one that rebuilds to the identical stem/options and carries a worked
     solution gives the solution and its "Chọn đáp án X" (an answer printed next to the question).
@@ -200,7 +268,7 @@ def rebuild(db: Session, qids: list[int], store, log=print) -> dict[int, dict]:
         "HAVING count(*) FILTER (WHERE v.content::text LIKE '%Chọn đáp án%') >= 0.5 * count(*)"),
         {"d": cand_docs})) if cand_docs else set()
     db.rollback()  # no transaction stays open while PDFs are parsed
-    out.update(_layout_jobs(jobs, store, log))
+    out.update(_layout_jobs(jobs, store, log, figures=figures))
     # second signals: the same question in other editions of the book (different page layout). An edition that
     # rebuilds to the identical stem and options confirms the formulas; one with a worked solution also gives the
     # solution and its "Chọn đáp án X"
@@ -219,7 +287,7 @@ def rebuild(db: Session, qids: list[int], store, log=print) -> dict[int, dict]:
             seen_docs.add(x["document_id"])
             sib_jobs.append(((qid, x["occurrence_id"]), shas[x["document_id"]], x["pages"][0],
                              x["source_question_number"], x["document_id"]))
-    sibs = _layout_jobs(sib_jobs, store, log, stem_fallback=True) if sib_jobs else {}
+    sibs = _layout_jobs(sib_jobs, store, log, stem_fallback=True, figures=figures) if sib_jobs else {}
     for (qid, occ_id), sb in sibs.items():
         b = out[qid]
         if sb["content"] is None or not _same_rebuild(b["content"], sb["content"]):
@@ -233,7 +301,8 @@ def rebuild(db: Session, qids: list[int], store, log=print) -> dict[int, dict]:
 
 def run(db: Session, limit: int | None = None, apply: bool = False, media_root=None, export_tex: str | None = None,
         documents: list[str] | None = None, tex_results: list[str] | None = None, retry: bool = False,
-        questions: list[int] | None = None, single_edition: bool = False, log=print) -> dict:
+        questions: list[int] | None = None, single_edition: bool = False, figures: bool = False,
+        log=print) -> dict:
     """single_edition: a rebuild found in one edition only may also be promoted (same answer/subject gates). Measured
     2026-10-15 on 100 random one-edition drafts against the page images: 98 exact, 2 lost a raised script at the top
     edge of the question's region — the engine now refuses those (glyph in the region on none of its lines)."""
@@ -242,8 +311,8 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
     stats = {"examined": 0, "rebuilt": 0, "drafts": 0, "promoted": 0, "unresolved": 0, "formula_fixed": 0,
              "structural_fixed": 0, "answer_fixed": 0, "visual_fixed": 0, "subject_fixed": 0, "source_conflicts": 0,
              "tex_unchecked": 0, "reasons": {}}
-    qids = candidates(db, limit, documents, retry, questions)
-    built = rebuild(db, qids, store, log=log)
+    qids = candidates(db, limit, documents, retry, questions, figures)
+    built = rebuild(db, qids, store, log=log, figures=figures)
     checked = {r.tex_sha: r.ok for r in db.execute(select(FormulaCheck.tex_sha, FormulaCheck.ok))}
     for path in tex_results or []:  # output of frontend/scripts/katex-check.mjs (same KaTeX as the web app)
         for row in json.loads(Path(path).read_text(encoding="utf-8")):
@@ -316,6 +385,7 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
                 + (f", solution says {said} ({said_ref['document_id']} p.{said_ref['page']})" if said else ""))
             continue
         ref = b["ref"]
+        nfig = store_figures(db, rebuilt, media_root, ref) if b.get("figures") else 0
         edit = {"stem": rebuilt["stem"], "options": rebuilt["options"], "solution": rebuilt.get("solution")}
         note = (f"[{BATCH}] dựng lại công thức từ bố cục trang PDF gốc (font/vị trí ký tự, gạch phân số, dấu căn; "
                 f"trang {', '.join(map(str, ref['pages']))}, câu {ref['question_number']}): {len(texs)} công thức, "
@@ -323,7 +393,9 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
                 "KaTeX hiển thị không lỗi"
                 + (f"; lời giải lấy từ cùng câu trong {sib['ref']['document_id']} trang {sib['ref']['page']} "
                    f"(câu {sib['ref']['question_number']}, đề và phương án dựng lại giống hệt)"
-                   if sib and sib["solution"] and rebuilt.get("solution") is sib["solution"] else ""))
+                   if sib and sib["solution"] and rebuilt.get("solution") is sib["solution"] else "")
+                + (f"; {nfig} hình cắt từ trang gốc (vùng nét vẽ của câu, kèm nhãn trong hình), cần xác nhận hình"
+                   if nfig else ""))
         try:
             S.save_edit(db, q, who, edit, note=note, source_ref=ref, media_root=media_root,
                         tex_checks={t: {"ok": True} for t in texs})  # stored in formula_check with the version
@@ -408,7 +480,13 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
         if dims.get("subject") != "ok":
             S.confirm(db, q, who, "subject", "ok", f"[{BATCH}] {q.subject_code}: {sj.reason}", media_root=media_root,
                       method=METHOD)
-        if C.images(v.content) or C.has_table(v.content):
+        if b.get("figures") and (C.images(v.content) or C.has_table(v.content)):
+            # figures cut from the page: a person (or the reviewer's contact-sheet check) confirms them first
+            if dims.get("visual") != "ok":
+                stats.setdefault("visual_pending", []).append(q.external_id)
+                unresolved("figure(s) cut from the source page (draft in Review Studio): visual confirmation needed")
+                continue
+        elif C.images(v.content) or C.has_table(v.content):
             unresolved("formula rebuilt (draft in Review Studio); the stored version carries a figure/table")
             continue
         if dims.get("visual") not in ("ok", "na"):

@@ -163,3 +163,50 @@ def test_script_fraction_ignores_a_script_of_the_line_above():
     assert res.reason == ""
     tex = [n["tex"] for b in res.content["stem"] for n in b["c"] if n["t"] == "m"]
     assert "x_5" in tex and r"y_{\frac{1}{5}}" in tex
+
+
+def drawn_page(glyphs, boxes):
+    """A page whose rendered image (72 dpi: one pixel per point) has ink exactly in `boxes`."""
+    from PIL import Image, ImageDraw
+    pages = page(glyphs, shapes=[F.Shape("LTCurve", *b) for b in boxes])
+    im = Image.new("L", (600, 840), 255)
+    d = ImageDraw.Draw(im)
+    for x0, x1, top, bot in boxes:
+        d.rectangle([x0, top, x1, bot], outline=0)
+    for gl in glyphs:
+        d.rectangle([gl.x0 + 1, gl.top + 2, gl.x1 - 1, gl.bot - 2], fill=0)
+    pages[1]._img = (im, 1.0)
+    return pages
+
+
+def figure_question(fig_top, fig_bot, extra=()):
+    gl, x = word("Câu 1.", "VNBX12", 40, 100)
+    gl += word("Cho đồ thị như hình", "VNR12", 90, 100)[0]
+    ob = fig_bot + 30
+    for k, lab in enumerate("ABCD"):
+        gl += [g(lab, "VNBX12", 50 + 120 * k, ob), g(".", "VNR12", 56 + 120 * k, ob)]
+        gl += word(str(k + 1), "CMR12", 66 + 120 * k, ob)[0]
+    gl += word("Câu 2.", "VNBX12", 40, ob + 60)[0]
+    return gl + list(extra)
+
+
+def test_figure_mode_cuts_the_drawing_into_the_stem():
+    gl = figure_question(120, 220)
+    pages = drawn_page(gl, [(200, 320, 120, 220)])
+    assert F.layout_question(pages, 1, 1).content is None  # without figure mode a drawing is unexplained
+    pages = drawn_page(gl, [(200, 320, 120, 220)])
+    res = F.layout_question(pages, 1, 1, figures=True)
+    assert res.reason == "" and len(res.figures) == 1
+    x0, y0, x1, y1 = res.figures[0]["box"]
+    assert x0 <= 201 and x1 >= 319 and y0 <= 121 and y1 >= 219
+    assert [b["t"] for b in res.content["stem"]] == ["p", "img"]
+    assert all(b["t"] == "p" for o in res.content["options"] for b in o["content"])
+
+
+def test_figure_box_leaves_out_the_end_of_solution_mark():
+    qed = g("(cid:3)", "MSAM10", 330, 225, code=0x03)  # the □ ending the solution, next to the figure's corner
+    lab = g("x", "CMMI12", 300, 214)                  # a label inside the figure
+    pg = drawn_page([lab, qed], [(200, 320, 120, 220)])[1]
+    figs = F.find_figures(pg, [[lab], [qed]], 110, 240, S)
+    assert len(figs) == 1 and figs[0]["labels"] == [lab]
+    assert figs[0]["box"][2] < qed.x0 and figs[0]["box"][3] < qed.bot
