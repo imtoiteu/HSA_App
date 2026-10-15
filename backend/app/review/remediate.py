@@ -762,6 +762,63 @@ FURNITURE = [re.compile(p_, re.I) for p_ in (
     r"\d\.\d[.:]\s*(?:TIẾNG ANH|SUY LUẬN KHOA HỌC|TOÁN HỌC|VĂN HỌC[^\n]{0,20})\s*$",
     r"TƯ DUY KHOA HỌC\s*/\s*GIẢI QUYẾT VẤN ĐỀ\s*$",
 )]
+# whole paragraphs of exam/page furniture the parser glued into a solution (measured 2026-10-15 on the served
+# questions flagged solution_contains_next_question: the running page header of the HSA reference exams split over
+# two paragraphs, the "end of part" footer) — only paragraphs that are exactly one of these are dropped
+FURNITURE_PARA = re.compile(r"^(?:ĐỀ THI THAM KHẢO|KỲ THI ĐÁNH GIÁ NĂNG LỰC|ĐỀ THI THAM KHẢO KỲ THI ĐÁNH GIÁ NĂNG LỰC|"
+                            r"Đề thi tham khảo|Kỳ thi đánh giá năng lực học sinh trung học phổ thông|"
+                            r"\(Nguồn ngữ liệu của đề thi được lưu tại Đại học Quốc gia Hà Nội\)|"
+                            r"(?:HẾT )?ĐỀ THI PHẦN \d|HẾT)$")
+# the title of the NEXT test in a collection: it and everything after it (that test's preamble) leave the solution
+NEXT_TEST = re.compile(r"^KIỂM TRA (?:MỘT TIẾT CHUYÊN ĐỀ [IVX]+|HỌC KÌ I{1,2}_?\s*ĐỀ SỐ \d+)$")
+
+
+def _para_text(b: dict) -> str:
+    return re.sub(r"\s+", " ", unicodedata.normalize("NFC", plain_text([b]))).strip() if b.get("t") == "p" else ""
+
+
+def strip_furniture_paragraphs(blocks: list | None) -> tuple[list | None, bool]:
+    """Drop furniture lines (a paragraph, or a line of a paragraph split by line breaks) and cut at a next-test title."""
+    if not blocks:
+        return blocks, False
+    out, changed = [], False
+    for b in blocks:
+        if b.get("t") != "p":
+            out.append(b)
+            continue
+        lines, cur = [], []
+        for n in b.get("c") or []:
+            if n.get("t") == "br":
+                lines.append(cur)
+                cur = []
+            else:
+                cur.append(n)
+        lines.append(cur)
+        kept, stop = [], False
+        for ln in lines:
+            t = _para_text({"t": "p", "c": ln})
+            if t and NEXT_TEST.match(t):
+                stop = True
+                break
+            if t and FURNITURE_PARA.match(t):
+                continue
+            kept.append(ln)
+        if len(kept) != len(lines):
+            changed = True
+            while kept and not _para_text({"t": "p", "c": kept[-1]}):
+                kept.pop()
+            c = []
+            for i, ln in enumerate(kept):
+                c += ([{"t": "br"}] if i else []) + ln
+            if c:
+                out.append(dict(b, c=c))
+        else:
+            out.append(b)
+        if stop:
+            return out, True
+    return out, changed
+
+
 # an exam-section header / divider that the parser glued as extra paragraph(s) to the last option of a section
 SECTION_HEAD = re.compile(r"^\s*(?:\d\.\d\.?\s*(?:TIẾNG ANH|SUY LUẬN KHOA HỌC|TOÁN HỌC|VĂN HỌC|KHOA HỌC|TƯ DUY)|"
                           r"-{3,}\s*Hết chủ đề|ĐỀ ÔN TẬP CHƯƠNG|ĐỀ THI THAM KHẢO|TƯ DUY KHOA HỌC|"
@@ -848,6 +905,10 @@ def strip_furniture(content: dict) -> tuple[dict, bool]:
     for k in ("stem", "solution", "explanation"):
         if c.get(k):
             c[k] = clean_blocks(c[k])
+    for k in ("solution", "explanation"):   # whole furniture paragraphs (never in the stem: it may quote a title)
+        if c.get(k):
+            c[k], ch = strip_furniture_paragraphs(c[k])
+            changed = changed or ch
     for o in c.get("options") or []:
         o["content"] = clean_blocks(o["content"])
     if c.get("group"):
