@@ -854,7 +854,8 @@ def keep_stack(part, y, above, size):
         full = [i for i in part if i.size >= 0.85 * max(j.size for j in part)]
         near = min(full, key=lambda i: abs(i.base - y)).base
         row = [i for i in full if abs(i.base - near) <= 0.25 * size or
-               (i.kind == "box" and overlap(i.top, i.bot, y - 2 * size, y + 2 * size) > 0 and abs(i.base - near) <= 1.2 * size)]
+               (i.kind == "box" and overlap(i.top, i.bot, y - 2 * size, y + 2 * size) > 0 and abs(i.base - near) <= 1.2 * size
+                and i.top < near - 0.3 * size and i.bot > near - 0.5 * size)]   # a box of the row reaches into it
         # the row must be next to the bar: a (smaller) symbol between it and the bar, right under/over it, is the
         # real numerator/denominator, and the row is a script of the neighbouring line (log₅ above log_{1/5})
         between = [i for i in part if i not in row and abs(i.base - y) < abs(near - y) - 0.1 * size and
@@ -1534,6 +1535,13 @@ def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: 
                 size = median(txt) if txt else median([g.size for g in glyphs])
                 _CTX["size"] = size
             figs = find_figures(pg, glines, top, bot, size) if figures else []
+            for a in figs:
+                for b in figs:
+                    # drawings side by side (Hình 1 … Hình 4 with captions under them) would be set one below the
+                    # other, their captions apart from them: which caption names which drawing is lost
+                    if a is not b and min(a["box"][3], b["box"][3]) - max(a["box"][1], b["box"][1]) > \
+                            0.3 * min(a["box"][3] - a["box"][1], b["box"][3] - b["box"][1]):
+                        raise Unresolved("figures side by side")
             if figs:   # the figure's labels are part of its picture, not of the text
                 lab = {id(g) for f in figs for g in f["labels"]}
                 glyphs = [g for g in glyphs if id(g) not in lab]
@@ -1637,6 +1645,7 @@ def _cut_at_solution(parts):
     return out, found.pop()
 
 
+CROP_MARGIN = 2.0   # points the cut figure takes around its box
 QED_MARKS = {"□", "■", "∎", "◻"}   # the end-of-solution box next to a figure is no label of it
 
 
@@ -1722,6 +1731,20 @@ def find_figures(pg: Page, glines: list, top: float, bot: float, size: float) ->
                 out = [g for g in L if g not in ins and not g.ch.isspace()]
                 if ins and out and not (all(g.x1 <= x0 + 1 for g in out) or all(g.x0 >= x1 - 1 for g in out)):
                     raise Unresolved("a figure cuts through a line of text")
+                if ins and out:
+                    # glyphs run on from a label without a gap: one segment — a longer label (y = x^β), or the end of
+                    # a line of text running up to the drawing (text set around a figure), which is no label
+                    chain = list(ins)
+                    grown_ = True
+                    while grown_:
+                        grown_ = False
+                        for b in [b for b in out if b not in chain]:
+                            if any((b.x0 - a.x1 if b.x0 >= a.x1 else a.x0 - b.x1) < 1.0 * size for a in chain):
+                                chain.append(b)
+                                grown_ = True
+                    if sum(1 for g in chain if g.ch.isalpha() and not MATH_FONT.match(g.font)) >= 2:
+                        raise Unresolved("a figure cuts through a line of text")
+                    ins = chain
                 found += ins
             # rotated labels ("5 cm" along a cylinder's side) are left out of the text lines: inside or next to the
             # drawing they belong to it (a rotated stamp font is the page's watermark)
@@ -1738,19 +1761,22 @@ def find_figures(pg: Page, glines: list, top: float, bot: float, size: float) ->
         # labels of a drawing are math (points, axes, values); words of the text font next to or inside it are a line
         # of the question's text (the end of a wrapped sentence, a paragraph between two drawings)
         for L in glines:
-            if sum(1 for g in L if g in labels and g.ch.isalpha() and not MATH_FONT.match(g.font)) >= 4:
+            if sum(1 for g in L if g in labels and g.ch.isalpha() and not MATH_FONT.match(g.font)) >= 2:
                 raise Unresolved("text inside a figure")
         # a drawing reaching down (or up) to a line of text (an axis ending at the options) must not take the tops of
         # that line's glyphs into the crop: the box stops short of every glyph that is no label of it
+        # (the crop takes CROP_MARGIN more on every side)
         cy = (bx[1] + bx[3]) / 2
+        mg = CROP_MARGIN + 0.5
         for L in glines:
             for g in L:
-                if g.ch.isspace() or g in labels or not (g.x1 > bx[0] and g.x0 < bx[2] and g.bot > bx[1] and g.top < bx[3]):
+                if g.ch.isspace() or g in labels or not (g.x1 > bx[0] and g.x0 < bx[2] and g.bot > bx[1] - mg and
+                                                         g.top < bx[3] + mg):
                     continue
                 if g.top >= cy:
-                    bx[3] = min(bx[3], g.top - 0.5)
+                    bx[3] = min(bx[3], g.top - mg)
                 elif g.bot <= cy:
-                    bx[1] = max(bx[1], g.bot + 0.5)
+                    bx[1] = max(bx[1], g.bot + mg)
         if bx[3] - bx[1] < 2.5 * size:
             raise Unresolved("a figure overlaps a line of text")
         figs.append({"box": bx, "labels": labels, "cluster": cluster})

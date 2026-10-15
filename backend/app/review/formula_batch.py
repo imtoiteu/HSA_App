@@ -144,12 +144,12 @@ def crop_figure(pdf, page: int, box: list, dpi: int = 200) -> bytes:
     """PNG of a figure's box on the source page (a 2-point margin)."""
     import subprocess
     import tempfile
-    s = dpi / 72.0
+    s, m = dpi / 72.0, F.CROP_MARGIN
     x0, y0, x1, y1 = box
     with tempfile.TemporaryDirectory() as tmp:
         subprocess.run(["pdftoppm", "-f", str(page), "-l", str(page), "-r", str(dpi), "-png", "-singlefile",
-                        "-x", str(int((x0 - 2) * s)), "-y", str(int((y0 - 2) * s)), "-W", str(int((x1 - x0 + 4) * s)),
-                        "-H", str(int((y1 - y0 + 4) * s)), str(pdf), f"{tmp}/f"], capture_output=True, timeout=120,
+                        "-x", str(int((x0 - m) * s)), "-y", str(int((y0 - m) * s)), "-W", str(int((x1 - x0 + 2 * m) * s)),
+                        "-H", str(int((y1 - y0 + 2 * m) * s)), str(pdf), f"{tmp}/f"], capture_output=True, timeout=120,
                        check=True)
         return Path(f"{tmp}/f.png").read_bytes()
 

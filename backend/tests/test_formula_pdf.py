@@ -271,3 +271,41 @@ def test_rotated_label_beside_a_drawing_is_in_its_box():
     pg.glyphs += [five, stamp]
     figs = F.find_figures(pg, [], 110, 240, S)
     assert figs[0]["box"][0] <= five.x0 and figs[0]["box"][2] < stamp.x0
+
+
+def test_figures_side_by_side_are_refused():
+    gl = figure_question(120, 220)
+    pages = drawn_page(gl, [(100, 220, 120, 220), (300, 420, 125, 215)])
+    res = F.layout_question(pages, 1, 1, figures=True)
+    assert res.content is None and "side by side" in res.reason
+
+
+def test_text_running_up_to_a_drawing_is_no_label():
+    # "… nghiệm t ∈ (2; e)." set around the drawing: its last formula reaches into the drawing's box
+    words, x = word("Ta có nghiệm", "VNR12", 110, 160)
+    tail = [g("t", "CMMI12", 184, 160), g("∈", "CMSY10", 190, 160, code=0x32), g("(", "CMR12", 196, 160),
+            g("2", "CMR12", 202, 160), g(")", "CMR12", 208, 160)]
+    gl = figure_question(120, 220, extra=words + tail)
+    pages = drawn_page(gl, [(200, 320, 120, 220)])
+    res = F.layout_question(pages, 1, 1, figures=True)
+    assert res.content is None and "cuts through a line of text" in res.reason
+
+
+def test_radical_of_the_fraction_below_is_no_part_of_a_denominator():
+    # B. 1/6 set right above D. √3/2 (options in two columns, rows 28 pt apart): D's radical sign hangs from its
+    # overline just under B's fraction bar
+    stem, x = word("Tính", "VNR12", 90, 100)
+    gl = stem + [g("1", "CMR12", 272, 145), g("6", "CMR12", 272, 161.6),
+                 g("√", "CMSY10", 262, 163.6, code=0x70, w=10), g("3", "CMR12", 272, 173.5), g("2", "CMR12", 272, 189.8)]
+    rules = [(262, 288, 150.4), (272, 278, 163.3), (262, 288, 178.6)]
+    pages = question(gl, rules=rules, base=100)
+    pages[1].glyphs = [x for x in pages[1].glyphs if not (x.base == 120)]  # options moved below the fractions
+    for k, lab in enumerate("ABCD"):
+        pages[1].glyphs += [g(lab, "VNBX12", 50 + 120 * k, 215), g(".", "VNR12", 56 + 120 * k, 215),
+                            g(str(k + 1), "CMR12", 66 + 120 * k, 215)]
+    pages[1].glyphs = [x for x in pages[1].glyphs if not (x.font == "VNBX12" and x.base == 160)]
+    pages[1].glyphs += word("Câu 2.", "VNBX12", 40, 260)[0]
+    res = F.layout_question(pages, 1, 1)
+    assert res.reason == "", res.reason
+    tex = [n["tex"] for b in res.content["stem"] for n in b["c"] if n["t"] == "m"]
+    assert r"\dfrac{1}{6}" in " ".join(tex) and r"\dfrac{\sqrt{3}}{2}" in " ".join(tex)
