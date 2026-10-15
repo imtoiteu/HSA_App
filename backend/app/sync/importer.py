@@ -231,17 +231,21 @@ def recompute_policy(db: Session, bank_id: int | None = None) -> dict:
 
 def apply_formula_checks(db: Session) -> dict:
     """Refresh the content-derived flags of current versions from stored content: formula_render_error
-    (from the formula_check table) and render_warning (placeholders in stem, options or shared passage)."""
+    (from the formula_check table), render_warning (placeholders in stem, options or shared passage) and
+    letter_answer_without_options (a lone A–D key on a question without options)."""
     failing = failing_tex(db)
     n = changed = 0
-    rows = db.execute(select(Question, QuestionVersion.content).join(
+    from ..content import answers as A
+    rows = db.execute(select(Question, QuestionVersion.content, QuestionVersion.answer).join(
         QuestionVersion, QuestionVersion.id == Question.current_version_id).execution_options(yield_per=1000))
-    derived = ("formula_render_error", "solution_formula_render_error", "render_warning")
-    for q, content in rows:
+    derived = ("formula_render_error", "solution_formula_render_error", "render_warning", "letter_answer_without_options")
+    for q, content, answer in rows:
         base = [f for f in q.content_flags if f not in derived]
         flags = set(base) | set(formula_flags(content, failing))
         if any(_has_warn(content.get(k)) for k in ("stem", "options", "group")):
             flags.add("render_warning")
+        if A.letter_key_without_options(content.get("options") or [], answer):
+            flags.add("letter_answer_without_options")
         flags = sorted(flags)
         if flags != sorted(q.content_flags):
             q.content_flags = flags

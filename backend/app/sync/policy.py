@@ -13,6 +13,7 @@ EDITORIAL_STATES = ["REJECTED", "NEEDS_FORMULA_REVIEW", "NEEDS_VISUAL_REVIEW", "
 APP_REASONS = {
     "group_context_missing": "Câu thuộc nhóm nhưng đoạn dữ liệu chung bị thiếu",
     "inline_options_in_short_response": "Câu trả lời ngắn có phương án A/B/C/D nằm trong đề",
+    "letter_answer_without_options": "Không có phương án nhưng đáp án là một chữ cái A–D (đề/lời giải bị tách sai)",
     "empty_stem": "Đề bài trống",
     "too_few_options": "Ít hơn 2 phương án",
     "empty_option": "Có phương án trống",

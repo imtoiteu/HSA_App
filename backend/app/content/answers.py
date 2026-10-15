@@ -164,6 +164,16 @@ def normalize_answer(qtype: str, raw: dict | None, source_type: str | None, opti
     return None, "answer_kind_unknown"
 
 
+LETTER_ONLY = re.compile(r"^\s*[A-Da-d]\s*[.)]?\s*$")
+
+
+def letter_key_without_options(options: list, answer: dict | None) -> bool:
+    """A key that is a lone option letter on a question without options. Measured on the served bank (2026-10-15,
+    838 questions, a random 30 all checked): a worked solution parsed as a question ("Ta có … Chọn D"), an essay,
+    drag-and-drop or true/false-table question carrying another question's key letter — never a real short answer."""
+    return bool(answer) and answer.get("kind") == "text" and not options and bool(LETTER_ONLY.match(answer.get("text") or ""))
+
+
 def scoring_mode(inp: dict, answer: dict | None, has_solution: bool, text_auto: bool = False) -> str:
     """auto: the app can score deterministically; self_check: the student compares with the key or
     the worked solution; none: nothing to compare with."""

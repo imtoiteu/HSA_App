@@ -578,6 +578,8 @@ def build_question(src: UpstreamSource, q: dict, subject_of=lambda s: s, text_au
         reasons.append("group_context_missing")
     if q["question_type"] == "short_response" and INLINE_OPTIONS.search(stem_md):
         reasons.append("inline_options_in_short_response")
+    if A.letter_key_without_options(options, answer):
+        reasons.append("letter_answer_without_options")
     if not R.plain_text(stem).strip() and not any(b["t"] in ("img", "table") for b in stem):
         reasons.append("empty_stem")
     if inp["kind"] == "choice":

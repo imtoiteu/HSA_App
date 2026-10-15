@@ -421,7 +421,7 @@ def version_hash(content: dict, answer: dict | None) -> str:
 CONTENT_FLAGS = {"empty_stem", "too_few_options", "empty_option", "render_warning", "answer_not_in_options",
                  "answer_empty", "answer_without_options", "group_context_missing", "no_input",
                  "inline_options_in_short_response", "answer_unparseable", "answer_kind_unknown",
-                 "parts_incomplete"}
+                 "parts_incomplete", "letter_answer_without_options"}
 
 
 def derived_flags(content: dict, answer: dict | None) -> set:
@@ -448,6 +448,8 @@ def derived_flags(content: dict, answer: dict | None) -> set:
         flags.add("group_context_missing")
     if _has_warn(stem) or _has_warn(options) or (g and _has_warn(g)):
         flags.add("render_warning")
+    if A.letter_key_without_options(options, answer):
+        flags.add("letter_answer_without_options")
     if answer and answer.get("kind") == "choice":
         labels = {o["label"] for o in options}
         if not labels:
