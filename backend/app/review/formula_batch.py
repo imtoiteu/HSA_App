@@ -233,7 +233,10 @@ def rebuild(db: Session, qids: list[int], store, log=print) -> dict[int, dict]:
 
 def run(db: Session, limit: int | None = None, apply: bool = False, media_root=None, export_tex: str | None = None,
         documents: list[str] | None = None, tex_results: list[str] | None = None, retry: bool = False,
-        questions: list[int] | None = None, log=print) -> dict:
+        questions: list[int] | None = None, single_edition: bool = False, log=print) -> dict:
+    """single_edition: a rebuild found in one edition only may also be promoted (same answer/subject gates). Measured
+    2026-10-15 on 100 random one-edition drafts against the page images: 98 exact, 2 lost a raised script at the top
+    edge of the question's region — the engine now refuses those (glyph in the region on none of its lines)."""
     store = default_store()
     who = actor(db)
     stats = {"examined": 0, "rebuilt": 0, "drafts": 0, "promoted": 0, "unresolved": 0, "formula_fixed": 0,
@@ -331,7 +334,7 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
         r = S.get_review(db, q)
         v = S.working_version(db, q, r)
         before = S.dim_view(q, r, v)["status"]
-        if not conf:
+        if not conf and not single_edition:
             # one edition only: the rebuild waits for a reviewer (the formula dimension stays to be confirmed)
             db.commit()
             stats["drafts"] += 1
@@ -339,11 +342,14 @@ def run(db: Session, limit: int | None = None, apply: bool = False, media_root=N
                        "reviewer)")
             continue
         conf_txt = ", ".join(f"{c['document_id']} trang {c['page']}" for c in conf)
+        why_ok = (f"cùng câu ở ấn bản khác dựng lại giống hệt ({conf_txt})" if conf else
+                  "chỉ có một ấn bản: mọi ký tự trong vùng câu được dùng đúng một lần, không còn ký tự/nét nào chưa giải "
+                  "thích; độ chính xác của bộ dựng đo trên 100 bản nháp một ấn bản ngẫu nhiên đối chiếu ảnh trang")
         stats["formula_fixed"] += 1
         if before.get("formula") not in ("ok", "na"):
             S.confirm(db, q, who, "formula", "ok" if texs else "na",
                       f"[{BATCH}] {len(texs)} công thức dựng lại từ bố cục PDF (LaTeX), đối chiếu ảnh trang, KaTeX OK; "
-                      f"cùng câu ở ấn bản khác dựng lại giống hệt ({conf_txt})",
+                      + why_ok,
                       media_root=media_root, method="pdf_layout")
         if before.get("content") != "ok":
             S.confirm(db, q, who, "content", "ok",

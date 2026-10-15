@@ -166,7 +166,7 @@ def cmd_formula_pdf(a):
     db = SessionLocal()
     r = run(db, limit=a.limit, apply=a.apply, media_root=get_settings().media_root, export_tex=a.export_tex,
             documents=a.document or None, tex_results=a.tex_results or None, retry=a.retry,
-            questions=a.question or None,
+            questions=a.question or None, single_edition=a.single_edition,
             log=(lambda *x: None) if a.quiet else print)
     print(json.dumps(r, ensure_ascii=False))
 
@@ -332,6 +332,8 @@ def main(argv=None):
     s.add_argument("--retry", action="store_true", help="also re-examine questions this batch handled before")
     s.add_argument("--question", type=int, action="append", help="only this question id (repeatable)")
     s.add_argument("--apply", action="store_true", help="save drafts/approvals (default: dry run)")
+    s.add_argument("--single-edition", action="store_true",
+                   help="also promote a rebuild found in one edition only (same answer/subject gates)")
     s.add_argument("--quiet", action="store_true")
     s.set_defaults(fn=cmd_formula_pdf)
     s = sub.add_parser("formula-word",

@@ -1505,6 +1505,14 @@ def layout_question(pages: dict[int, Page], first: int, number: int, stem_only: 
             bot = (stop_y - 1) if stop_y is not None else pg.body_bot - 1
             bot = max(bot, max(g.bot for g in glyphs) + 2)
             res.bands[pno] = (top, bot)
+            # every glyph inside the band belongs to the question: one left out of its lines (a raised exponent of
+            # a numerator that rises above the first line, x in 9^x) would silently vanish from the rebuild
+            mine = {id(g) for L in glines for g in L}
+            left = [g for g in pg.glyphs if id(g) not in mine and not g.ch.isspace()
+                     and top + 2 <= (g.top + g.bot) / 2 <= bot - 1 and 0 < g.x0 < pg.width]
+            if left:
+                raise Unresolved(f"glyph {left[0].ch!r} inside the question's region is on none of its lines "
+                                 f"(page {pno}, y {left[0].base:.0f})")
             if size is None:
                 txt = [g.size for g in glyphs if g.is_text]
                 size = median(txt) if txt else median([g.size for g in glyphs])
