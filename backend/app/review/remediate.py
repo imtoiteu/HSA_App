@@ -1064,6 +1064,17 @@ BATCHES["contamination_only"] = BASE + """
       AND q.question_type = 'single_choice' AND NOT q.has_formula
       AND q.subject_source IN ('upstream_effective', 'admin', 'original')
 """
+# Word questions flagged NEEDS_REVIEW only for checks the source verification settles: a gap in the section's
+# numbering (the question itself is located and compared with the source text), label/Unicode normalisation.
+# (A key read only from a highlighted option is one source: such questions stay for a reviewer.) No formula, no
+# figure, no shared passage.
+BATCHES["review_flags_minor"] = BASE + """
+      AND q.editorial_states = '{NEEDS_REVIEW}' AND q.policy_reasons = ARRAY['state:NEEDS_REVIEW']::varchar[]
+      AND q.review_flags <@ ARRAY['numbering_gap_in_section','not_nfc_normalized','option_label_normalized']::varchar[]
+      AND q.state_notes = '{}' AND q.provenance->>'extraction_method' IN ('docx_native', 'doc->docx(libreoffice)')
+      AND q.question_type = 'single_choice' AND NOT q.has_formula AND NOT q.has_image AND NOT q.has_table
+      AND q.group_key IS NULL
+"""
 # questions flagged only because they come from a PDF text layer, in subjects without mathematics (the text layer
 # can flatten formulas — x², m/s² — which a text comparison cannot detect, so math/physics/chemistry wait)
 BATCHES["pdf_text_nonmath"] = BASE + """
